@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "target_model": "GQ50Q60TGUXZG",
+  "reference_firmware": "T-NKLDEUC 2743.0",
+  "research_date": "2026-11-08",
+  "status": "BLOCKED",
+  "downloaded_original_files": 0,
+  "exact_samsung_kernel_source_verified": false,
+  "original_nikel_defconfig_verified": false,
+  "exact_samsung_toolchain_verified": false,
+  "android_graphics_stack_ready": false,
+  "candidates": [
+    {
+      "id": "samsung_q60t_gpl_kernel",
+      "role": "kernel_source_and_board_config",
+      "origin": "Samsung Open Source Release Center",
+      "url": "https://opensource.samsung.com/uploadSearch?searchValue=Q60T",
+      "artifact_filename": null,
+      "evidence": "Historisch von Synacktiv in GreHack 2021 als Q60T-Kernelquelle mit Samsung-UEP-Patches dokumentiert",
+      "verified_download": false,
+      "verified_for_firmware_2743_0": false,
+      "notes": "Kein konkret referenzierbarer Nike-L-Quellpaketname, SHA-256, exakter Defconfig-Pfad oder 2743.0-Release-Identifier zugänglich. Portal bzw. Samsung-Support benötigt."
+    },
+    {
+      "id": "tizen_gcc_6_2_1_source",
+      "role": "compiler_source_only",
+      "origin": "Official Tizen CDN",
+      "url": "https://cdn.download.tizen.org/sdk/tizenstudio/tizen_studio_source/source/gcc-6.2.1.tar.gz",
+      "artifact_filename": "gcc-6.2.1.tar.gz",
+      "indexed_size_bytes": 122609288,
+      "evidence": "Offizieller Tizen-Index nennt dieses GCC-6.2.1-Quellarchiv",
+      "verified_download": false,
+      "verified_for_firmware_2743_0": false,
+      "notes": "Quelltext des Compilers, keine lauffertige ARM-Cross-Toolchain und kein Beweis für Samsung-spezifische Patches oder Buildflags."
+    },
+    {
+      "id": "linaro_gcc_6_2_1_2016_11_arm32",
+      "role": "prebuilt_cross_toolchain_candidate",
+      "origin": "Linaro release archive (referenziert von Samsung Research UK)",
+      "url": "https://releases.linaro.org/components/toolchain/binaries/6.2-2016.11/arm-linux-gnueabi/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabi.tar.xz",
+      "artifact_filename": "gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabi.tar.xz",
+      "evidence": "Samsung Research UK IoT Meetup nennt diesen Cross-Compiler bei Tizen/Linaro-GCC-6.2.1-Boardreferenz",
+      "verified_download": false,
+      "verified_for_firmware_2743_0": false,
+      "notes": "Linaro 2016.11, Referenzbanner nennt Tizen/Linaro 20161213; nicht identisch nachgewiesen. Host-Linux x86_64, ARM32-Target."
+    },
+    {
+      "id": "arm_bifrost_r11p0_kernel",
+      "role": "candidate_mali_kernel_driver_only",
+      "origin": "Arm developer downloads",
+      "url": "https://developer.arm.com/Downloads/-/Bifrost%20Mali%203rd%20Gen%20GPU%20Architecture",
+      "artifact_filename": "BX301A01B-SW-99002-r11p0-01rel0.tgz",
+      "publisher_md5": "b5dd72297b50e700278adc372fafea94",
+      "evidence": "Arm veröffentlicht Linux Bifrost r11p0, 2018-03-09, ca. 567 KiB",
+      "verified_download": false,
+      "verified_for_firmware_2743_0": false,
+      "notes": "Nur GPL-Kernelkomponente. Arm-Seite enthält Nutzungsbedingungen für Downloads. Kein Samsung-Display-Treiber, kein passender libmali-EGL-/Gralloc-/Composer-Userspace und keine verifizierte Nike-L-KABI."
+    },
+    {
+      "id": "linux_4_1_10_kants_comparison_only",
+      "role": "comparison_tree_incompatible_target",
+      "origin": "Community GitHub mirror",
+      "url": "https://github.com/CE1CECL/linux-18_KantS",
+      "artifact_filename": null,
+      "evidence": "GitHub-Makefile enthält Kernelversion 4.1.10, aber Projekt bezeichnet eine ältere KantS-Plattform",
+      "verified_download": false,
+      "verified_for_firmware_2743_0": false,
+      "known_wrong_board": true,
+      "notes": "Ausschließlich für Strukturvergleiche; niemals als Samsung Nike-L-Quellenersatz oder Bootimage verwenden."
+    }
+  ],
+  "required_next_evidence": [
+    "Originales Samsung-Q60T-GPL-Archiv samt Releasekennung, SHA-256 und Lizenz",
+    "Linux-4.1.10-Nike-L-Quellbaum und von Samsung ausgelieferte ARM-Defconfig",
+    "Tatsächlich von Samsung verwendete Cross-Compiler-Binaries/Patches und vollständige Buildflags",
+    "Zum Samsung-Kernel und Mali-G51 passende Kernel-ABI sowie EGL/Gralloc/Composer und Displaypfad",
+    "Sicherer, rückgängig machbarer Bootweg mit unabhängig bestätigtem Recovery"
+  ],
+  "boot_or_flash_attempted": false,
+  "installation_or_boot_image_available": false
+}

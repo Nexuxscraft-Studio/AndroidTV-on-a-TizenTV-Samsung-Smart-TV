@@ -1,4 +1,4 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 007)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 008)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
@@ -35,9 +35,15 @@ Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmwar
   einen integrierten Fail-Closed-Check und GitHub-CI für synthetische
   Tests. **Ein Samsung-Kernel wurde mangels passendem Originalquellpaket
   und Toolchain weiterhin nicht erfolgreich gebaut.**
+- Build 008 dokumentiert **konkrete offizielle Fundstellen** für Tizen-
+  GCC-6.2.1-Quellen, einen Linaro-Cross-Compiler-Kandidaten und Arms
+  Mali-Bifrost-r11p0-Kerneltreiber. Die exakte Samsung-Nike-L-
+  GPL-Kernelquelle und Defconfig sind **nicht bezogen**. Eine strengere
+  Compilerprüfung verhindert einen falschen „passenden Toolchain“-Befund.
 - Ein echtes Android-Bootimage, ein entsperrter Bootloader und passende
   Android-Hardwaretreiber **existieren hier noch nicht**.
 - Neue Erkenntnisse, Treibermatrix und offene Sicherheitsbedingungen:
+  [BUILD008_REPORT.md](BUILD008_REPORT.md),
   [BUILD007_REPORT.md](BUILD007_REPORT.md),
   [BUILD006_REPORT.md](BUILD006_REPORT.md) sowie
   [BUILD005_REPORT.md](BUILD005_REPORT.md). Die Portierungswege stehen in
@@ -79,6 +85,8 @@ die passende offizielle Firmware von der Samsung-Supportseite nötig.
   GPL-Quellbaum und passenden ARM-Cross-Compiler; diese fehlen derzeit.
 - Build 007: integrierte Prüfungen benötigen weiterhin nur die
   Python-Standardbibliothek; CI testet unter Python 3.11 und 3.12.
+- Build 008: Quellenverzeichnis und Tests bleiben offline und benötigen
+  keine zusätzlichen Pakete; **kein automatischer Fremdquellendownload**.
 
 ## In fünf Minuten prüfen
 
@@ -135,6 +143,9 @@ python3 q60t_gpu_strategy.py \
 
 # Build 007: Alle Gates in einem Offline-Bericht prüfen:
 python3 q60t_build007_preflight.py
+
+# Build 008: Fundstellen und begrenzte Herkunftsnachweise lesen:
+# BUILD008_REPORT.md und porting/source-candidates-build008.json
 
 # REA selbst ausführen (Node.js/npm nötig, ohne globale Installation):
 npx --yes rea-agents@latest inspect-devicetree /pfad/zu/decrypted/dtb.bin --format json

@@ -93,3 +93,21 @@ Die historische Quelle von Synacktiv benennt ausdrücklich die
 [Q60T-Suche im Samsung OSSRC](https://opensource.samsung.com/uploadSearch?searchValue=Q60T).
 Benötigt werden das tatsächliche Releasepaket, dessen Build-Anleitung,
 die Nike-L-Defconfig, Compiler und eine Prüfung der Herkunft.
+
+## Build 008 – Fundstellen und Compiler-Abgrenzung
+
+Details und Quellenlinks: [BUILD008_REPORT.md](../BUILD008_REPORT.md).
+
+- Der [Tizen-CDN](https://cdn.download.tizen.org/sdk/tizenstudio/tizen_studio_source/source/)
+  führt `gcc-6.2.1.tar.gz` als **GCC-Quellarchiv**, nicht als
+  fertig verwendbare Samsung-Toolchain.
+- Ein [Samsung-Research-UK-Projekt](https://github.com/SamsungResearchUK-IoT-Meetup/samsung-tf-lite/wiki/3.-Build-%26%26-Run)
+  nennt einen Linaro-GCC-6.2.1-ARM32-Cross-Compiler **2016.11**.
+  Unser Firmwarebanner meldet `Tizen/Linaro GCC 6.2.1 (20161213)`;
+  aus gleicher Versionsnummer folgt **keine** identische Toolchain.
+- `toolchain_version_matches_reference` und `toolchain_target_is_arm32`
+  zeigen nur technische Ähnlichkeit. Die strengere Prüfung
+  `matching_tizen_linaro_toolchain` bleibt bis zu einem unabhängig
+  belegten Samsung-Compiler-Abgleich `false`.
+- Ein 2018er Samsung-**KantS**-Linux-4.1.10-Baum ist nicht der
+  **Nike-L**-Baum und darf die fehlenden Originalquellen nicht ersetzen.

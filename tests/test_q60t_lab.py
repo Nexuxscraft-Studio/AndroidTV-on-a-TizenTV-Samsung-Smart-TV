@@ -273,6 +273,33 @@ class KernelBuildTests(unittest.TestCase):
             self.assertEqual(steps[2][-1], "olddefconfig")
             self.assertEqual(steps[3][-1], "zImage")
             self.assertFalse(report["checks"]["samsung_gpl_source_available"])
+            self.assertTrue(report["checks"]["toolchain_version_matches_reference"])
+            self.assertFalse(report["checks"]["matching_tizen_linaro_toolchain"])
+
+    def test_matching_compiler_banner_does_not_prove_samsung_toolchain(self):
+        report = q60t_kernel_build.make_plan(
+            None, None, None, None, toolchain_override={
+                "reference_version_match": True,
+                "arm32_target_match": True,
+                "tizen_linaro_brand_claimed": True,
+                "exact_samsung_toolchain_provenance_verified": False,
+            })
+        self.assertTrue(report["checks"]["toolchain_target_is_arm32"])
+        self.assertFalse(report["checks"]["matching_tizen_linaro_toolchain"])
+        self.assertEqual(report["status"], "BLOCKED")
+
+    def test_build008_source_registry_separates_findings_from_downloads(self):
+        catalog = json.loads((Path(__file__).resolve().parents[1]
+                              / "porting/source-candidates-build008.json").read_text(encoding="utf-8"))
+        self.assertEqual(catalog["target_model"], "GQ50Q60TGUXZG")
+        self.assertEqual(catalog["status"], "BLOCKED")
+        self.assertEqual(catalog["downloaded_original_files"], 0)
+        candidates = {item["id"]: item for item in catalog["candidates"]}
+        self.assertEqual(candidates["arm_bifrost_r11p0_kernel"]["artifact_filename"],
+                         "BX301A01B-SW-99002-r11p0-01rel0.tgz")
+        self.assertTrue(candidates["linux_4_1_10_kants_comparison_only"]["known_wrong_board"])
+        self.assertFalse(any(item["verified_for_firmware_2743_0"]
+                             for item in catalog["candidates"]))
 
     def test_kernel_source_mismatch_rejected(self):
         with tempfile.TemporaryDirectory() as temp:

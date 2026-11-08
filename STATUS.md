@@ -1,4 +1,4 @@
-# Forschungsprotokoll – Build 007
+# Forschungsprotokoll – Build 008
 
 Stand: 08.11.2026
 
@@ -133,6 +133,25 @@ Stand: 08.11.2026
 - **46** synthetische Python-Tests erfolgreich.
 - Neue Berichte in `reports/*build007.json` und `BUILD007_REPORT.md`.
 - Kein neuer Kernel, kein Android-Systemimage und kein Bootexperiment.
+
+## Build 008 – offizielle Bezugsquellen dokumentiert
+
+- Samsung-GPL-Quellpakete für den Q60T sind durch die Synacktiv-Forschung
+  historisch belegt; **eine 2743.0-Nike-L-Paket-ID und die Defconfig fehlen**.
+- Der Tizen-CDN listet `gcc-6.2.1.tar.gz` (Compilerquelltext, **keine**
+  fertig vorbereitete Samsung-ARM-Toolchain).
+- Ein von Samsung Research UK dokumentierter ARM32-Linaro-6.2.1-
+  Cross-Compiler aus **2016.11** ist ein **nicht verifizierter Kandidat**
+  gegenüber dem Samsung-Referenzbanner `20161213`.
+- Arm listet GPL-Bifrost-Treiber **r11p0** mit offizieller Paketkennung
+  und MD5. Das ist nur ein Kernelbaustein, keine Android-Grafik-HAL.
+- Die Host-Kernel-Prüfung kontrolliert nun ARM32-Target und Versionsmatch
+  getrennt und akzeptiert keinen Compiler ohne unabhängigen
+  Samsung-Toolchain-Herkunftsnachweis als exakt passend.
+- **48** synthetische Python-Tests erfolgreich. Downloadstatus und
+  Quellenfindungen stehen in `BUILD008_REPORT.md` und
+  `porting/source-candidates-build008.json`.
+- **Kein Originalkernel gebaut, keine Mali-HAL portiert, kein Boot getestet.**
 
 ## Noch nicht gemacht (und nicht behauptet)
 

@@ -64,11 +64,23 @@ def toolchain_details(prefix: str | None) -> dict | None:
     try:
         output = subprocess.run([gcc, "--version"], capture_output=True,
                                 text=True, timeout=10, check=True)
+        target = subprocess.run([gcc, "-dumpmachine"], capture_output=True,
+                                text=True, timeout=10, check=True)
     except (subprocess.TimeoutExpired, OSError, subprocess.CalledProcessError):
         return None
     version_line = output.stdout.splitlines()[0][:180] if output.stdout else ""
-    return {"compiler": gcc, "version_line": version_line,
-            "reference_version_match": EXPECTED_GCC in version_line}
+    triplet = target.stdout.strip()[:120]
+    return {
+        "compiler": gcc,
+        "version_line": version_line,
+        "target_triplet": triplet,
+        "reference_version_match": bool(re.search(r"(?<![0-9.])6\.2\.1(?![0-9.])", version_line)),
+        "arm32_target_match": bool(re.match(r"^arm(?!64|v8)[a-z0-9_-]*$", triplet)),
+        "tizen_linaro_brand_claimed": bool(re.search(r"Tizen/Linaro", version_line, re.I)),
+        # Self-reported compiler strings do NOT prove that this compiler was
+        # used by Samsung to produce the exact 2743.0 kernel.
+        "exact_samsung_toolchain_provenance_verified": False,
+    }
 
 
 def make_plan(source: Path | None, config: Path | None,
@@ -85,7 +97,14 @@ def make_plan(source: Path | None, config: Path | None,
         "source_provenance_for_exact_2743_firmware": False,
         "kernel_config_available": config_info is not None,
         "kernel_config_basic_arm_flags": bool(config_info and config_info["required_flags_present"]),
-        "matching_tizen_linaro_toolchain": bool(compiler and compiler.get("reference_version_match")),
+        "toolchain_version_matches_reference": bool(compiler and compiler.get("reference_version_match")),
+        "toolchain_target_is_arm32": bool(compiler and compiler.get("arm32_target_match")),
+        "matching_tizen_linaro_toolchain": bool(
+            compiler and compiler.get("reference_version_match")
+            and compiler.get("arm32_target_match")
+            and compiler.get("tizen_linaro_brand_claimed")
+            and compiler.get("exact_samsung_toolchain_provenance_verified")
+        ),
         "output_path_provided": bool(output),
     }
     # Provenance requires manual verification of an actual Samsung OSSRC

@@ -94,3 +94,15 @@ Quellen: [Arm Bifrost GPL-Kerneltreiber](https://developer.arm.com/Downloads/-/B
 
 **Ergebnis Build 007:** Beide Pfade `BLOCKED` bis exakte Quellen,
 Treiber-ABI, HALs und reale Anzeigeausgabe geprüft sind.
+
+## Build 008 – präziser Arm-Kernelquellen-Kandidat
+
+Die offizielle [Arm-Bifrost-Downloadseite](https://developer.arm.com/Downloads/-/Bifrost%20Mali%203rd%20Gen%20GPU%20Architecture)
+listet den Linux-GPL-Kerneltreiber `BX301A01B-SW-99002-r11p0-01rel0.tgz`
+vom **09.03.2018** (Arm-MD5:
+`b5dd72297b50e700278adc372fafea94`). Das ist ein konkreter
+**Quellkandidat**, kein verifizierter Treiber für die Samsung-Firmware
+`2743.0`. Arm weist auf die nötige versionskompatible kommerzielle
+DDK-/Userspace-Komponente hin. Der original Samsung-Kbase-ABI,
+DRM-/Panel-/Composer-Pfad und die Rechte zur Weiterverteilung fehlen
+weiterhin. Details: [BUILD008_REPORT.md](../BUILD008_REPORT.md).
