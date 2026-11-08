@@ -1,4 +1,4 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 008)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 009)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
@@ -40,9 +40,15 @@ Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmwar
   Mali-Bifrost-r11p0-Kerneltreiber. Die exakte Samsung-Nike-L-
   GPL-Kernelquelle und Defconfig sind **nicht bezogen**. Eine strengere
   Compilerprüfung verhindert einen falschen „passenden Toolchain“-Befund.
+- Build 009 bestätigt direkt im **Samsung Open Source Release Center**
+  das offizielle Paket **`20_DTV_NikeL.zip` (708,82 MB)** für die
+  Modellfamilie `GQ**Q60T**`. Die Portalversion `1000` ist **nicht**
+  als zur Firmware `2743.0` passend bestätigt. Der browserbasierte
+  Download blieb gesperrt; das Originalarchiv ist nicht lokal vorhanden.
 - Ein echtes Android-Bootimage, ein entsperrter Bootloader und passende
   Android-Hardwaretreiber **existieren hier noch nicht**.
 - Neue Erkenntnisse, Treibermatrix und offene Sicherheitsbedingungen:
+  [BUILD009_REPORT.md](BUILD009_REPORT.md),
   [BUILD008_REPORT.md](BUILD008_REPORT.md),
   [BUILD007_REPORT.md](BUILD007_REPORT.md),
   [BUILD006_REPORT.md](BUILD006_REPORT.md) sowie

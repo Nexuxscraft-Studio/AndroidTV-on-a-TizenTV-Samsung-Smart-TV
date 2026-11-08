@@ -295,6 +295,10 @@ class KernelBuildTests(unittest.TestCase):
         self.assertEqual(catalog["status"], "BLOCKED")
         self.assertEqual(catalog["downloaded_original_files"], 0)
         candidates = {item["id"]: item for item in catalog["candidates"]}
+        self.assertTrue(candidates["samsung_q60t_gpl_kernel"]["official_listing_verified_in_browser"])
+        self.assertEqual(candidates["samsung_q60t_gpl_kernel"]["artifact_filename"],
+                         "20_DTV_NikeL.zip")
+        self.assertFalse(candidates["samsung_q60t_gpl_kernel"]["verified_download"])
         self.assertEqual(candidates["arm_bifrost_r11p0_kernel"]["artifact_filename"],
                          "BX301A01B-SW-99002-r11p0-01rel0.tgz")
         self.assertTrue(candidates["linux_4_1_10_kants_comparison_only"]["known_wrong_board"])

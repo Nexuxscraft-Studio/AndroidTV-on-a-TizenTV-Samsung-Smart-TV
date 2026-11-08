@@ -1,4 +1,4 @@
-# Forschungsprotokoll – Build 008
+# Forschungsprotokoll – Build 009
 
 Stand: 08.11.2026
 
@@ -152,6 +152,21 @@ Stand: 08.11.2026
   Quellenfindungen stehen in `BUILD008_REPORT.md` und
   `porting/source-candidates-build008.json`.
 - **Kein Originalkernel gebaut, keine Mali-HAL portiert, kein Boot getestet.**
+
+## Build 009 – konkretes Samsung-Originalarchiv identifiziert
+
+- Samsung OSSRC selbst zeigt für die Q60T-Suche den Eintrag
+  `20_DTV_NikeL`, Modellmuster **`GQ**Q60T**`**, Releaseversion `1000`.
+- Zwei konkrete Downloads sind gelistet: `20_DTV_NikeL.txt` (61 B) und
+  **`20_DTV_NikeL.zip` (708,82 MB)**.
+- Der Download hinter dem Portal-Dialog wurde durch eine
+  Browser-Sicherheitsbeschränkung gestoppt. **Kein Originalarchiv
+  empfangen, kein Kernel-Build gestartet**. Keine Umgehung.
+- Die genaue Fundstelle und die nächsten Prüfungen stehen in
+  `BUILD009_REPORT.md`. Das bestehende Kandidaten-JSON wurde mit
+  überprüften Portalmetadaten ergänzt.
+- Firmware-2743.0-Gleichheit, Sourcehash, Defconfig und Rollback
+  bleiben **ungeklärt**.
 
 ## Noch nicht gemacht (und nicht behauptet)
 

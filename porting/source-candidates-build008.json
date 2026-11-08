@@ -15,11 +15,18 @@
       "role": "kernel_source_and_board_config",
       "origin": "Samsung Open Source Release Center",
       "url": "https://opensource.samsung.com/uploadSearch?searchValue=Q60T",
-      "artifact_filename": null,
-      "evidence": "Historisch von Synacktiv in GreHack 2021 als Q60T-Kernelquelle mit Samsung-UEP-Patches dokumentiert",
+      "artifact_filename": "20_DTV_NikeL.zip",
+      "accompanying_filename": "20_DTV_NikeL.txt",
+      "samsung_release_name": "20_DTV_NikeL",
+      "samsung_release_version": "1000",
+      "samsung_catalog_id": "8871",
+      "samsung_ui_reported_size": "708.82 MB",
+      "samsung_model_pattern": "GQ**Q60T**",
+      "official_listing_verified_in_browser": true,
+      "evidence": "Samsung OSSRC zeigte am 08.11.2026 genau einen Q60T-Eintrag für 20_DTV_NikeL mit Source-ZIP und Begleittext; Synacktiv dokumentierte historische Q60T-Kernelquellen samt UEP-Patches",
       "verified_download": false,
       "verified_for_firmware_2743_0": false,
-      "notes": "Kein konkret referenzierbarer Nike-L-Quellpaketname, SHA-256, exakter Defconfig-Pfad oder 2743.0-Release-Identifier zugänglich. Portal bzw. Samsung-Support benötigt."
+      "notes": "Konkret offizielles Sourcepaket im Samsung-Portal gefunden, aber Download hinter legaler Zustimmung in diesem Browser nicht abgeschlossen. Inhalt, SHA-256, exakter Defconfig-Pfad und Bezug des Portal-Releases 1000 zur Firmware 2743.0 noch unbekannt."
     },
     {
       "id": "tizen_gcc_6_2_1_source",
