@@ -1,0 +1,59 @@
+{
+  "type": "samsung_zip_offline_inspection",
+  "input": "/workspace/scratch/50d63fdce218/T-NKLDEUC-2743.0-official.zip",
+  "size_bytes": 1349064478,
+  "sha256": "cb717ed98daf9580eb5b84bccbad5adac82f75dd021ed028f1ee1bb6c4abde32",
+  "reference": {
+    "family": "T-NKLDEUC",
+    "version": "2743.0",
+    "model": "GQ55Q60TGUXZG (only this published image)",
+    "sha256": "cb717ed98daf9580eb5b84bccbad5adac82f75dd021ed028f1ee1bb6c4abde32",
+    "source": "https://github.com/sebastianspicker/tiz0wn/blob/main/docs/firmware-analysis.md"
+  },
+  "reference_sha256_match": true,
+  "members": [
+    {
+      "name": "SWU_AUTO_FLAG",
+      "size_bytes": 1,
+      "compressed_bytes": 1,
+      "crc32": "83dcefb7",
+      "issues": []
+    },
+    {
+      "name": "T-NKLDEUC/",
+      "size_bytes": 0,
+      "compressed_bytes": 0,
+      "crc32": "00000000",
+      "issues": []
+    },
+    {
+      "name": "T-NKLDEUC/image/",
+      "size_bytes": 0,
+      "compressed_bytes": 0,
+      "crc32": "00000000",
+      "issues": []
+    },
+    {
+      "name": "T-NKLDEUC/image/info.txt",
+      "size_bytes": 435,
+      "compressed_bytes": 273,
+      "crc32": "afdfd255",
+      "issues": []
+    },
+    {
+      "name": "T-NKLDEUC/image/upgrade.msd",
+      "size_bytes": 1348851228,
+      "compressed_bytes": 1349063442,
+      "crc32": "4bb5de84",
+      "issues": []
+    }
+  ],
+  "metadata": {
+    "info_txt": "[Main information]\nupgrade type: USB\nmodel string: T-NKLDEUC\nmajor version: 2743\nminor version: 0\nbuild date: 2026-07-02\nrelease name: SWU-OU_T-NKLDEUC-02743-2026-07-02-Release\nfirm code: SWU-OU_T-NKLDEUC_02743_2026-07-02\nfirm version: 02743.2026-07-02\nused key type: REL key of NikeL decrypted aes key/REL key of NikeL private rsa key\ntool version: 1.7\npartitions: 123456789101213141518192223\nmd5sum: 458fe727de48fb6f4012e9385400597c\n",
+    "detected_family": "T-NKLDEUC",
+    "detected_version": "2743.0"
+  },
+  "msdu11_magic": true,
+  "warnings": [],
+  "writes_to_tv": false
+}

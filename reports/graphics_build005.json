@@ -1,0 +1,66 @@
+{
+  "type": "samsung_nikel_android_graphics_preflight",
+  "status": "BLOCKED",
+  "source_fdt_bundle_sha256": "9698e1aeca3f614bfb536dc73f8f02fc9acc8f34887070c333f47324c7b342e2",
+  "source_kernel_uimage_sha256": "6603f3f5082d6ef74471f9233ce17063658daf10e1d9440a8a9c75749a5e72b2",
+  "reference_profiles_by_dtb_offset": {
+    "0": {
+      "gpu": [
+        {
+          "path": "/soc/sdpgpu@00500000",
+          "compatible": [
+            "arm,mali-midgard"
+          ],
+          "dt_status": "unspecified"
+        }
+      ],
+      "samsung_display_drm": [
+        {
+          "path": "/soc/drm",
+          "compatible": [
+            "samsung,sdp-drm"
+          ],
+          "dt_status": "unspecified"
+        }
+      ]
+    },
+    "86016": {
+      "gpu": [
+        {
+          "path": "/soc/sdpgpu@00500000",
+          "compatible": [
+            "arm,mali-midgard"
+          ],
+          "dt_status": "unspecified"
+        }
+      ],
+      "samsung_display_drm": [
+        {
+          "path": "/soc/drm",
+          "compatible": [
+            "samsung,sdp-drm"
+          ],
+          "dt_status": "unspecified"
+        }
+      ]
+    }
+  },
+  "userspace_elf": null,
+  "kernel_module_elf": null,
+  "checks": {
+    "matching_mali_kernel_driver_available": false,
+    "candidate_userspace_elf_available": false,
+    "candidate_userspace_arm32": false,
+    "kernel_module_arm32": false,
+    "kernel_module_version_string_matches": false,
+    "exact_gpu_hardware_revision_verified": false,
+    "android_egl_gralloc_compatible": false,
+    "android_composer3_hal_implemented": false,
+    "samsung_panel_modesetting_verified": false,
+    "android_sync_fences_validated": false
+  },
+  "caution": "DT-compatible arm,mali-midgard alone does NOT prove the GPU generation. External researchers report Mali-G51/Bifrost r11p0; validate exact hardware/driver before porting.",
+  "safe_for_android_build": false,
+  "flash_authorized": false,
+  "note": "Graphics adaptation requires kernel source, matching Mali driver, buffers, EGL, gralloc and an Android composer HAL."
+}

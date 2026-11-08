@@ -1,0 +1,29 @@
+# Samsung firmware: never include proprietary images in a source repository.
+*.msd
+T-NKLDEUC*.zip
+platform.img
+factory_peq.img
+uImage
+dtb.bin
+ddr.init
+seret.bin
+secos.bin
+secos_drv.bin
+sign.bin
+
+# Research output / working environments
+decrypted-*/
+rootfs-*/
+vendor-*/
+*.log
+*.pyc
+__pycache__/
+.venv/
+*.egg-info/
+.pytest_cache/
+*.o
+*.a
+*.so
+
+# Release bundles are produced outside the source tree.
+*-build*.zip

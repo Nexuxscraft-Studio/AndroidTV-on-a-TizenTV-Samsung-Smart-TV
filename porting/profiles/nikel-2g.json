@@ -1,0 +1,17 @@
+{
+  "id": "nikel-2g",
+  "source_family": "T-NKLDEUC",
+  "source_version": "2743.0",
+  "source_reference_model": "GQ55Q60TGUXZG",
+  "dtb_offset_bytes": 0,
+  "dtb_sha256": "0189cc94fe8dd7d016462f22e9f8e965fe328cbc901066c8955f26130f86ab61",
+  "declared_ram_profile_gib": 2.0,
+  "fdt_memory_reg_advertised_mib": 1460.5,
+  "fdt_memory_reg_range_count": 3,
+  "board_compatible": "samsung,sdp-nikel",
+  "cpu_compatible": "arm,cortex-a57",
+  "firmware_linux_kernel": "4.1.10",
+  "firmware_kernel_arch": "arm32",
+  "usable_for_flashing": false,
+  "note": "Label from firmware bootargs. NOT measured RAM of the user's 50-inch TV."
+}

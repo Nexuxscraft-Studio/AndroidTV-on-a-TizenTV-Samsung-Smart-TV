@@ -1,0 +1,16 @@
+{
+  "target": "Samsung GQ50Q60TGUXZG 50-inch Q60T",
+  "reported_tv_firmware_version": "2743.0",
+  "exact_model_code": "GQ50Q60TGUXZG",
+  "actual_tv_ram_profile": null,
+  "verified_kernel_source_and_config": false,
+  "kernel_build_reproduced": false,
+  "independent_reversible_boot_path": false,
+  "verified_recovery_method": false,
+  "android_graphics_hal_works": false,
+  "android_audio_hal_works": false,
+  "android_video_codec_hal_works": false,
+  "input_remote_control_works": false,
+  "tv_writes_authorized": false,
+  "note": "Model and firmware family verified via official Samsung support; actual RAM/DTB, boot and Android HALs remain unverified."
+}

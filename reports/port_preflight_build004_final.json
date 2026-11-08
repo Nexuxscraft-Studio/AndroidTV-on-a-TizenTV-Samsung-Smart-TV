@@ -1,0 +1,80 @@
+{
+  "type": "offline_lineage_atv_port_preflight",
+  "target": "Samsung Q60T 50-inch (exact model not yet verified)",
+  "status": "BLOCKED",
+  "gates": [
+    {
+      "name": "exact_model_code",
+      "reason": "50-inch TV model code not verified",
+      "passed": false
+    },
+    {
+      "name": "actual_tv_ram_profile",
+      "reason": "Actual TV RAM/DTB variant not measured",
+      "passed": false
+    },
+    {
+      "name": "verified_kernel_source_and_config",
+      "reason": "Matching Samsung GPL kernel source/config missing",
+      "passed": false
+    },
+    {
+      "name": "kernel_build_reproduced",
+      "reason": "Kernel build not reproducible",
+      "passed": false
+    },
+    {
+      "name": "independent_reversible_boot_path",
+      "reason": "Reversible boot path not demonstrated",
+      "passed": false
+    },
+    {
+      "name": "verified_recovery_method",
+      "reason": "Recovery/rollback path not demonstrated",
+      "passed": false
+    },
+    {
+      "name": "android_graphics_hal_works",
+      "reason": "Android hardware composer/gralloc not working",
+      "passed": false
+    },
+    {
+      "name": "android_audio_hal_works",
+      "reason": "Android audio HAL not working",
+      "passed": false
+    },
+    {
+      "name": "android_video_codec_hal_works",
+      "reason": "Android codec HAL not working",
+      "passed": false
+    },
+    {
+      "name": "input_remote_control_works",
+      "reason": "Remote/input integration not working",
+      "passed": false
+    }
+  ],
+  "blocker_count": 10,
+  "profiles": [
+    "nikel-1.5g",
+    "nikel-2g"
+  ],
+  "reference_hardware_verified": true,
+  "firmware_dt_status_by_profile": {
+    "nikel-1.5g": {
+      "mali_gpu": "unspecified",
+      "infrared_irb": "okay",
+      "infrared_irs": "okay",
+      "hdmi_cec": "disabled"
+    },
+    "nikel-2g": {
+      "mali_gpu": "unspecified",
+      "infrared_irb": "okay",
+      "infrared_irs": "okay",
+      "hdmi_cec": "disabled"
+    }
+  },
+  "flash_authorized": false,
+  "image_build_enabled": false,
+  "device_contacted": false
+}

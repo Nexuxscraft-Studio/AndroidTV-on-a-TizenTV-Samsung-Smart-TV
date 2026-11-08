@@ -1,0 +1,102 @@
+{
+  "type": "offline_nonpersistent_boot_and_rollback_review",
+  "status": "BLOCKED",
+  "blocker_count": 8,
+  "unverified": [
+    "exact_target_hardware_identified",
+    "bootloader_authentication_policy_verified",
+    "nonpersistent_test_boot_interface_demonstrated",
+    "recovery_entrypoint_verified",
+    "known_good_backup_verified",
+    "rollback_drill_completed_on_spare_hardware",
+    "watchdog_fallback_verified",
+    "power_loss_recovery_verified"
+  ],
+  "gates": [
+    {
+      "name": "exact_target_hardware_identified",
+      "verified": false,
+      "reason": "50-inch target board and RAM profile unverified"
+    },
+    {
+      "name": "bootloader_authentication_policy_verified",
+      "verified": false,
+      "reason": "signature/secure boot acceptance not verified"
+    },
+    {
+      "name": "nonpersistent_test_boot_interface_demonstrated",
+      "verified": false,
+      "reason": "no independent volatile boot route demonstrated"
+    },
+    {
+      "name": "recovery_entrypoint_verified",
+      "verified": false,
+      "reason": "recovery interface not confirmed"
+    },
+    {
+      "name": "known_good_backup_verified",
+      "verified": false,
+      "reason": "offline stock backup/restore not validated"
+    },
+    {
+      "name": "rollback_drill_completed_on_spare_hardware",
+      "verified": false,
+      "reason": "no tested rollback on equivalent spare board"
+    },
+    {
+      "name": "watchdog_fallback_verified",
+      "verified": false,
+      "reason": "no automatic fallback if Android testboot hangs"
+    },
+    {
+      "name": "power_loss_recovery_verified",
+      "verified": false,
+      "reason": "no proof of power-cut recovery"
+    }
+  ],
+  "stock_component_inventory": {
+    "status": "REFERENCE_PRESENT",
+    "components": {
+      "uImage": {
+        "present": true,
+        "bytes": 7041296,
+        "sha256": "6603f3f5082d6ef74471f9233ce17063658daf10e1d9440a8a9c75749a5e72b2"
+      },
+      "dtb.bin": {
+        "present": true,
+        "bytes": 1564688,
+        "sha256": "9698e1aeca3f614bfb536dc73f8f02fc9acc8f34887070c333f47324c7b342e2"
+      },
+      "sign.bin": {
+        "present": true,
+        "bytes": 1040,
+        "sha256": "244cbe7ef9ad8fc3f198e5f556968bd18cd0a34f986934b9c5126b6284c4b0b4"
+      },
+      "secos.bin": {
+        "present": true,
+        "bytes": 4186128,
+        "sha256": "20e957cffcd89dd3cd942fff6155c0630ab1bfc0986b5f8c57ebe0ceef08ceff"
+      },
+      "secos_drv.bin": {
+        "present": true,
+        "bytes": 1040400,
+        "sha256": "027a851e6d2c431b6eb5a86466e01ca23f85ce807b57c84b988217b8b0645460"
+      },
+      "seret.bin": {
+        "present": true,
+        "bytes": 3137552,
+        "sha256": "c97ae1b4db73c2981b13fa9b7121930d77702e8705641225c3a1506064bec728"
+      }
+    },
+    "uimage_header_crc_valid": true,
+    "uimage_payload_crc_valid": true,
+    "signature_cryptographically_verified": false,
+    "note": "Sign.bin presence and U-Boot CRC are not proof of secure-boot signature authenticity."
+  },
+  "hypothetical_test_boot_state": "REFUSED_BEFORE_BOOT",
+  "no_device_modified": true,
+  "boot_attempted": false,
+  "rollback_proven": false,
+  "flash_authorized": false,
+  "note": "No bootloader commands, signatures, partition paths, exploits or writes are provided."
+}

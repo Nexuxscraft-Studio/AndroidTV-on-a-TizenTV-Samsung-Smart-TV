@@ -1,0 +1,1232 @@
+{
+  "type": "offline_hardware_device_tree_report",
+  "dtb_bundle_sha256": "9698e1aeca3f614bfb536dc73f8f02fc9acc8f34887070c333f47324c7b342e2",
+  "device_trees_found": 2,
+  "trees": [
+    {
+      "offset_bytes": 0,
+      "dtb_sha256": "0189cc94fe8dd7d016462f22e9f8e965fe328cbc901066c8955f26130f86ab61",
+      "summary": {
+        "node_count": 365,
+        "property_count": 1739,
+        "model": "Samsung DTV based on Nike-L SoC",
+        "root_compatible": [
+          "samsung,dtv",
+          "samsung,sdp-nikel"
+        ],
+        "memory_profile_label": "2 GiB (firmware profile label)",
+        "bootargs_safe_subset": [
+          "root=/dev/mmcblk0p18",
+          "init=/sbin/init",
+          "rootfstype=vdfs",
+          "ro",
+          "console=ttyS0,115200N8",
+          "rootwait",
+          "earlyprintk",
+          "quiet"
+        ],
+        "hardware_categories": {
+          "cpu": [
+            {
+              "path": "/cpus/cpu@0",
+              "compatible": [
+                "arm,cortex-a57",
+                "arm,armv8"
+              ]
+            },
+            {
+              "path": "/cpus/cpu@1",
+              "compatible": [
+                "arm,cortex-a57",
+                "arm,armv8"
+              ]
+            },
+            {
+              "path": "/cpus/cpu@2",
+              "compatible": [
+                "arm,cortex-a57",
+                "arm,armv8"
+              ]
+            },
+            {
+              "path": "/cpus/cpu@3",
+              "compatible": [
+                "arm,cortex-a57",
+                "arm,armv8"
+              ]
+            }
+          ],
+          "gpu": [
+            {
+              "path": "/soc/sdpgpu@00500000",
+              "compatible": [
+                "arm,mali-midgard"
+              ]
+            },
+            {
+              "path": "/mem_prevent/gpu",
+              "compatible": []
+            }
+          ],
+          "display": [
+            {
+              "path": "/soc/clock-controller@00F50000/hdmi_pclk",
+              "compatible": []
+            },
+            {
+              "path": "/soc/clock-controller@00F50000/hdmi_sysclk",
+              "compatible": []
+            },
+            {
+              "path": "/soc/clock-controller@00F50000/hdmi_modclk",
+              "compatible": []
+            },
+            {
+              "path": "/soc/hdmi@00590000",
+              "compatible": [
+                "samsung,sdp-hdmi"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/frc_start@03",
+              "compatible": [
+                "samsung,tztv-frc-start"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@48",
+              "compatible": [
+                "samsung,tztv-tcon1"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@4A",
+              "compatible": [
+                "samsung,tztv-tcon2"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@64",
+              "compatible": [
+                "samsung,tztv-frc-sdp-main"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@60",
+              "compatible": [
+                "samsung,tztv-frc-sdp-sub1"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@61",
+              "compatible": [
+                "samsung,tztv-frc-sdp-sub2"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@1A",
+              "compatible": [
+                "samsung,tztv-frc-nvt-main"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/frc_end@04",
+              "compatible": [
+                "samsung,tztv-frc-end"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/tcon_start@01",
+              "compatible": [
+                "samsung,tztv-tcon-start"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@76",
+              "compatible": [
+                "samsung,tztv-tcon3"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@60",
+              "compatible": [
+                "samsung,tztv-tcon4"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@61",
+              "compatible": [
+                "samsung,tztv-tcon5"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@74",
+              "compatible": [
+                "samsung,tztv-tcon21"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@50",
+              "compatible": [
+                "samsung,tztv-tcon22"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@78",
+              "compatible": [
+                "samsung,tztv-tcon28"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@20",
+              "compatible": [
+                "samsung,tztv-tcon30"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@33",
+              "compatible": [
+                "samsung,tztv-tcon31"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/tcon_end@02",
+              "compatible": [
+                "samsung,tztv-tcon-end"
+              ]
+            },
+            {
+              "path": "/soc/sdp_pqe_frc@0099900",
+              "compatible": [
+                "samsung,sdp_pqe_frc"
+              ]
+            },
+            {
+              "path": "/soc/sdp_frc",
+              "compatible": [
+                "samsung,sdp-frc-l"
+              ]
+            },
+            {
+              "path": "/soc/frc_8k",
+              "compatible": [
+                "samsung,sdp-frc-8k"
+              ]
+            },
+            {
+              "path": "/soc/drm",
+              "compatible": [
+                "samsung,sdp-drm"
+              ]
+            },
+            {
+              "path": "/soc/panel",
+              "compatible": [
+                "samsung,sdp1202-panel"
+              ]
+            },
+            {
+              "path": "/soc/dummy_panel",
+              "compatible": [
+                "dummy_panel"
+              ]
+            },
+            {
+              "path": "/soc/dummy_panel/display-timings",
+              "compatible": []
+            },
+            {
+              "path": "/soc/dummy_panel/display-timings/timing-0",
+              "compatible": []
+            },
+            {
+              "path": "/soc/frc_tcon",
+              "compatible": []
+            },
+            {
+              "path": "/mem_prevent/frc",
+              "compatible": []
+            },
+            {
+              "path": "/mem_prevent/hdmi",
+              "compatible": []
+            },
+            {
+              "path": "/hdmi_sw",
+              "compatible": [
+                "samsung,tztv-hdmi-sw"
+              ]
+            },
+            {
+              "path": "/hdmi",
+              "compatible": []
+            }
+          ],
+          "video": [
+            {
+              "path": "/soc/sdp_mfc@0x00a40000",
+              "compatible": [
+                "samsung,sdp-mfc"
+              ]
+            },
+            {
+              "path": "/sdp-codec@00A00000",
+              "compatible": [
+                "samsung,sdp-codec"
+              ]
+            },
+            {
+              "path": "/sdp-sif-codec@00A00000",
+              "compatible": [
+                "samsung,sdp-sif-codec"
+              ]
+            },
+            {
+              "path": "/sdp_mfc",
+              "compatible": []
+            }
+          ],
+          "audio": [
+            {
+              "path": "/sdp-audio@00A00000",
+              "compatible": [
+                "samsung,sdp-audio"
+              ]
+            },
+            {
+              "path": "/sdp-mc-audio@00A00000",
+              "compatible": [
+                "samsung,sdp-mc-audio"
+              ]
+            },
+            {
+              "path": "/sdp-audio-spdif@00A00000",
+              "compatible": [
+                "samsung,sdp-audio-spdif"
+              ]
+            },
+            {
+              "path": "/mem_prevent/audio",
+              "compatible": []
+            }
+          ],
+          "network": [
+            {
+              "path": "/soc/emac",
+              "compatible": [
+                "samsung,sdp-mac"
+              ]
+            }
+          ],
+          "usb": [
+            {
+              "path": "/soc/ehci@004c0000",
+              "compatible": [
+                "samsung,sdp-ehci",
+                "usb-ehci"
+              ]
+            },
+            {
+              "path": "/soc/ehci@00480000",
+              "compatible": [
+                "samsung,sdp-ehci",
+                "usb-ehci"
+              ]
+            },
+            {
+              "path": "/soc/ehci@00490000",
+              "compatible": [
+                "samsung,sdp-ehci",
+                "usb-ehci"
+              ]
+            },
+            {
+              "path": "/soc/ehci@004a0000",
+              "compatible": [
+                "samsung,sdp-ehci",
+                "usb-ehci"
+              ]
+            },
+            {
+              "path": "/soc/ohci@004c8000",
+              "compatible": [
+                "samsung,sdp-ohci",
+                "usb-ohci"
+              ]
+            },
+            {
+              "path": "/soc/ohci@00488000",
+              "compatible": [
+                "samsung,sdp-ohci",
+                "usb-ohci"
+              ]
+            },
+            {
+              "path": "/soc/ohci@00498000",
+              "compatible": [
+                "samsung,sdp-ohci",
+                "usb-ohci"
+              ]
+            },
+            {
+              "path": "/soc/ohci@004a8000",
+              "compatible": [
+                "samsung,sdp-ohci",
+                "usb-ohci"
+              ]
+            },
+            {
+              "path": "/soc/usben",
+              "compatible": [
+                "samsung,sdp-usben",
+                "usb-ehci"
+              ]
+            },
+            {
+              "path": "/mem_prevent/usb",
+              "compatible": []
+            }
+          ],
+          "input": [],
+          "storage": [
+            {
+              "path": "/bootmodes/flash_normal_trace_subs",
+              "compatible": []
+            },
+            {
+              "path": "/bootmodes/flash_special_trace_subs",
+              "compatible": []
+            },
+            {
+              "path": "/bootmodes/normal_flash_trace_mode",
+              "compatible": []
+            },
+            {
+              "path": "/bootmodes/special_flash_trace_mode",
+              "compatible": []
+            },
+            {
+              "path": "/soc/clock-controller@00F50000/emmc_clk",
+              "compatible": []
+            },
+            {
+              "path": "/soc/mmc",
+              "compatible": [
+                "samsung,sdp-mmc"
+              ]
+            },
+            {
+              "path": "/soc/memif/flash@0",
+              "compatible": [
+                "jedec,spi-nor"
+              ]
+            },
+            {
+              "path": "/soc/memif/flash@0/partition@0",
+              "compatible": []
+            },
+            {
+              "path": "/soc/memif/flash@0/partition@1",
+              "compatible": []
+            },
+            {
+              "path": "/soc/memif/flash@0/partition@2",
+              "compatible": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "offset_bytes": 86016,
+      "dtb_sha256": "36e8e77898ce2e253ffd959f96d0fb1d27e3fcf58887325d668b190ac8dcd79e",
+      "summary": {
+        "node_count": 367,
+        "property_count": 1760,
+        "model": "Samsung DTV based on Nike-L SoC",
+        "root_compatible": [
+          "samsung,dtv",
+          "samsung,sdp-nikel"
+        ],
+        "memory_profile_label": "1.5 GiB (firmware profile label)",
+        "bootargs_safe_subset": [
+          "root=/dev/mmcblk0p18",
+          "init=/sbin/init",
+          "rootfstype=vdfs",
+          "ro",
+          "console=ttyS0,115200N8",
+          "rootwait",
+          "earlyprintk",
+          "quiet"
+        ],
+        "hardware_categories": {
+          "cpu": [
+            {
+              "path": "/cpus/cpu@0",
+              "compatible": [
+                "arm,cortex-a57",
+                "arm,armv8"
+              ]
+            },
+            {
+              "path": "/cpus/cpu@1",
+              "compatible": [
+                "arm,cortex-a57",
+                "arm,armv8"
+              ]
+            },
+            {
+              "path": "/cpus/cpu@2",
+              "compatible": [
+                "arm,cortex-a57",
+                "arm,armv8"
+              ]
+            },
+            {
+              "path": "/cpus/cpu@3",
+              "compatible": [
+                "arm,cortex-a57",
+                "arm,armv8"
+              ]
+            }
+          ],
+          "gpu": [
+            {
+              "path": "/soc/sdpgpu@00500000",
+              "compatible": [
+                "arm,mali-midgard"
+              ]
+            },
+            {
+              "path": "/mem_prevent/gpu",
+              "compatible": []
+            }
+          ],
+          "display": [
+            {
+              "path": "/soc/clock-controller@00F50000/hdmi_pclk",
+              "compatible": []
+            },
+            {
+              "path": "/soc/clock-controller@00F50000/hdmi_sysclk",
+              "compatible": []
+            },
+            {
+              "path": "/soc/clock-controller@00F50000/hdmi_modclk",
+              "compatible": []
+            },
+            {
+              "path": "/soc/hdmi@00590000",
+              "compatible": [
+                "samsung,sdp-hdmi"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/frc_start@03",
+              "compatible": [
+                "samsung,tztv-frc-start"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@48",
+              "compatible": [
+                "samsung,tztv-tcon1"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@4A",
+              "compatible": [
+                "samsung,tztv-tcon2"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@64",
+              "compatible": [
+                "samsung,tztv-frc-sdp-main"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@60",
+              "compatible": [
+                "samsung,tztv-frc-sdp-sub1"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@61",
+              "compatible": [
+                "samsung,tztv-frc-sdp-sub2"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/panel@1A",
+              "compatible": [
+                "samsung,tztv-frc-nvt-main"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550100/frc_end@04",
+              "compatible": [
+                "samsung,tztv-frc-end"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/tcon_start@01",
+              "compatible": [
+                "samsung,tztv-tcon-start"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@76",
+              "compatible": [
+                "samsung,tztv-tcon3"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@60",
+              "compatible": [
+                "samsung,tztv-tcon4"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@61",
+              "compatible": [
+                "samsung,tztv-tcon5"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@74",
+              "compatible": [
+                "samsung,tztv-tcon21"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@50",
+              "compatible": [
+                "samsung,tztv-tcon22"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@78",
+              "compatible": [
+                "samsung,tztv-tcon28"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@20",
+              "compatible": [
+                "samsung,tztv-tcon30"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/panel@33",
+              "compatible": [
+                "samsung,tztv-tcon31"
+              ]
+            },
+            {
+              "path": "/soc/i2c@00550200/tcon_end@02",
+              "compatible": [
+                "samsung,tztv-tcon-end"
+              ]
+            },
+            {
+              "path": "/soc/sdp_pqe_frc@0099900",
+              "compatible": [
+                "samsung,sdp_pqe_frc"
+              ]
+            },
+            {
+              "path": "/soc/sdp_frc",
+              "compatible": [
+                "samsung,sdp-frc-l"
+              ]
+            },
+            {
+              "path": "/soc/frc_8k",
+              "compatible": [
+                "samsung,sdp-frc-8k"
+              ]
+            },
+            {
+              "path": "/soc/drm",
+              "compatible": [
+                "samsung,sdp-drm"
+              ]
+            },
+            {
+              "path": "/soc/panel",
+              "compatible": [
+                "samsung,sdp1202-panel"
+              ]
+            },
+            {
+              "path": "/soc/dummy_panel",
+              "compatible": [
+                "dummy_panel"
+              ]
+            },
+            {
+              "path": "/soc/dummy_panel/display-timings",
+              "compatible": []
+            },
+            {
+              "path": "/soc/dummy_panel/display-timings/timing-0",
+              "compatible": []
+            },
+            {
+              "path": "/soc/frc_tcon",
+              "compatible": []
+            },
+            {
+              "path": "/mem_prevent/frc",
+              "compatible": []
+            },
+            {
+              "path": "/mem_prevent/hdmi",
+              "compatible": []
+            },
+            {
+              "path": "/hdmi_sw",
+              "compatible": [
+                "samsung,tztv-hdmi-sw"
+              ]
+            },
+            {
+              "path": "/hdmi",
+              "compatible": []
+            }
+          ],
+          "video": [
+            {
+              "path": "/soc/sdp_mfc@0x00a40000",
+              "compatible": [
+                "samsung,sdp-mfc"
+              ]
+            },
+            {
+              "path": "/sdp-codec@00A00000",
+              "compatible": [
+                "samsung,sdp-codec"
+              ]
+            },
+            {
+              "path": "/sdp-sif-codec@00A00000",
+              "compatible": [
+                "samsung,sdp-sif-codec"
+              ]
+            },
+            {
+              "path": "/sdp_mfc",
+              "compatible": []
+            }
+          ],
+          "audio": [
+            {
+              "path": "/sdp-audio@00A00000",
+              "compatible": [
+                "samsung,sdp-audio"
+              ]
+            },
+            {
+              "path": "/sdp-mc-audio@00A00000",
+              "compatible": [
+                "samsung,sdp-mc-audio"
+              ]
+            },
+            {
+              "path": "/sdp-audio-spdif@00A00000",
+              "compatible": [
+                "samsung,sdp-audio-spdif"
+              ]
+            },
+            {
+              "path": "/mem_prevent/audio",
+              "compatible": []
+            }
+          ],
+          "network": [
+            {
+              "path": "/soc/emac",
+              "compatible": [
+                "samsung,sdp-mac"
+              ]
+            }
+          ],
+          "usb": [
+            {
+              "path": "/soc/ehci@004c0000",
+              "compatible": [
+                "samsung,sdp-ehci",
+                "usb-ehci"
+              ]
+            },
+            {
+              "path": "/soc/ehci@00480000",
+              "compatible": [
+                "samsung,sdp-ehci",
+                "usb-ehci"
+              ]
+            },
+            {
+              "path": "/soc/ehci@00490000",
+              "compatible": [
+                "samsung,sdp-ehci",
+                "usb-ehci"
+              ]
+            },
+            {
+              "path": "/soc/ehci@004a0000",
+              "compatible": [
+                "samsung,sdp-ehci",
+                "usb-ehci"
+              ]
+            },
+            {
+              "path": "/soc/ohci@004c8000",
+              "compatible": [
+                "samsung,sdp-ohci",
+                "usb-ohci"
+              ]
+            },
+            {
+              "path": "/soc/ohci@00488000",
+              "compatible": [
+                "samsung,sdp-ohci",
+                "usb-ohci"
+              ]
+            },
+            {
+              "path": "/soc/ohci@00498000",
+              "compatible": [
+                "samsung,sdp-ohci",
+                "usb-ohci"
+              ]
+            },
+            {
+              "path": "/soc/ohci@004a8000",
+              "compatible": [
+                "samsung,sdp-ohci",
+                "usb-ohci"
+              ]
+            },
+            {
+              "path": "/soc/usben",
+              "compatible": [
+                "samsung,sdp-usben",
+                "usb-ehci"
+              ]
+            },
+            {
+              "path": "/mem_prevent/usb",
+              "compatible": []
+            }
+          ],
+          "input": [],
+          "storage": [
+            {
+              "path": "/bootmodes/flash_normal_trace_subs",
+              "compatible": []
+            },
+            {
+              "path": "/bootmodes/flash_special_trace_subs",
+              "compatible": []
+            },
+            {
+              "path": "/bootmodes/normal_flash_trace_mode",
+              "compatible": []
+            },
+            {
+              "path": "/bootmodes/special_flash_trace_mode",
+              "compatible": []
+            },
+            {
+              "path": "/soc/clock-controller@00F50000/emmc_clk",
+              "compatible": []
+            },
+            {
+              "path": "/soc/mmc",
+              "compatible": [
+                "samsung,sdp-mmc"
+              ]
+            },
+            {
+              "path": "/soc/memif/flash@0",
+              "compatible": [
+                "jedec,spi-nor"
+              ]
+            },
+            {
+              "path": "/soc/memif/flash@0/partition@0",
+              "compatible": []
+            },
+            {
+              "path": "/soc/memif/flash@0/partition@1",
+              "compatible": []
+            },
+            {
+              "path": "/soc/memif/flash@0/partition@2",
+              "compatible": []
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "writes_to_tv": false,
+  "disclaimer": "Firmware DT declarations, NOT verified on the user's 50-inch device.",
+  "comparison_first_two": {
+    "only_first_node_count": 2,
+    "only_second_node_count": 4,
+    "only_first_node_examples": [
+      "/mem_prevent/dp",
+      "/mem_prevent/rot"
+    ],
+    "only_second_node_examples": [
+      "/mem_prevent/dp_r",
+      "/mem_prevent/dp_w",
+      "/reserved-memory/cma@20",
+      "/reserved-memory/cma@21"
+    ],
+    "changed_property_count": 130,
+    "changed_property_name_counts": {
+      "linux,phandle": 15,
+      "phandle": 15,
+      "reg": 12,
+      "memory-region": 9,
+      "mems": 4,
+      "addr": 3,
+      "smem_map_type": 3,
+      "high-area": 2,
+      "high-filter": 2,
+      "low-filter": 2,
+      "samsung,fw-reload": 2,
+      "bootargs": 1,
+      "samsung,hdmi2-cable": 1,
+      "samsung,hdmi3-cable": 1,
+      "low-area": 1,
+      "rm_tbl_idx": 1,
+      "dram-base-b": 1,
+      "samsung,3dfc": 1,
+      "samsung,3dfy": 1,
+      "samsung,ae0": 1,
+      "samsung,align0": 1,
+      "samsung,align1": 1,
+      "samsung,align2": 1,
+      "samsung,align3": 1,
+      "samsung,align4": 1,
+      "samsung,align5": 1,
+      "samsung,avd": 1,
+      "samsung,cma_mfc-a": 1,
+      "samsung,cma_mfc-b": 1,
+      "samsung,cursor": 1,
+      "samsung,dp-cw-blur": 1,
+      "samsung,dp-cw-c": 1,
+      "samsung,dp-cw-y": 1,
+      "samsung,dp-enc": 1,
+      "samsung,dp-ttx-vbi": 1
+    },
+    "changed_property_examples": [
+      {
+        "node": "/chosen",
+        "property_name": "bootargs",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/hdmi_sw",
+        "property_name": "samsung,hdmi2-cable",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/hdmi_sw",
+        "property_name": "samsung,hdmi3-cable",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/mem_prevent/ctr",
+        "property_name": "mems",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/mem_prevent/ga",
+        "property_name": "mems",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/mem_prevent/gp",
+        "property_name": "mems",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/mem_prevent/gpu",
+        "property_name": "mems",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/mem_prevent/micom",
+        "property_name": "addr",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/mem_prevent/tsd",
+        "property_name": "addr",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/mem_prevent/usb",
+        "property_name": "addr",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/memory",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@100",
+        "property_name": "high-area",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@100",
+        "property_name": "high-filter",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@100",
+        "property_name": "linux,phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@100",
+        "property_name": "low-filter",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@100",
+        "property_name": "phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@100",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@101",
+        "property_name": "high-area",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@101",
+        "property_name": "high-filter",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@101",
+        "property_name": "linux,phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@101",
+        "property_name": "low-area",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@101",
+        "property_name": "low-filter",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@101",
+        "property_name": "phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/carveout@101",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@1",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@11",
+        "property_name": "linux,phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@11",
+        "property_name": "phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@11",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@12",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@15",
+        "property_name": "linux,phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@15",
+        "property_name": "phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@15",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@16",
+        "property_name": "linux,phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@16",
+        "property_name": "phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@16",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@17",
+        "property_name": "linux,phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@17",
+        "property_name": "phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@17",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@2",
+        "property_name": "linux,phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@2",
+        "property_name": "phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@2",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@4",
+        "property_name": "linux,phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@4",
+        "property_name": "phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@4",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@5",
+        "property_name": "linux,phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@5",
+        "property_name": "phandle",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/reserved-memory/cma@5",
+        "property_name": "reg",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/resource-manager",
+        "property_name": "rm_tbl_idx",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "dram-base-b",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,3dfc",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,3dfy",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,ae0",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,align0",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,align1",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,align2",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,align3",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,align4",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,align5",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,avd",
+        "kind": "value_changed"
+      },
+      {
+        "node": "/sdp_mmap",
+        "property_name": "samsung,cma_mfc-a",
+        "kind": "value_changed"
+      }
+    ],
+    "note": "Property values deliberately omitted; paths/names are metadata only."
+  }
+}

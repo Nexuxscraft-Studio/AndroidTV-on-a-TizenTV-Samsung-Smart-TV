@@ -1,0 +1,18 @@
+{
+  "model_code": "GQ50Q60TGUXZG",
+  "model_size_inch": 50,
+  "model_year": 2020,
+  "model_reported_by_owner": true,
+  "official_model_support_page": "https://www.samsung.com/de/support/model/GQ50Q60TGUXZG/",
+  "official_firmware_family": "T-NKLDEUC",
+  "official_firmware_version": "2743.0",
+  "official_firmware_archive": "T-NKLDEUC.zip",
+  "official_firmware_entry_id": 7701730,
+  "official_firmware_path": "FM/202609/20260915171117277/T-NKLDEUC.zip",
+  "verified_date": "2026-11-08",
+  "reference_firmware_sha256": "cb717ed98daf9580eb5b84bccbad5adac82f75dd021ed028f1ee1bb6c4abde32",
+  "reference_dtb_source_model": "GQ55Q60TGUXZG",
+  "physical_ram_profile_verified": false,
+  "tested_alternative_boot": false,
+  "note": "Samsung publishes the same firmware family/version/download entry for the exact 50-inch model. This does NOT identify the RAM DTB selected by the physical TV."
+}

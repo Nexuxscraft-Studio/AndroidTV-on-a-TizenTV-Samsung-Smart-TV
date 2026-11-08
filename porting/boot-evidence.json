@@ -1,0 +1,13 @@
+{
+  "target": "Samsung GQ50Q60TGUXZG 50 inch",
+  "confirmed_model_code": "GQ50Q60TGUXZG",
+  "exact_target_hardware_identified": false,
+  "bootloader_authentication_policy_verified": false,
+  "nonpersistent_test_boot_interface_demonstrated": false,
+  "recovery_entrypoint_verified": false,
+  "known_good_backup_verified": false,
+  "rollback_drill_completed_on_spare_hardware": false,
+  "watchdog_fallback_verified": false,
+  "power_loss_recovery_verified": false,
+  "note": "Retail model is confirmed, but exact board/RAM, recovery and safe rollback remain unverified."
+}

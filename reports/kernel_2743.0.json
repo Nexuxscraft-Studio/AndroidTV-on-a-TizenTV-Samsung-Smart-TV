@@ -1,0 +1,19 @@
+{
+  "type": "offline_kernel_metadata_report",
+  "uimage_sha256": "6603f3f5082d6ef74471f9233ce17063658daf10e1d9440a8a9c75749a5e72b2",
+  "payload_size": 7040960,
+  "version_from_banner": "4.1.10",
+  "embedded_ikconfig_marker_present": false,
+  "embedded_kconfig": null,
+  "config_read_error": null,
+  "security_symbols_found": [
+    "SfdUepVerifyExecutableBinary",
+    "SfdUepVerifyFileSignature",
+    "SfdUepVerifyDynamicLibrary",
+    "SfdUepHandleVerificationResult",
+    "security.SMACK64EXEC",
+    "kernel/seccomp.c"
+  ],
+  "writes_to_tv": false,
+  "note": "Strings imply compiled code or references, not runtime enforcement. No config marker is not proof of any particular kernel option."
+}
