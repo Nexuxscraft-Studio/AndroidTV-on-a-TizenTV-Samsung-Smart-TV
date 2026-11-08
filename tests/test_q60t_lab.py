@@ -3,6 +3,10 @@
 from pathlib import Path
 import struct
 import sys
+import hashlib
+import io
+import json
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -17,6 +21,9 @@ import q60t_release_audit  # noqa: E402
 import q60t_kernel_build  # noqa: E402
 import q60t_graphics  # noqa: E402
 import q60t_boot_safety  # noqa: E402
+import q60t_source_provenance  # noqa: E402
+import q60t_gpu_strategy  # noqa: E402
+import q60t_build007_preflight  # noqa: E402
 
 
 def synthetic_uimage(payload=b"Synthetic kernel data"):
@@ -259,7 +266,13 @@ class KernelBuildTests(unittest.TestCase):
             self.assertFalse(report["checks"]["source_provenance_for_exact_2743_firmware"])
             self.assertEqual(report["status"], "BLOCKED")
             self.assertFalse(report["image_built"])
-            self.assertEqual(report["build_commands_not_executed"][1][-1], "zImage")
+            steps = report["build_commands_not_executed"]
+            self.assertEqual(steps[0][:2], ["mkdir", "-p"])
+            self.assertEqual(steps[1][:2], ["cp", "--"])
+            self.assertTrue(steps[1][-1].endswith("/out/.config"))
+            self.assertEqual(steps[2][-1], "olddefconfig")
+            self.assertEqual(steps[3][-1], "zImage")
+            self.assertFalse(report["checks"]["samsung_gpl_source_available"])
 
     def test_kernel_source_mismatch_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -325,6 +338,145 @@ class GraphicsTests(unittest.TestCase):
         self.assertFalse(report["flash_authorized"])
         with self.assertRaises(ValueError):
             q60t_graphics.graphics_preflight({**hardware, "dtb_bundle_sha256": "bad"}, kernel)
+
+
+class GpuStrategyTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).resolve().parents[1]
+        self.hardware = json.loads((root / "reports/hardware_2743.0_build004_final.json").read_text())
+        self.kernel = json.loads((root / "reports/kernel_build005.json").read_text())
+
+    def test_reference_vendor_and_panfrost_paths_are_both_blocked(self):
+        result = q60t_gpu_strategy.strategy_report(self.hardware, self.kernel)
+        self.assertTrue(result["paths"]["legacy_vendor_kbase"]["checks"][
+            "original_firmware_gpu_node_identified_in_both_profiles"])
+        self.assertFalse(result["paths"]["legacy_vendor_kbase"]["ready"])
+        self.assertFalse(result["paths"]["upstream_panfrost_drm"]["ready"])
+        self.assertFalse(result["flash_authorized"])
+
+    def test_source_path_detection_does_not_claim_build(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "drivers/gpu/arm/bifrost").mkdir(parents=True)
+            (root / "drivers/gpu/drm/panfrost").mkdir(parents=True)
+            result = q60t_gpu_strategy.strategy_report(self.hardware, self.kernel, root)
+            self.assertTrue(result["paths"]["legacy_vendor_kbase"]["checks"][
+                "candidate_kbase_source_tree_seen"])
+            self.assertTrue(result["paths"]["upstream_panfrost_drm"]["checks"][
+                "kernel_source_contains_panfrost_drm"])
+            self.assertFalse(result["source_scan"]["drivers_built"])
+            self.assertFalse(result["android_bootable"])
+
+    def test_wrong_firmware_report_rejected(self):
+        with self.assertRaises(ValueError):
+            q60t_gpu_strategy.strategy_report(self.hardware, {"uimage_sha256": "wrong"})
+
+
+class SourceCandidateTests(unittest.TestCase):
+    def test_empty_candidate_never_claims_verified_sources(self):
+        candidate = q60t_source_provenance.candidate_report(None, None)
+        self.assertEqual(candidate["status"], "BLOCKED")
+        self.assertFalse(candidate["checks"]["official_samsung_source_identity_independently_verified"])
+
+    def test_zip_good_candidate_still_requires_manual_verification(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive = root / "candidate.zip"
+            with zipfile.ZipFile(archive, "w") as out:
+                out.writestr("linux-4.1.10/Makefile", "VERSION = 4\n")
+                out.writestr("linux-4.1.10/arch/arm/Makefile", "# fake\n")
+            source = root / "linux-4.1.10"
+            (source / "arch/arm").mkdir(parents=True)
+            (source / "Makefile").write_text("VERSION = 4\nPATCHLEVEL = 1\nSUBLEVEL = 10\n")
+            (source / "arch/arm/Makefile").write_text("# synthetic")
+            digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+            result = q60t_source_provenance.candidate_report(archive, source, digest)
+            self.assertEqual(result["status"], "MANUAL_REVIEW_REQUIRED")
+            self.assertTrue(result["checks"]["archive_sha256_matches_supplied_hash"])
+            self.assertFalse(result["checks"]["source_tree_matches_archive_contents"])
+            self.assertFalse(result["kernel_build_reproduced"])
+
+    def test_hash_mismatch_stays_blocked(self):
+        with tempfile.TemporaryDirectory() as temp:
+            archive = Path(temp) / "a.zip"
+            with zipfile.ZipFile(archive, "w") as out:
+                out.writestr("Makefile", "synthetic")
+            result = q60t_source_provenance.candidate_report(archive, None, "0" * 64)
+            self.assertEqual(result["status"], "BLOCKED")
+            self.assertFalse(result["checks"]["archive_sha256_matches_supplied_hash"])
+
+    def test_unsafe_paths_and_duplicate_entries_are_detected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            archive = Path(temp) / "unsafe.zip"
+            with zipfile.ZipFile(archive, "w") as out:
+                out.writestr("../escape", "bad")
+                out.writestr("good/a", "first")
+                out.writestr("good/a", "second")
+            report = q60t_source_provenance.archive_inventory(archive)
+            self.assertFalse(report["archive_paths_safe_for_separate_review"])
+            self.assertEqual(len(report["member_issues"]), 2)
+
+    def test_windows_and_double_slash_paths_are_rejected(self):
+        for value in ("C:/boot", "/abs", "a\\b", "a//b", "a/../b", "a/./b", "a:b", ""):
+            self.assertFalse(q60t_source_provenance.safe_member(value), value)
+        self.assertTrue(q60t_source_provenance.safe_member("linux-4.1.10/drivers/mali.c"))
+
+    def test_tar_links_are_flagged_without_extraction(self):
+        with tempfile.TemporaryDirectory() as temp:
+            archive = Path(temp) / "candidate.tar.gz"
+            with tarfile.open(archive, "w:gz") as out:
+                target = tarfile.TarInfo("source/Makefile")
+                payload = b"VERSION = 4\n"
+                target.size = len(payload)
+                out.addfile(target, io.BytesIO(payload))
+                link = tarfile.TarInfo("source/danger")
+                link.type = tarfile.SYMTYPE
+                link.linkname = "../../outside"
+                out.addfile(link)
+            report = q60t_source_provenance.archive_inventory(archive)
+            self.assertFalse(report["archive_paths_safe_for_separate_review"])
+            self.assertFalse(report["archive_extracted"])
+
+    def test_candidate_report_never_overwrites(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "existing.json"
+            out.write_text("KEEP", encoding="utf-8")
+            self.assertEqual(q60t_source_provenance.main(["--report", str(out)]), 2)
+            self.assertEqual(out.read_text(), "KEEP")
+
+
+class IntegratedBuild007Tests(unittest.TestCase):
+    def test_merged_preflight_is_still_non_bootable(self):
+        root = Path(__file__).resolve().parents[1]
+        result = q60t_build007_preflight.assess(root)
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertTrue(result["checks"]["official_model_and_firmware_reference_verified"])
+        self.assertTrue(result["checks"]["device_board_explicitly_fails_closed"])
+        self.assertIn("verified_kernel_source_and_config", result["port_blockers"])
+        self.assertFalse(result["android_build_attempted"])
+        self.assertFalse(result["boot_or_flash_attempted"])
+        self.assertFalse(result["flash_authorized"])
+
+    def test_build_guard_cannot_be_silently_removed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            device = root / "porting/device/samsung/nikel"
+            device.mkdir(parents=True)
+            (device / "BoardConfig.mk").write_text("TARGET_BOARD_PLATFORM := nikel\n")
+            (device / "lineage_nikel.mk").write_text(
+                "PRODUCT_IS_ATV := true\n"
+                "$(call inherit-product, device/samsung/nikel/device.mk)\n")
+            with self.assertRaisesRegex(ValueError, "build guard removed"):
+                q60t_build007_preflight.assess(root)
+
+    def test_build007_report_cannot_overwrite(self):
+        root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "preexisting.json"
+            out.write_text("KEEP")
+            self.assertEqual(q60t_build007_preflight.main([
+                "--project-root", str(root), "--report", str(out)]), 2)
+            self.assertEqual(out.read_text(), "KEEP")
 
 
 class BootSafetyTests(unittest.TestCase):

@@ -1,0 +1,21 @@
+{
+  "type": "q60t_gpl_source_candidate_inventory",
+  "status": "BLOCKED",
+  "checks": {
+    "local_archive_inspected": false,
+    "expected_archive_hash_supplied": false,
+    "archive_sha256_matches_supplied_hash": false,
+    "archive_path_metadata_safe": false,
+    "local_source_tree_inspected": false,
+    "kernel_version_is_4_1_10": false,
+    "official_samsung_source_identity_independently_verified": false,
+    "source_tree_matches_archive_contents": false,
+    "source_matches_2743_0_binary": false
+  },
+  "archive": null,
+  "source": null,
+  "kernel_build_reproduced": false,
+  "device_contacted": false,
+  "flash_authorized": false,
+  "note": "A local archive hash and a version match are NOT proof of the exact Samsung 2743.0 source. Samsung release identity, tree-to-archive correspondence and toolchain require independent review."
+}

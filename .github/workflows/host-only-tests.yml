@@ -1,0 +1,31 @@
+name: Q60T research-only offline checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run synthetic tests
+        run: python3 -m unittest discover -s tests -q
+      - name: Check no proprietary binaries or secrets were committed
+        run: |
+          python3 -c 'import q60t_release_audit as x; from pathlib import Path; r=x.audit(Path(".")); print(r["status"],r["files_checked"],r["problems"]); assert r["status"] == "PASS"'
+      - name: Assert ROM build remains blocked pending hardware evidence
+        run: |
+          python3 -c 'import q60t_build007_preflight as x; from pathlib import Path; r=x.assess(Path(".")); print(r["status"],r["port_blockers"]); assert r["status"] == "BLOCKED" and r["flash_authorized"] is False and r["android_build_attempted"] is False'

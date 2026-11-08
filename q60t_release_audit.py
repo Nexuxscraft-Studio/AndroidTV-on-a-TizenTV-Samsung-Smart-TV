@@ -14,7 +14,7 @@ from pathlib import Path
 import sys
 
 
-ALLOWED_SUFFIXES = {".py", ".md", ".json", ".mk"}
+ALLOWED_SUFFIXES = {".py", ".md", ".json", ".mk", ".yml", ".yaml"}
 ALLOWED_SPECIAL = {".gitignore"}
 IGNORED_DIRECTORIES = {"__pycache__", ".git"}
 MAX_FILE_BYTES = 2 * 1024 * 1024

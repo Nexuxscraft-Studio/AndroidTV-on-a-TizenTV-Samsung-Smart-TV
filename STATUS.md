@@ -1,4 +1,4 @@
-# Forschungsprotokoll – Build 006
+# Forschungsprotokoll – Build 007
 
 Stand: 08.11.2026
 
@@ -113,6 +113,26 @@ Stand: 08.11.2026
   ist mehr als nur die Handelsmodellnummer.
 - Neuer Bericht `BUILD006_REPORT.md`, neue Vorprüfung
   `reports/port_preflight_build006.json` und **33** erfolgreiche Tests.
+
+## Build 007 – GPL-Source-Audit, Mali-Strategie und CI
+
+- `q60t_source_provenance.py`: Kandidatenarchive als ZIP/TAR rein offline
+  hashen, Pfad-/Link-/Größenrisiken inventarisieren und separat die Version
+  des lokalen Linux-Quellbaums einordnen. **Keine Hersteller-Provenienz
+  allein durch Dateinamen oder Hash behauptet**; keine Extraktion.
+- `q60t_kernel_build.py`: in der O=-Buildplanung `.config` nun explizit
+  aus der angelieferten ARM-Konfiguration übernehmen. Ein generischer
+  Linux-4.1.10-Quellbaum erfüllt **nicht** `samsung_gpl_source_available`.
+- `q60t_gpu_strategy.py`: Samsungs Mali-kbase-Stack (`/dev/mali0`) und
+  Linux-DRM/Panfrost getrennt auf fehlende Voraussetzungen prüfen.
+  Beide Wege bleiben nicht funktionsfähig, solange Kernel/ABI/HAL fehlen.
+- `q60t_build007_preflight.py`: integrierte Kernel-/Quell-/Grafik-/Geräte-
+  Prüfung, prüft ausdrücklich den Build-Blocker im `BoardConfig.mk`.
+- GitHub Actions (`.github/workflows/host-only-tests.yml`) für Python
+  3.11/3.12, Tests, Veröffentlichungsaudit und negative Build-Gates.
+- **46** synthetische Python-Tests erfolgreich.
+- Neue Berichte in `reports/*build007.json` und `BUILD007_REPORT.md`.
+- Kein neuer Kernel, kein Android-Systemimage und kein Bootexperiment.
 
 ## Noch nicht gemacht (und nicht behauptet)
 

@@ -26,6 +26,9 @@ zusammen. Die Referenz ist
   Nachweise für einen späteren Testboot.
 - `../q60t_kernel_build.py`, `../q60t_graphics.py`,
   `../q60t_boot_safety.py` – neue Build-005-Prüfwerkzeuge.
+- `../q60t_source_provenance.py`, `../q60t_gpu_strategy.py`,
+  `../q60t_build007_preflight.py` – Build-007-Herkunftsinventar,
+  getrennte GPU-Pfade und integrierter Fail-Closed-Portcheck.
 
 ## Warum die Build-Sperre notwendig ist
 
@@ -53,6 +56,7 @@ python3 q60t_portcheck.py --project porting
 python3 q60t_portcheck.py --project porting \
   --hardware-report reports/hardware_2743.0_build004_final.json
 python3 -m unittest discover -s tests -v
+python3 q60t_build007_preflight.py
 ```
 
 Das erste Kommando zeigt einen maschinenlesbaren `BLOCKED`-Bericht mit
@@ -64,3 +68,5 @@ nicht automatisch entfernt.
 In Build 005 sind auch die drei neuen Fachprüfungen blockiert:
 Matching-Samsung-Kernelquellen fehlen, Android-Displaytreiber/HALs sind
 nicht implementiert und ein **reversibler Bootweg ist unbewiesen**.
+Build 007 legt die erforderlichen Kandidatenprüfungen präziser fest,
+führt aber **keinen** Kernel-Build und **keinen** Android-Boot aus.

@@ -60,10 +60,36 @@ python3 q60t_kernel_build.py \
 
 Der Befehl **baut heute noch kein Image**. Er erzeugt einen prüfbaren
 Kommandoentwurf mit `ARCH=arm`, getrenntem `O=`-Buildverzeichnis und
-`zImage` als Arbeitsziel. Die Herkunftsfreigabe ist absichtlich
+`zImage` als Arbeitsziel. Build 007 ergänzt beim Vorliegen aller Eingaben
+die bisher fehlende Konfigurationsübernahme: `mkdir -p O=...`,
+`cp <Originalconfig> O=.../.config`, dann `make ... olddefconfig` und
+`make ... zImage`. Die Herkunftsfreigabe ist absichtlich
 `false` bis das konkrete Samsung-Paket unabhängig verifiziert wurde.
 Mit der vorliegenden Originalfirmware ist nur der **Referenzbanner**
 nachgewiesen, kein eigener erfolgreicher Build.
 
 Es gibt hier keine Optionen, um etwas auf den TV zu übertragen oder
 einen Bootloader umzuprogrammieren.
+
+## Build 007 – separates Archiv-/Herkunftsinventar
+
+Das neue `q60t_source_provenance.py` erstellt einen SHA-256 über ein
+lokales ZIP-/TAR-Archiv, untersucht Metadaten (inklusive Link-/Pfadrisiken)
+und liest die Version eines lokalen Kernelquellbaums. Es entpackt oder
+kompiliert **nichts**. Ein Hashverweis, der nur aus derselben Datei
+berechnet wurde, ist kein unabhängiger Quellenbeleg.
+
+```bash
+python3 q60t_source_provenance.py \
+  --archive /pfad/zum/originalen-samsung-source.zip \
+  --source /pfad/zum/linux-4.1.10 \
+  --expected-sha256 <unabhaengig-gepruefter-sha256>
+```
+
+Der Status kann maximal `MANUAL_REVIEW_REQUIRED` werden; das bedeutet
+**nicht**, dass das Paket passend zur Firmware 2743.0 freigegeben ist.
+Das Samsung-Portal ließ sich in der verwendeten Umgebung nicht abrufen.
+Die historische Quelle von Synacktiv benennt ausdrücklich die
+[Q60T-Suche im Samsung OSSRC](https://opensource.samsung.com/uploadSearch?searchValue=Q60T).
+Benötigt werden das tatsächliche Releasepaket, dessen Build-Anleitung,
+die Nike-L-Defconfig, Compiler und eine Prüfung der Herkunft.

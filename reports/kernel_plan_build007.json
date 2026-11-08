@@ -1,0 +1,24 @@
+{
+  "type": "offline_kernel_build_preflight",
+  "status": "BLOCKED",
+  "checks": {
+    "kernel_source_tree_available": false,
+    "samsung_gpl_source_available": false,
+    "source_version_matches_reference": false,
+    "source_provenance_for_exact_2743_firmware": false,
+    "kernel_config_available": false,
+    "kernel_config_basic_arm_flags": false,
+    "matching_tizen_linaro_toolchain": false,
+    "output_path_provided": false
+  },
+  "source_version": null,
+  "config": null,
+  "toolchain": null,
+  "reference_kernel": "4.1.10",
+  "reference_toolchain_version": "6.2.1",
+  "reference_uimage_sha256": "6603f3f5082d6ef74471f9233ce17063658daf10e1d9440a8a9c75749a5e72b2",
+  "build_commands_not_executed": [],
+  "image_built": false,
+  "install_or_flash_possible": false,
+  "note": "No exact Samsung source/config or cross-toolchain supplied. Commands require manual package-provenance validation."
+}

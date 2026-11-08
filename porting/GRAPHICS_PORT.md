@@ -64,3 +64,33 @@ geschützter Videowiedergabe oder einem stabilen Bild können wir erst
 nach einer echten Integration und Messung sprechen.
 
 **Keine proprietären ELF-Dateien im Quellpaket.**
+
+## Build 007 – zwei getrennte Entwicklungsrichtungen
+
+`q60t_gpu_strategy.py` nutzt dieselben verifizierten Referenzberichte
+wie `q60t_graphics.py` und untersucht bei Bedarf lokale Kernelquellen,
+`libmali.so` und `mali.ko` – ohne sie auszuführen.
+
+1. **Legacy kbase:** Die Tizen-Firmware nennt `/dev/mali0`. Benötigt
+   werden eine zum Kernel passende kbase-Version, ARM32-Userspace-EGL,
+   kompatible Buffer-Allocator/Mapper, Android-Composer und Samsung-
+   Panel-Scanout. Die bloße Existenz von `drivers/gpu/arm/bifrost`
+   beweist weder Bau noch Treiberfunktion.
+2. **DRM/Panfrost:** Mesa/Panfrost unterstützt Bifrost-GPUs wie G51,
+   benötigt jedoch einen passenden **Linux-DRM-Kerneltreiber** samt
+   Displayintegration. Das ist **kein** direkter Ersatz für Samsungs
+   vorhandenen kbase-Kernel/`/dev/mali0` und kein fertiger Backport
+   auf den alten 4.1.10-Kernel.
+
+```bash
+python3 q60t_gpu_strategy.py \
+  --hardware-report reports/hardware_2743.0_build004_final.json \
+  --kernel-report reports/kernel_build005.json
+```
+
+Quellen: [Arm Bifrost GPL-Kerneltreiber](https://developer.arm.com/Downloads/-/Bifrost%20Mali%203rd%20Gen%20GPU%20Architecture),
+[Mesa Panfrost](https://docs.mesa3d.org/drivers/panfrost.html),
+[AOSP AIDL Hardware Composer](https://source.android.com/docs/core/graphics/aidl-hwc).
+
+**Ergebnis Build 007:** Beide Pfade `BLOCKED` bis exakte Quellen,
+Treiber-ABI, HALs und reale Anzeigeausgabe geprüft sind.

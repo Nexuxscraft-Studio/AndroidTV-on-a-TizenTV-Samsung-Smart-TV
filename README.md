@@ -1,4 +1,4 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 006)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 007)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
@@ -30,9 +30,15 @@ Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmwar
 - Build 006 bestätigt das **exakte Zielmodell und dessen offizielle
   Samsung-Firmwarezuordnung**. Der Modellcode wurde im Portcheck
   festgeschrieben, während die RAM-/Boot-/HAL-Nachweise offen bleiben.
+- Build 007 bringt einen **GPL-Quellarchiv- und Hash-Prüfer**, einen
+  präzisierten Kernel-Buildplan, **getrennte Mali-kbase-/Panfrost-Wege**,
+  einen integrierten Fail-Closed-Check und GitHub-CI für synthetische
+  Tests. **Ein Samsung-Kernel wurde mangels passendem Originalquellpaket
+  und Toolchain weiterhin nicht erfolgreich gebaut.**
 - Ein echtes Android-Bootimage, ein entsperrter Bootloader und passende
   Android-Hardwaretreiber **existieren hier noch nicht**.
 - Neue Erkenntnisse, Treibermatrix und offene Sicherheitsbedingungen:
+  [BUILD007_REPORT.md](BUILD007_REPORT.md),
   [BUILD006_REPORT.md](BUILD006_REPORT.md) sowie
   [BUILD005_REPORT.md](BUILD005_REPORT.md). Die Portierungswege stehen in
   [porting/KERNEL_BUILD.md](porting/KERNEL_BUILD.md),
@@ -71,6 +77,8 @@ die passende offizielle Firmware von der Samsung-Supportseite nötig.
   funktionieren ebenfalls nur mit Python-Standardbibliothek. Eine reale
   Kernelkompilierung erfordert zusätzlich den **exakten** Samsung-
   GPL-Quellbaum und passenden ARM-Cross-Compiler; diese fehlen derzeit.
+- Build 007: integrierte Prüfungen benötigen weiterhin nur die
+  Python-Standardbibliothek; CI testet unter Python 3.11 und 3.12.
 
 ## In fünf Minuten prüfen
 
@@ -117,6 +125,17 @@ python3 q60t_graphics.py \
 # Build 005: Offline-Signaturkomponenten-/Rollback-Gate-Check:
 python3 q60t_boot_safety.py --evidence porting/boot-evidence.json
 
+# Build 007: GPL-Source-Kandidateninventar und SHA-Prüfung (kein Download):
+python3 q60t_source_provenance.py
+
+# Build 007: Samsung-kbase- und Panfrost-Ansatz getrennt prüfen:
+python3 q60t_gpu_strategy.py \
+  --hardware-report reports/hardware_2743.0_build004_final.json \
+  --kernel-report reports/kernel_build005.json
+
+# Build 007: Alle Gates in einem Offline-Bericht prüfen:
+python3 q60t_build007_preflight.py
+
 # REA selbst ausführen (Node.js/npm nötig, ohne globale Installation):
 npx --yes rea-agents@latest inspect-devicetree /pfad/zu/decrypted/dtb.bin --format json
 
@@ -151,6 +170,13 @@ benutzt die Android-TV-Produktkonventionen, aber `BoardConfig.mk`
 blockiert jeden voreiligen Image-Build absichtlich.
 Berichte mit `--output` werden nur **neu angelegt**, niemals stillschweigend
 überschrieben.
+Build 007 prüft zusätzlich lokale GPL-Archiv-Metadaten auf auffällige
+Mitgliedsnamen und Links, ohne Inhalte zu entpacken. Eine korrekte Version
+oder ein lokal errechneter Hash beweist **keine** Herkunft von Samsung.
+Die zwei Mali-Wege werden nicht verwechselt: ein Legacy-`/dev/mali0`-
+Userspace ist nicht automatisch mit dem Panfrost-DRM-Treiber kompatibel.
+Der integrierte Preflight verlangt weiterhin die `$(error ...)`-Sperre
+in `BoardConfig.mk` und meldet für das reale Gerät **BLOCKED**.
 Damit wird die Echtheit einer Firmware-Signatur
 **nicht** geprüft.
 

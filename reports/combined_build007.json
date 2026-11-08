@@ -1,0 +1,132 @@
+{
+  "type": "q60t_build007_integrated_host_preflight",
+  "status": "BLOCKED",
+  "target_model": "GQ50Q60TGUXZG",
+  "firmware": "T-NKLDEUC 2743.0",
+  "checks": {
+    "device_board_explicitly_fails_closed": true,
+    "android_tv_product_is_declared": true,
+    "official_model_and_firmware_reference_verified": true,
+    "port_gates_satisfied": false,
+    "kernel_binary_reproduced": false,
+    "samsung_gpl_source_verified_for_2743": false,
+    "mali_vendor_graphics_integrated": false,
+    "panfrost_drm_graphics_integrated": false,
+    "reversible_boot_proven": false
+  },
+  "port_blockers": [
+    "actual_tv_ram_profile",
+    "verified_kernel_source_and_config",
+    "kernel_build_reproduced",
+    "independent_reversible_boot_path",
+    "verified_recovery_method",
+    "android_graphics_hal_works",
+    "android_audio_hal_works",
+    "android_video_codec_hal_works",
+    "input_remote_control_works"
+  ],
+  "kernel": {
+    "type": "offline_kernel_build_preflight",
+    "status": "BLOCKED",
+    "checks": {
+      "kernel_source_tree_available": false,
+      "samsung_gpl_source_available": false,
+      "source_version_matches_reference": false,
+      "source_provenance_for_exact_2743_firmware": false,
+      "kernel_config_available": false,
+      "kernel_config_basic_arm_flags": false,
+      "matching_tizen_linaro_toolchain": false,
+      "output_path_provided": false
+    },
+    "source_version": null,
+    "config": null,
+    "toolchain": null,
+    "reference_kernel": "4.1.10",
+    "reference_toolchain_version": "6.2.1",
+    "reference_uimage_sha256": "6603f3f5082d6ef74471f9233ce17063658daf10e1d9440a8a9c75749a5e72b2",
+    "build_commands_not_executed": [],
+    "image_built": false,
+    "install_or_flash_possible": false,
+    "note": "No exact Samsung source/config or cross-toolchain supplied. Commands require manual package-provenance validation."
+  },
+  "source_candidate": {
+    "type": "q60t_gpl_source_candidate_inventory",
+    "status": "BLOCKED",
+    "checks": {
+      "local_archive_inspected": false,
+      "expected_archive_hash_supplied": false,
+      "archive_sha256_matches_supplied_hash": false,
+      "archive_path_metadata_safe": false,
+      "local_source_tree_inspected": false,
+      "kernel_version_is_4_1_10": false,
+      "official_samsung_source_identity_independently_verified": false,
+      "source_tree_matches_archive_contents": false,
+      "source_matches_2743_0_binary": false
+    },
+    "archive": null,
+    "source": null,
+    "kernel_build_reproduced": false,
+    "device_contacted": false,
+    "flash_authorized": false,
+    "note": "A local archive hash and a version match are NOT proof of the exact Samsung 2743.0 source. Samsung release identity, tree-to-archive correspondence and toolchain require independent review."
+  },
+  "graphics": {
+    "type": "q60t_android_gpu_port_strategy",
+    "status": "BLOCKED",
+    "reference_firmware": "T-NKLDEUC 2743.0",
+    "reference_hardware_sha256": "9698e1aeca3f614bfb536dc73f8f02fc9acc8f34887070c333f47324c7b342e2",
+    "source_scan": {
+      "source_supplied": false,
+      "paths_present": [],
+      "drivers_built": false
+    },
+    "gpu_identity": {
+      "vendor_dt_compatible": "arm,mali-midgard",
+      "external_research_candidate": "Mali-G51 / Bifrost r11p0",
+      "exact_hardware_revision_verified": false
+    },
+    "paths": {
+      "legacy_vendor_kbase": {
+        "interface": "/dev/mali0",
+        "checks": {
+          "original_firmware_gpu_node_identified_in_both_profiles": true,
+          "original_display_node_identified_in_both_profiles": true,
+          "candidate_kbase_source_tree_seen": false,
+          "arm32_module_elf_supplied": false,
+          "module_vermagic_matches_4_1_10": false,
+          "arm32_libmali_elf_supplied": false,
+          "binary_driver_and_userspace_abi_verified_together": false,
+          "android_buffer_allocator_integrated": false,
+          "android_composer_hal_integrated": false,
+          "panel_scanout_and_sync_fences_tested": false
+        },
+        "ready": false,
+        "limitation": "Kernel kbase, matching userspace ABI and Android composer/gralloc must be reconciled."
+      },
+      "upstream_panfrost_drm": {
+        "interface": "/dev/dri/renderD* (new DRM driver required)",
+        "checks": {
+          "kernel_source_contains_panfrost_drm": false,
+          "target_kernel_drm_panfrost_backport_compiled": false,
+          "compatible_drm_render_and_display_pipeline_verified": false,
+          "android_mesa_egl_and_gralloc_integrated": false,
+          "samsung_panel_scanout_verified": false
+        },
+        "ready": false,
+        "limitation": "Panfrost is not a drop-in EGL replacement for the Samsung 4.1.10 kbase stack."
+      }
+    },
+    "android_14_requirement": "Hardware Composer (AIDL composer3 / relevant compatibility path), allocator and display sync",
+    "source_links": [
+      "https://developer.arm.com/Downloads/-/Bifrost%20Mali%203rd%20Gen%20GPU%20Architecture",
+      "https://source.android.com/docs/core/graphics/aidl-hwc",
+      "https://docs.mesa3d.org/drivers/panfrost.html"
+    ],
+    "private_device_exam_performed": false,
+    "android_bootable": false,
+    "flash_authorized": false
+  },
+  "boot_or_flash_attempted": false,
+  "android_build_attempted": false,
+  "flash_authorized": false
+}

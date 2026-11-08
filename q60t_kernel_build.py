@@ -78,7 +78,9 @@ def make_plan(source: Path | None, config: Path | None,
     config_info = config_details(config) if config else None
     compiler = toolchain_override if toolchain_override is not None else toolchain_details(cross_prefix)
     checks = {
-        "samsung_gpl_source_available": version is not None,
+        "kernel_source_tree_available": version is not None,
+        # A generic kernel tree is not evidence that Samsung shipped it.
+        "samsung_gpl_source_available": False,
         "source_version_matches_reference": version == EXPECTED_VERSION,
         "source_provenance_for_exact_2743_firmware": False,
         "kernel_config_available": config_info is not None,
@@ -89,10 +91,19 @@ def make_plan(source: Path | None, config: Path | None,
     # Provenance requires manual verification of an actual Samsung OSSRC
     # package; version equality or a filename never proves source identity.
     build_commands = []
-    if source and output and cross_prefix:
+    if (source and config and output and cross_prefix and version == EXPECTED_VERSION
+            and config_info and config_info["required_flags_present"]):
         base = ["make", "-C", str(source.absolute()), f"O={output.absolute()}",
                 "ARCH=arm", f"CROSS_COMPILE={cross_prefix}"]
-        build_commands = [base + ["olddefconfig"], base + ["-j2", "zImage"]]
+        # With O=, Kbuild reads the output directory's .config. Simply
+        # providing --config without installing it makes olddefconfig use an
+        # unrelated or missing configuration.
+        build_commands = [
+            ["mkdir", "-p", str(output.absolute())],
+            ["cp", "--", str(config.absolute()), str(output.absolute() / ".config")],
+            base + ["olddefconfig"],
+            base + ["-j2", "zImage"],
+        ]
     return {
         "type": "offline_kernel_build_preflight",
         "status": "BLOCKED" if not all(checks.values()) else "MANUAL_REVIEW_REQUIRED",
