@@ -60,6 +60,26 @@ und `arch/arm64/`. Die Dateianzahl, Einzelgrößen und Gesamtbytes
 sind begrenzt; symbolische Links werden übersprungen. Sie liest
 lediglich Quelltexte und führt kein fremdes Build-Skript aus.
 
+## B2. Grafik-/Display-/HAL-Blocker ohne fertige VM untersuchen
+
+Der neue Read-only-Prüfer kombiniert zwei **bereits im GitHub-Repo
+vorhandene** Samsung-Referenzberichte:
+
+```bash
+python3 q60t_build025_graphics_pipeline.py \
+  --hardware-report reports/hardware_2743.0_build004_final.json \
+  --legacy-source-report reports/source_compat_build011.json \
+  --output /opt/samsung-atv-lab/build025-graphics-pipeline.json
+```
+
+Er benötigt weder LineageOS noch laufendes QEMU. Ein später zur
+Verfügung stehender Samsung-Media-Quellbaum kann *optional* über
+`--vendor-source /pfad/zu/media-source` inventarisiert werden.
+
+Die technischen Abhängigkeiten und die offene Android-14-HAL-Liste
+stehen in [`GRAPHICS_HAL_PORT.md`](GRAPHICS_HAL_PORT.md). Die
+Ausgabe bleibt absichtlich **nicht boot-/flashfähig**.
+
 ## C. Separaten Android-14-HAL-Entwurf prüfen
 
 Erst **wenn wir ein eigenes Nike-L-Device-Tree-/Vendor-Produkt** in
