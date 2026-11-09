@@ -1,4 +1,4 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 019, Host-Branch)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 020, Host-Branch)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
@@ -402,3 +402,14 @@ Werkzeuge/Formatvorbereitungen erforderlich.
 
 Dieses Projekt enthält keine proprietären Firmwarebytes oder fremde
 Reverse-Engineering-Quelltexte.
+
+
+## Build 020 – QEMU ION / SELinux / Bionic (separater Branch)
+
+- Zusätzliches **opt-in**-Kernelprofil `qemu-ion-lab` setzt `CONFIG_ION_DUMMY=y` nur in einem eigenen QEMU-Shadow-Build; Build-018-Profil und Samsung-Originalkernel bleiben unverändert.
+- `q60t_ion_probe_init.c` öffnet `/dev/ion` und testet über Legacy-IOCTLs tatsächlich **4 KiB Allocate und Free**; `q60t_ion_result.py` überprüft die Gastmarker.
+- `q60t_selinux_preflight.py` prüft Kconfig und Policy-Voraussetzungen, behauptet aber **keine** geladene Android-Sicherheitsrichtlinie.
+- `q60t_bionic_hello.c` und `q60t_bionic_preflight.py` bereiten die **ELF32-/ARM-/Bionic-Linker-Prüfung** vor – noch kein laufendes Android.
+- **Aktuell:** synthetische Tests; Build-020-Kernel und QEMU-ION-Allokation müssen auf dem vorhandenen Proxmox-Labor noch real ausgeführt werden. **Keine Freigabe zum Flashen.**
+
+Alle sicherheitsrelevanten Prüfungen und Commands: [BUILD020_REPORT.md](BUILD020_REPORT.md).
