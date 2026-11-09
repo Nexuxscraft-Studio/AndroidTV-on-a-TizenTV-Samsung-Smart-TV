@@ -82,6 +82,25 @@ class Build023Tests(unittest.TestCase):
             self.assertIn(option, kernel.REQUESTED_BUILTINS)
             self.assertNotIn(option, kernel.OPTIONAL_BUILTINS)
 
+    def test_selinux_is_selected_in_lsm_order_and_verified(self):
+        original = 'CONFIG_LSM="landlock,lockdown,bpf"\\n'
+        self.assertEqual(kernel.add_selinux_lsm(original),
+                         "landlock,lockdown,selinux,bpf")
+        self.assertEqual(kernel.add_selinux_lsm('CONFIG_LSM="selinux,bpf"\\n'),
+                         "selinux,bpf")
+        with self.assertRaisesRegex(ValueError, "CONFIG_LSM"):
+            kernel.add_selinux_lsm("CONFIG_SECURITY_SELINUX=y\\n")
+        self.assertTrue(kernel.inspect_config('CONFIG_LSM="selinux,bpf"\\n')
+                        ["selinux_lsm_selected"])
+        self.assertFalse(kernel.inspect_config('CONFIG_LSM="landlock,bpf"\\n')
+                         ["selinux_lsm_selected"])
+
+    def test_binderfs_devices_created_in_guest_probe(self):
+        source = initrd.DEFAULT_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("BINDER_CTL_ADD", source)
+        self.assertIn('binderfs_setup();', source)
+        self.assertIn('"/dev/binderfs/%s"', source)
+
     def test_kernel_version_exact_and_uses_distinct_source_and_output(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
