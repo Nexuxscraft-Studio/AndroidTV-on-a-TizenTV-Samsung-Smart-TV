@@ -31,6 +31,7 @@ REQUIRED_CONFIG = {
     "ANDROID_BINDER_IPC_32BIT": "n",
 }
 KERNEL_BANNER = re.compile(rb"Linux version 4\.1\.10(?:\S*)?\s")
+RUN_ID = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,31}\Z")
 MAX_LOG_INSPECTION = 8 * 1024 * 1024
 
 
@@ -102,16 +103,26 @@ def qemu_command(binary: str, image: Path, initrd: Path | None) -> list[str]:
 
 
 def inspect_console(log: Path) -> dict:
-    """A kernel banner is evidence of boot progress, never a Binder ABI pass."""
+    """Distinguish guest-reported Binder ioctl results from actual transactions."""
     with log.open("rb") as stream:
         contents = stream.read(MAX_LOG_INSPECTION + 1)
     truncated = len(contents) > MAX_LOG_INSPECTION
     contents = contents[:MAX_LOG_INSPECTION]
     kernel_seen = bool(KERNEL_BANNER.search(contents))
     panic_seen = b"Kernel panic" in contents
-    init_seen = b"Run /init as init process" in contents or b"Freeing unused kernel memory" in contents
+    guest_started = b"Q60T_GUEST_INIT_STARTED host_only=1 no_flash=1\n" in contents
+    binder_ioctl_pass = (guest_started and
+                         b"Q60T_BINDER_VERSION_IOCTL_PASS name=binder protocol=8\n" in contents)
+    binder_probe_finished = (guest_started and
+                             b"Q60T_BINDER_ABI_PROBE_FINISHED transaction_tested=0\n" in contents)
+    init_seen = (guest_started or b"Run /init as init process" in contents
+                 or b"Freeing unused kernel memory" in contents)
     if panic_seen:
         state = "KERNEL_PANIC_OBSERVED"
+    elif binder_ioctl_pass and kernel_seen:
+        state = "GUEST_BINDER_VERSION_IOCTL_PASS_REPORTED"
+    elif guest_started and kernel_seen:
+        state = "GUEST_INIT_STARTED"
     elif init_seen and kernel_seen:
         state = "KERNEL_INIT_PROGRESS_OBSERVED"
     elif kernel_seen:
@@ -124,7 +135,9 @@ def inspect_console(log: Path) -> dict:
         "init_progress_seen": init_seen,
         "kernel_panic_seen": panic_seen,
         "console_log_truncated_for_analysis": truncated,
-        "binder_devices_checked_by_guest": False,
+        "guest_init_started": guest_started,
+        "binder_devices_checked_by_guest": binder_probe_finished,
+        "binder_version_ioctl_pass_reported_by_guest": binder_ioctl_pass,
         "binder_transactions_executed": False,
         "android_userspace_compatible": False,
         "safe_to_flash": False,
@@ -132,10 +145,13 @@ def inspect_console(log: Path) -> dict:
 
 
 def run_probe(workspace: Path, initrd: Path | None, timeout: int,
-              binary: str = "qemu-system-arm", dry_run: bool = False) -> dict:
+              binary: str = "qemu-system-arm", dry_run: bool = False,
+              run_id: str | None = None) -> dict:
     image = validate_workspace(workspace)
     if not 5 <= timeout <= 600:
         raise ValueError("QEMU-Timeout muss zwischen 5 und 600 Sekunden liegen")
+    if run_id is not None and not RUN_ID.fullmatch(run_id):
+        raise ValueError("Ungültige Run-ID (nur Buchstaben, Zahlen, _ und -)")
     if initrd is not None and (not initrd.is_file() or initrd.is_symlink()):
         raise ValueError("Initrd fehlt oder ist ein Symlink")
     qemu = shutil.which(binary)
@@ -146,8 +162,9 @@ def run_probe(workspace: Path, initrd: Path | None, timeout: int,
         return {"status": "QEMU_COMMAND_VALIDATED_NOT_EXECUTED", "command": command,
                 "tv_accessed": False, "binder_runtime_verified": False}
 
-    log_path = workspace / "qemu-serial.log"
-    report_path = workspace / "qemu-runtime-report.json"
+    suffix = "" if run_id is None else f"-{run_id}"
+    log_path = workspace / f"qemu-serial{suffix}.log"
+    report_path = workspace / f"qemu-runtime-report{suffix}.json"
     if log_path.exists() or log_path.is_symlink() or report_path.exists() or report_path.is_symlink():
         raise ValueError("QEMU-Protokoll/Bericht existiert bereits: niemals überschreiben")
     with log_path.open("xb") as logfile:
@@ -189,10 +206,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--initrd", type=Path,
                         help="optionale ARM32-initramfs (niemals Samsung-Firmware)")
     parser.add_argument("--timeout", type=int, default=90)
+    parser.add_argument("--run-id", help="eindeutige Testkennung; hält ältere QEMU-Logs unverändert")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     try:
-        result = run_probe(args.workspace, args.initrd, args.timeout, dry_run=args.dry_run)
+        result = run_probe(args.workspace, args.initrd, args.timeout,
+                           dry_run=args.dry_run, run_id=args.run_id)
     except (ValueError, OSError, json.JSONDecodeError) as exc:
         print(f"Build-018-QEMU-Prüfung fehlgeschlagen: {exc}", file=sys.stderr)
         return 2

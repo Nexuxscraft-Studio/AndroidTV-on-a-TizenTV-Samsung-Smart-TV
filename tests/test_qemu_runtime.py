@@ -90,6 +90,25 @@ class QemuRuntimeTests(unittest.TestCase):
         self.assertEqual(findings["status"], "KERNEL_PANIC_OBSERVED")
         self.assertFalse(findings["safe_to_flash"])
 
+    def test_guest_binder_ioctl_marker_is_not_a_transaction(self):
+        log = self.root / "console.log"
+        log.write_bytes(
+            b"Linux version 4.1.10 #1\n"
+            b"Q60T_GUEST_INIT_STARTED host_only=1 no_flash=1\n"
+            b"Q60T_BINDER_VERSION_IOCTL_PASS name=binder protocol=8\n"
+            b"Q60T_BINDER_ABI_PROBE_FINISHED transaction_tested=0\n")
+        findings = runner.inspect_console(log)
+        self.assertEqual(findings["status"], "GUEST_BINDER_VERSION_IOCTL_PASS_REPORTED")
+        self.assertTrue(findings["binder_version_ioctl_pass_reported_by_guest"])
+        self.assertTrue(findings["binder_devices_checked_by_guest"])
+        self.assertFalse(findings["binder_transactions_executed"])
+        self.assertFalse(findings["android_userspace_compatible"])
+
+    def test_ioctl_marker_requires_guest_init_marker(self):
+        log = self.root / "console.log"
+        log.write_bytes(b"Linux version 4.1.10\nQ60T_BINDER_VERSION_IOCTL_PASS name=binder protocol=8\n")
+        self.assertFalse(runner.inspect_console(log)["binder_version_ioctl_pass_reported_by_guest"])
+
     def test_dry_run_does_not_create_any_output(self):
         result = runner.run_probe(self.root, None, 10, binary=sys.executable,
                                   dry_run=True)
@@ -101,6 +120,20 @@ class QemuRuntimeTests(unittest.TestCase):
         (self.root / "qemu-serial.log").write_text("KEEP")
         with self.assertRaisesRegex(ValueError, "niemals überschreiben"):
             runner.run_probe(self.root, None, 10, binary=sys.executable)
+
+    def test_run_id_preserves_previous_log(self):
+        (self.root / "qemu-serial.log").write_text("KEEP")
+        self.assertTrue(runner.RUN_ID.fullmatch("binder-001"))
+        # Dry-run succeeds even when an earlier run's logs are present.
+        result = runner.run_probe(self.root, None, 10, binary=sys.executable,
+                                  dry_run=True, run_id="binder-001")
+        self.assertEqual(result["status"], "QEMU_COMMAND_VALIDATED_NOT_EXECUTED")
+        self.assertEqual((self.root / "qemu-serial.log").read_text(), "KEEP")
+
+    def test_reject_path_traversal_run_id(self):
+        with self.assertRaisesRegex(ValueError, "Run-ID"):
+            runner.run_probe(self.root, None, 10, binary=sys.executable,
+                             dry_run=True, run_id="../oops")
 
 
 if __name__ == "__main__":
