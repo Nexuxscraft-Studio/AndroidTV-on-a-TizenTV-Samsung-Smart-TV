@@ -64,7 +64,26 @@ ANDROID_BOOTLAB_FEATURES = {
     "IKCONFIG_PROC": "y",
 }
 ANDROID_BOOTLAB_OVERLAY = SELINUX_LAB_OVERLAY | ANDROID_BOOTLAB_FEATURES
-PROFILES = {"tizen", "selinux-lab", "android-bootlab", "binder-lab"}
+# QEMU 'virt' is a distinct virtual board, not the Samsung SDP hardware.
+# These settings are mandatory for the isolated ARMv7/Cortex-A15 experiment.
+QEMU_VIRT_OVERLAY = {
+    "ARCH_SDP": "n",
+    "ARCH_SDP_NIKE": "n",
+    "ARCH_MULTIPLATFORM": "y",
+    "ARCH_MULTI_V7": "y",
+    "ARCH_VIRT": "y",
+    "ARM_PSCI": "y",
+    "SERIAL_AMBA_PL011": "y",
+    "SERIAL_AMBA_PL011_CONSOLE": "y",
+    "DEVTMPFS": "y",
+    "DEVTMPFS_MOUNT": "y",
+    "VIRTIO": "y",
+    "VIRTIO_MMIO": "y",
+    "VIRTIO_BLK": "y",
+    "RD_GZIP": "y",
+    "TMPFS": "y",
+}
+PROFILES = {"tizen", "selinux-lab", "android-bootlab", "binder-lab", "qemu-binder-lab"}
 RESEARCH_FEATURES = {
     "ANDROID_BINDER_IPC": "y",
     "ANDROID_BINDER_IPC_32BIT": "n",
@@ -206,10 +225,12 @@ def make_args(source: Path, output: Path, prefix: str, jobs: int, major: int,
 
 def apply_research_overlay(output: Path, profile: str) -> None:
     """Opt-in change to *staged* .config only, never to vendor source."""
-    if profile not in {"selinux-lab", "android-bootlab", "binder-lab"}:
+    if profile not in {"selinux-lab", "android-bootlab", "binder-lab", "qemu-binder-lab"}:
         raise ValueError("Für dieses Profil ist kein Overlay erlaubt")
-    changes = (ANDROID_BOOTLAB_OVERLAY if profile in {"android-bootlab", "binder-lab"}
+    changes = (ANDROID_BOOTLAB_OVERLAY if profile in {"android-bootlab", "binder-lab", "qemu-binder-lab"}
                else SELINUX_LAB_OVERLAY)
+    if profile == "qemu-binder-lab":
+        changes = changes | QEMU_VIRT_OVERLAY
     config_path = output / ".config"
     config_path.write_text(stage.shadow_config(
         config_path.read_text(encoding="utf-8"), changes),
@@ -220,6 +241,9 @@ def apply_research_overlay(output: Path, profile: str) -> None:
     manifest["profile"] = profile
     manifest["vendor_security_untouched"] = False
     manifest["experimental_config_changes"] = changes
+    if profile == "qemu-binder-lab":
+        manifest["virtual_machine"] = "QEMU virt / ARMv7 Cortex-A15 (not Samsung Nike)"
+        manifest["qemu_boot_or_binder_runtime_verified"] = False
     manifest["staged_config_sha256"] = file_sha256(config_path)
     manifest["note"] = (
         "Host-only experiment: switch default kernel LSM to SELinux. "
@@ -259,12 +283,12 @@ def prepare_shadow(source: Path, workspace: Path,
         raise ValueError("Unerwarteter vdlp_version.h; nicht ersetzen")
     header.write_text(GENERATED_HEADER, encoding="utf-8")
     binder_metadata = (binder_lab.patch_shadow(shadow, workspace)
-                       if profile == "binder-lab" else None)
+                       if profile in {"binder-lab", "qemu-binder-lab"} else None)
     generated_fragment = workspace / "android-research.fragment"
     generated_fragment.write_text(android.fragment(android.compute_report(source)), encoding="utf-8")
     output = workspace / "output"
     stage.stage(source, generated_fragment, output)
-    if profile in {"selinux-lab", "android-bootlab", "binder-lab"}:
+    if profile in {"selinux-lab", "android-bootlab", "binder-lab", "qemu-binder-lab"}:
         apply_research_overlay(output, profile)
     return shadow, output, binder_metadata
 
@@ -273,10 +297,13 @@ def verify_config(output: Path, profile: str = "tizen") -> dict:
     resolved = android.read_config(output / ".config")["symbols"]
     security = (SELINUX_LAB_SECURITY if profile != "tizen"
                 else RESEARCH_SECURITY)
-    if profile in {"android-bootlab", "binder-lab"}:
+    if profile in {"android-bootlab", "binder-lab", "qemu-binder-lab"}:
         security = security | ANDROID_BOOTLAB_FEATURES
     checked = {name: resolved.get(name, "n") for name in (*RESEARCH_FEATURES, *security)}
     expected = RESEARCH_FEATURES | security
+    if profile == "qemu-binder-lab":
+        expected = expected | QEMU_VIRT_OVERLAY
+        checked.update({name: resolved.get(name, "n") for name in QEMU_VIRT_OVERLAY})
     differences = {name: {"expected": value, "actual": checked[name]}
                    for name, value in expected.items() if checked[name] != value}
     return {"sha256": file_sha256(output / ".config"),
@@ -301,7 +328,8 @@ def execute(source: Path, workspace: Path, prefix: str, jobs: int,
         raise ValueError("Kernel-Build benötigt 'bc' (Host-Werkzeug)")
     report = {
         "type": "q60t_arm32_host_compile_probe",
-        "build": "016" if profile == "binder-lab" else ("015" if profile != "tizen" else "013"),
+        "build": "018" if profile == "qemu-binder-lab" else (
+            "016" if profile == "binder-lab" else ("015" if profile != "tizen" else "013")),
         "profile": profile, "target": "zImage", "kernel_version": "4.1.10",
         "source_reference": "Samsung 20_DTV_NikeL.zip (Nike-L package; Nike.M candidate config)",
         "source_matches_live_firmware_2743_0": False,
@@ -313,6 +341,7 @@ def execute(source: Path, workspace: Path, prefix: str, jobs: int,
         "synthetic_version_header": not preflight_only,
         "compiler": compiler,
         "host_only": True, "tv_accessed": False, "boot_or_flash_performed": False,
+        "qemu_runtime_verified": False, "binder_runtime_verified": False,
         "android_or_lineageos_boot_test_passed": False,
         "signed_or_flashable_image_produced": False,
         "disclaimer": "An ARM zImage is not a deployable Samsung TV firmware. "

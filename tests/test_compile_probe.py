@@ -65,7 +65,7 @@ class CompileProbeTests(unittest.TestCase):
             self.assertIn("KCFLAGS=-Wno-error=attributes", args)
 
     def test_experimental_profile_is_opt_in(self):
-        self.assertEqual(probe.PROFILES, {"tizen", "selinux-lab", "android-bootlab", "binder-lab"})
+        self.assertEqual(probe.PROFILES, {"tizen", "selinux-lab", "android-bootlab", "binder-lab", "qemu-binder-lab"})
         with self.assertRaisesRegex(ValueError, "Unbekanntes"):
             probe.execute(Path("."), Path("/some/unique/output"), "arm-", 1,
                           60, preflight_only=True, profile="unsafe")
@@ -143,6 +143,45 @@ class CompileProbeTests(unittest.TestCase):
             for symbol in ("SECURITY_SELINUX", "BLK_DEV_INITRD", "IKCONFIG", "IKCONFIG_PROC"):
                 self.assertIn(f"CONFIG_{symbol}=y", staged)
             self.assertEqual(json.loads((output / "STAGE_MANIFEST.json").read_text())["profile"], "binder-lab")
+
+    def test_qemu_binder_profile_switches_off_samsung_board(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp)
+            (output / ".config").write_text(
+                "CONFIG_ARCH_SDP=y\n# CONFIG_ARCH_MULTIPLATFORM is not set\n"
+                "# CONFIG_ARCH_VIRT is not set\n"
+                "CONFIG_SECURITY_SMACK=y\nCONFIG_SECURITY_SFD=y\n"
+                "# CONFIG_SECURITY_SELINUX is not set\n")
+            (output / "STAGE_MANIFEST.json").write_text(json.dumps({
+                "vendor_security_untouched": True
+            }))
+            probe.apply_research_overlay(output, "qemu-binder-lab")
+            result = (output / ".config").read_text()
+            self.assertIn("# CONFIG_ARCH_SDP is not set", result)
+            self.assertIn("CONFIG_ARCH_MULTIPLATFORM=y", result)
+            self.assertIn("CONFIG_ARCH_VIRT=y", result)
+            self.assertIn("CONFIG_SERIAL_AMBA_PL011_CONSOLE=y", result)
+            self.assertIn("CONFIG_VIRTIO_MMIO=y", result)
+            manifest = json.loads((output / "STAGE_MANIFEST.json").read_text())
+            self.assertEqual(manifest["profile"], "qemu-binder-lab")
+            self.assertFalse(manifest["qemu_boot_or_binder_runtime_verified"])
+
+    def test_qemu_verification_refuses_samsung_machine(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp)
+            expected = (probe.RESEARCH_FEATURES | probe.SELINUX_LAB_SECURITY
+                        | probe.ANDROID_BOOTLAB_FEATURES | probe.QEMU_VIRT_OVERLAY)
+            (output / ".config").write_text("\n".join(
+                f"CONFIG_{name}={value}" if value != "n"
+                else f"# CONFIG_{name} is not set"
+                for name, value in expected.items()) + "\n")
+            self.assertTrue(probe.verify_config(output, "qemu-binder-lab")["verified"])
+            (output / ".config").write_text(
+                (output / ".config").read_text()
+                .replace("# CONFIG_ARCH_SDP is not set", "CONFIG_ARCH_SDP=y"))
+            report = probe.verify_config(output, "qemu-binder-lab")
+            self.assertFalse(report["verified"])
+            self.assertIn("ARCH_SDP", report["differences"])
 
 
 if __name__ == "__main__":

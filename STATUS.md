@@ -1,6 +1,12 @@
-# Forschungsprotokoll – Build 017
+# Forschungsprotokoll – Build 018 (experimenteller QEMU-Branch)
 
 Stand: 09.11.2026
+
+**Branch-Hinweis:** Ein eigenes `qemu-binder-lab`-Profil und ein QEMU-Seriell-Runner
+sind für Tests auf der Debian-/Proxmox-VM vorbereitet. Noch **kein**
+realer Boot- oder Binder-Laufzeitnachweis. Vollständige Anleitung:
+[BUILD018_REPORT.md](BUILD018_REPORT.md). Der bestätigte Vorgängerstand ist
+Build 017 auf `main`.
 
 ## Gesicherte Daten
 
