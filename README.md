@@ -1,12 +1,17 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 018, QEMU-Branch)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 019, Host-Branch)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
 
-**Experimenteller Build-018-Branch:** `feature/build018-qemu-binder-lab` ergänzt ein
-ARMv7-QEMU-`virt`-Profil mit dem Build-016-Binder-Labor und einen begrenzten
-seriellen Bootprobe-Runner. **Kompilierung und QEMU-Boot dieses neuen Profils
-sind noch nicht bestätigt.** Anleitung: [BUILD018_REPORT.md](BUILD018_REPORT.md).
+**Build 018 wurde im separaten Proxmox/QEMU-Labor erfolgreich getestet:**
+ARM32-Linux-4.1.10-Boot, statischer Gast-`/init`, drei Binder-Version-IOCTLs
+und ein echter Binder-Ping/Pong zwischen zwei Gastprozessen. Das ist noch
+kein vollständiger Android-Userspace. Siehe [BUILD018_REPORT.md](BUILD018_REPORT.md).
+
+**Experimenteller Build 019:** `feature/build019-android-userspace-preflight`
+ergänzt einen ARM32-Kernel-ABI-Smoke-Test für Android-relevante Grundlagen
+und trennt sie ausdrücklich von unbestätigten Samsung-HALs.
+[BUILD019_REPORT.md](BUILD019_REPORT.md). Der Build-019-Gastlauf steht noch aus.
 `main` und der reale Samsung-TV bleiben unverändert.
 
 ## Aktueller Stand
