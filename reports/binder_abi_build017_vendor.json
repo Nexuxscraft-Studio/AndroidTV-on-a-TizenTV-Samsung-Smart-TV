@@ -1,0 +1,95 @@
+{
+  "type": "q60t_binder_abi_surface_audit",
+  "build": "017",
+  "kernel_version": "4.1.10",
+  "source_kind": "Samsung GPL tree or experimental host-only shadow",
+  "header_sha256": "4e1fd815c026c47a227274bb70e5ec4c8a11f1b812e97aa1f1f607c932d1f021",
+  "driver_sha256": "2c94aa4a57c3d19e9586e2185b8a3d97f95148e5d1a56926ca7ae876d01ac777",
+  "reference": "https://android.googlesource.com/kernel/common/+/d04d0acdaf98506fca2e6501ed6adcdcc7d31a1f/include/uapi/linux/android/binder.h",
+  "reference_is_complete_android_requirement_list": false,
+  "core_ioctl_in_header": {
+    "BINDER_WRITE_READ": true,
+    "BINDER_SET_IDLE_TIMEOUT": true,
+    "BINDER_SET_MAX_THREADS": true,
+    "BINDER_SET_IDLE_PRIORITY": true,
+    "BINDER_SET_CONTEXT_MGR": true,
+    "BINDER_THREAD_EXIT": true,
+    "BINDER_VERSION": true
+  },
+  "core_ioctl_handlers_in_driver": {
+    "BINDER_WRITE_READ": true,
+    "BINDER_SET_IDLE_TIMEOUT": false,
+    "BINDER_SET_MAX_THREADS": true,
+    "BINDER_SET_IDLE_PRIORITY": false,
+    "BINDER_SET_CONTEXT_MGR": true,
+    "BINDER_THREAD_EXIT": true,
+    "BINDER_VERSION": true
+  },
+  "newer_aosp_ioctl_in_header": {
+    "BINDER_GET_NODE_DEBUG_INFO": false,
+    "BINDER_GET_NODE_INFO_FOR_REF": false,
+    "BINDER_SET_CONTEXT_MGR_EXT": false,
+    "BINDER_FREEZE": false,
+    "BINDER_GET_FROZEN_INFO": false,
+    "BINDER_ENABLE_ONEWAY_SPAM_DETECTION": false
+  },
+  "newer_aosp_ioctl_handlers_in_driver": {
+    "BINDER_GET_NODE_DEBUG_INFO": false,
+    "BINDER_GET_NODE_INFO_FOR_REF": false,
+    "BINDER_SET_CONTEXT_MGR_EXT": false,
+    "BINDER_FREEZE": false,
+    "BINDER_GET_FROZEN_INFO": false,
+    "BINDER_ENABLE_ONEWAY_SPAM_DETECTION": false
+  },
+  "newer_aosp_object_types_in_header": {
+    "BINDER_TYPE_FDA": false,
+    "BINDER_TYPE_PTR": false
+  },
+  "newer_aosp_transaction_features_in_header": {
+    "TF_CLEAR_BUF": false,
+    "FLAT_BINDER_FLAG_TXN_SECURITY_CTX": false,
+    "BR_TRANSACTION_SEC_CTX": false,
+    "BC_TRANSACTION_SG": false
+  },
+  "newer_aosp_structs_in_header": {
+    "binder_object_header": false,
+    "binder_buffer_object": false,
+    "binder_fd_array_object": false,
+    "binder_transaction_data_sg": false
+  },
+  "protocol_versions_found_in_text": [
+    7,
+    8
+  ],
+  "protocol_version_means_runtime_compatibility": false,
+  "legacy_global_context_manager_present": true,
+  "experimental_three_context_source_detected": false,
+  "ioctl_declared_but_no_handler": [
+    "BINDER_SET_IDLE_TIMEOUT",
+    "BINDER_SET_IDLE_PRIORITY"
+  ],
+  "missing_newer_aosp_surface": [
+    "BINDER_GET_NODE_DEBUG_INFO",
+    "BINDER_GET_NODE_INFO_FOR_REF",
+    "BINDER_SET_CONTEXT_MGR_EXT",
+    "BINDER_FREEZE",
+    "BINDER_GET_FROZEN_INFO",
+    "BINDER_ENABLE_ONEWAY_SPAM_DETECTION",
+    "BINDER_TYPE_FDA",
+    "BINDER_TYPE_PTR",
+    "TF_CLEAR_BUF",
+    "FLAT_BINDER_FLAG_TXN_SECURITY_CTX",
+    "BR_TRANSACTION_SEC_CTX",
+    "BC_TRANSACTION_SG",
+    "binder_object_header",
+    "binder_buffer_object",
+    "binder_fd_array_object",
+    "binder_transaction_data_sg"
+  ],
+  "runtime_verified": false,
+  "android_userspace_compatible": false,
+  "hardware_tested": false,
+  "flash_authorized": false,
+  "status": "MODERN_BINDER_ABI_INCOMPLETE_AND_RUNTIME_UNVERIFIED",
+  "warning": "Static ioctl/struct names do not prove kernel ABI compatibility or security. Do not flash."
+}

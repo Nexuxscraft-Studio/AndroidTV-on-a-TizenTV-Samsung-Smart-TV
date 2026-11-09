@@ -246,6 +246,19 @@ class ReleaseAuditTests(unittest.TestCase):
             self.assertEqual(result["status"], "FAIL")
             self.assertEqual(len(result["problems"]), 2)
 
+    def test_only_explicit_source_c_probe_may_be_packaged(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "porting/probes").mkdir(parents=True)
+            (root / "porting/probes/binder_uapi_arm32.c").write_text(
+                "/* synthetic safe compile probe */\n")
+            (root / "porting/probes/vendor_driver.c").write_text(
+                "/* vendor code must not slip into release */\n")
+            r = q60t_release_audit.audit(root)
+            self.assertEqual(r["status"], "FAIL")
+            self.assertTrue(any("vendor_driver.c" in x for x in r["problems"]))
+            self.assertFalse(any("binder_uapi_arm32.c" in x for x in r["problems"]))
+
 
 class KernelBuildTests(unittest.TestCase):
     def test_reference_source_version_from_synthetic_kernel_tree(self):

@@ -1,6 +1,6 @@
 # Q60T-Kernel: Android-Kompatibilität und realistische Portierungsstufen
 
-Stand: 09.11.2026 · Build 015 · **kein TV-Zugriff, keine Flashfreigabe**
+Stand: 09.11.2026 · Build 017 · **kein TV-Zugriff, keine Flashfreigabe**
 
 ## Ausgangslage: Was unser erfolgreicher Host-Build beweist
 
@@ -62,6 +62,14 @@ Kompilierung war erfolgreich, aber weder Kontextisolation zur Laufzeit
 noch die Android-Binder-ABI sind nachgewiesen. Das ist ausdrücklich
 **noch kein** vollständiger Binder-Backport. Siehe
 [`porting/BINDER_MULTICONTEXT_LAB.md`](BINDER_MULTICONTEXT_LAB.md).
+
+Build 017 zeigt darüber hinaus die **eigentliche ABI-Lücke**: Der Samsung-
+Header beschreibt längst nicht alle modernen Binder-Objekte und IOCTLs,
+und die beiden alten `BINDER_SET_IDLE_*`-IOCTLs sind zwar deklariert,
+aber nicht als `case`-Handler implementiert. 16 neuere untersuchte
+AOSP-Merkmale fehlen. Unsere ARM32-Strukturgrößenprobe wurde
+erfolgreich kompiliert; das ersetzt keine ABI-Laufzeitprüfung. Details:
+[`porting/BINDER_UAPI.md`](BINDER_UAPI.md).
 
 ### SELinux und Samsungs Sicherheitsmodell
 

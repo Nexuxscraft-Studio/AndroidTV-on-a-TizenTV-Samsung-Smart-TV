@@ -1,4 +1,4 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 016)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 017)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
@@ -105,6 +105,14 @@ Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmwar
   erzeugt. **103** synthetische Tests grün. Details:
   [BUILD016_REPORT.md](BUILD016_REPORT.md) und
   [porting/BINDER_MULTICONTEXT_LAB.md](porting/BINDER_MULTICONTEXT_LAB.md).
+- Build 017: **Reproduzierbarer Binder-UAPI-Abgleich** gegen einen festen
+  offiziellen Android-Common-Kernel-Header: 16 untersuchte spätere
+  API-Merkmale fehlen im Samsung-Kernel, zusätzlich sind zwei deklarierte
+  ältere IOCTLs im Treiber nicht implementiert. Ein kleines eigenes
+  **ARM32-C-ABI-Probeobjekt wurde erfolgreich cross-kompiliert**; es
+  testet Strukturgrößen und Protokollkonstanten, nicht den Laufzeitbetrieb.
+  **110 synthetische Tests** grün. Details: [BUILD017_REPORT.md](BUILD017_REPORT.md)
+  und [porting/BINDER_UAPI.md](porting/BINDER_UAPI.md).
 - Ein echtes Android-Bootimage, ein entsperrter Bootloader und passende
   Android-Hardwaretreiber **existieren hier noch nicht**.
 - Neue Erkenntnisse, Treibermatrix und offene Sicherheitsbedingungen:
@@ -176,6 +184,10 @@ die passende offizielle Firmware von der Samsung-Supportseite nötig.
 - Build 016: Das neue Binder-Overlay wird ausschließlich im geschützten
   Schattenquellbaum aktiviert; Quellhash und Quellmarker werden streng
   geprüft. Noch keine Runtime- oder Gerätevalidierung.
+- Build 017: Der neue ARM32-C-Quellcode ist **nur als eine explizit
+  zugelassene eigene UAPI-Compilerprobe** im Audit freigegeben.
+  Samsung-Quellcode, Gerätefirmware und ABI-Testobjekte werden nicht
+  ins Quell-Release aufgenommen.
 
 ## In fünf Minuten prüfen
 
@@ -211,10 +223,10 @@ python3 q60t_release_audit.py .
 # Vollständige synthetische Test-Suite:
 python3 -m unittest discover -s tests -v
 
-# Build 014: geprüftes Quell-ZIP außerhalb des Projektverzeichnisses erstellen:
+# Geprüftes Quell-ZIP außerhalb des Projektverzeichnisses erstellen:
 mkdir -p /pfad/zu/NEUEM-dist
 python3 q60t_package_release.py --source . \
-  --output /pfad/zu/NEUEM-dist/q60t-research.zip --label build014
+  --output /pfad/zu/NEUEM-dist/q60t-research.zip --label build017
 # Dazu entstehen q60t-research.manifest.json und q60t-research.sha256.
 # Im Ausgabeordner: sha256sum -c q60t-research.sha256
 
@@ -286,6 +298,12 @@ python3 q60t_compile_probe.py \
   --workspace /pfad/zu/NEUEM-binder-labor \
   --cross-prefix /pfad/zu/linaro/bin/arm-linux-gnueabi- \
   --profile binder-lab --jobs 4 --timeout 1800
+
+# Build 017: aktuelle und original erhaltene Binder-UAPI-Lücken prüfen:
+python3 q60t_binder_abi.py \
+  --source /pfad/zu/linux-4.1.10 \
+  --output /pfad/zu/NEUEM-binder-abi-bericht.json
+# ARM32-C-Prüfung: porting/BINDER_UAPI.md
 
 # REA selbst ausführen (Node.js/npm nötig, ohne globale Installation):
 npx --yes rea-agents@latest inspect-devicetree /pfad/zu/decrypted/dtb.bin --format json

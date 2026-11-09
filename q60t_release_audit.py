@@ -16,6 +16,9 @@ import sys
 
 ALLOWED_SUFFIXES = {".py", ".md", ".json", ".mk", ".yml", ".yaml", ".patch"}
 ALLOWED_SPECIAL = {".gitignore"}
+# Deliberate, isolated C compile-only test. Do not generally whitelist .c:
+# a broad extension rule could accidentally ship proprietary vendor sources.
+ALLOWED_C_PROBES = {"porting/probes/binder_uapi_arm32.c"}
 IGNORED_DIRECTORIES = {"__pycache__", ".git"}
 MAX_FILE_BYTES = 2 * 1024 * 1024
 MAX_TOTAL_BYTES = 8 * 1024 * 1024
@@ -47,7 +50,8 @@ def audit(root: Path) -> dict:
             if path.is_symlink():
                 problems.append(f"Symlink file: {relative}")
                 continue
-            if path.suffix not in ALLOWED_SUFFIXES and filename not in ALLOWED_SPECIAL:
+            if (path.suffix not in ALLOWED_SUFFIXES and
+                    filename not in ALLOWED_SPECIAL and relative not in ALLOWED_C_PROBES):
                 problems.append(f"Disallowed file type: {relative}")
                 continue
             size = path.stat().st_size

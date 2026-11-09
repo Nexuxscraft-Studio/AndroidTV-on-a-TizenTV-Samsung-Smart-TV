@@ -1,4 +1,4 @@
-# Forschungsprotokoll – Build 016
+# Forschungsprotokoll – Build 017
 
 Stand: 09.11.2026
 
@@ -302,6 +302,26 @@ Stand: 09.11.2026
 - **103** synthetische Tests grün, kein TV-Zugriff, keine Flashfreigabe.
   Berichte: `BUILD016_REPORT.md`, `porting/BINDER_MULTICONTEXT_LAB.md`,
   `reports/kernel_gap_build016_binder_lab.json`.
+
+## Build 017 – Offizielle Binder-UAPI gegen Samsung-Treiber geprüft
+
+- Neuer Host-Scanner `q60t_binder_abi.py`: trennt im Quelltext
+  deklarierte Binder-IOCTLs von tatsächlich implementierten Handlern.
+  Referenz ist ein fester offizieller Android-Common-Kernel-UAPI-Commit.
+- Zwei alte, deklarierte IOCTLs besitzen keinen Handler; **16**
+  unterschiedliche untersuchte neuere Android-UAPI-Merkmale fehlen.
+- Originale Samsung-Binderquelle und experimentelle Build-016-Variante
+  mit getrennten Berichten verglichen. **Kein** Runtime-ABI-Nachweis.
+- `make headers_install` im Samsung-Schattenquellbaum erfolgreich.
+  Eigenen ARM32-C-ABI-Probe mit acht `_Static_assert`-Prüfungen durch
+  Linaro GCC 6.2.1 **fehlerfrei cross-kompiliert**; Ergebnis ist ein
+  32-Bit-ARM-ELF-Objekt (EABI5), **kein** Android-Programm.
+- Quellcode-Audit erlaubt ausschließlich diesen eigenen C-Test, keine
+  beliebigen C-Treiber oder Fremdquellen.
+- **110** synthetische Tests erfolgreich. Kein QEMU verfügbar,
+  kein Laufzeit-/Gerätetest; alle Boot-/Flash-Gates bleiben **BLOCKED**.
+  Siehe `BUILD017_REPORT.md`, `porting/BINDER_UAPI.md` und
+  `reports/binder_abi_build017_*.json`.
 
 ## Noch nicht gemacht (und nicht behauptet)
 
