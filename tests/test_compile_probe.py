@@ -65,7 +65,7 @@ class CompileProbeTests(unittest.TestCase):
             self.assertIn("KCFLAGS=-Wno-error=attributes", args)
 
     def test_experimental_profile_is_opt_in(self):
-        self.assertEqual(probe.PROFILES, {"tizen", "selinux-lab", "android-bootlab", "binder-lab", "qemu-binder-lab"})
+        self.assertEqual(probe.PROFILES, {"tizen", "selinux-lab", "android-bootlab", "binder-lab", "qemu-binder-lab", "qemu-ion-lab"})
         with self.assertRaisesRegex(ValueError, "Unbekanntes"):
             probe.execute(Path("."), Path("/some/unique/output"), "arm-", 1,
                           60, preflight_only=True, profile="unsafe")
