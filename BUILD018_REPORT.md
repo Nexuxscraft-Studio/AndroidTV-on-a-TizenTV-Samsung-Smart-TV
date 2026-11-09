@@ -29,6 +29,11 @@ unverändert auswählbar.
   initialen Build-018-Compilerfehler wurden auf diese Abhängigkeiten
   zurückgeführt. Diese Abschaltung betrifft **nur** `qemu-binder-lab`,
   nicht die Samsung-Quellen oder das reguläre `binder-lab`-Profil.
+- Der Samsung-MMC-Hardwaredekompressor (`HW_DECOMPRESSOR` und
+  `HW_DECOMP_BLK_MMC_SUBSYSTEM`) wird ebenfalls nur für QEMU deaktiviert:
+  `drivers/mmc/card/hw_decompress.c` benötigt den ausschließlich
+  platformspezifischen Header `mach/hw_decompress.h`, den QEMU `virt` nicht
+  besitzt. Der generische MMC-Kern wird dadurch nicht pauschal deaktiviert.
 - Der erste QEMU-Test verwendet ausdrücklich **keine virtuellen Disks**. Daher
   wird `VIRTIO_BLK` für dieses Profil deaktiviert (VirtIO-MMIO bleibt aktiv):
   Samsungs `virtio_blk.c` passt nicht zur `find_vqs`-Signatur und den

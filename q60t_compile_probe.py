@@ -73,6 +73,10 @@ QEMU_VIRT_OVERLAY = {
     "POWER_SAVING_MODE": "n",
     "ALWAYS_INSTANT_ON": "n",
     "VDFS4_FS": "n",
+    # Samsung MMC hardware decompressor requires mach/hw_decompress.h,
+    # which does not exist on QEMU virt (no Samsung MMC controller).
+    "HW_DECOMPRESSOR": "n",
+    "HW_DECOMP_BLK_MMC_SUBSYSTEM": "n",
     "ARCH_MULTIPLATFORM": "y",
     "ARCH_MULTI_V7": "y",
     "ARCH_VIRT": "y",
