@@ -77,6 +77,11 @@ QEMU_VIRT_OVERLAY = {
     # which does not exist on QEMU virt (no Samsung MMC controller).
     "HW_DECOMPRESSOR": "n",
     "HW_DECOMP_BLK_MMC_SUBSYSTEM": "n",
+    # QEMU virt provides no Samsung eMMC controller. A diskless initrd boot
+    # must not link Samsung-specific MMC HS400 callbacks from the vendor tree.
+    "MMC": "n",
+    "SDP_MMC_RDQS_FIXUP": "n",
+    "SDP_MMC_EXECUTE_HS400_RDQS_TUNING": "n",
     "ARCH_MULTIPLATFORM": "y",
     "ARCH_MULTI_V7": "y",
     "ARCH_VIRT": "y",

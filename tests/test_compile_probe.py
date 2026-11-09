@@ -164,7 +164,9 @@ class CompileProbeTests(unittest.TestCase):
             self.assertIn("CONFIG_VIRTIO_MMIO=y", result)
             self.assertIn("# CONFIG_VIRTIO_BLK is not set", result)
             for feature in ("POWER_SAVING_MODE", "ALWAYS_INSTANT_ON", "VDFS4_FS",
-                            "HW_DECOMPRESSOR", "HW_DECOMP_BLK_MMC_SUBSYSTEM"):
+                            "HW_DECOMPRESSOR", "HW_DECOMP_BLK_MMC_SUBSYSTEM",
+                            "MMC", "SDP_MMC_RDQS_FIXUP",
+                            "SDP_MMC_EXECUTE_HS400_RDQS_TUNING"):
                 self.assertIn(f"# CONFIG_{feature} is not set", result)
             manifest = json.loads((output / "STAGE_MANIFEST.json").read_text())
             self.assertEqual(manifest["profile"], "qemu-binder-lab")

@@ -34,6 +34,13 @@ unverändert auswählbar.
   `drivers/mmc/card/hw_decompress.c` benötigt den ausschließlich
   platformspezifischen Header `mach/hw_decompress.h`, den QEMU `virt` nicht
   besitzt. Der generische MMC-Kern wird dadurch nicht pauschal deaktiviert.
+- Zusätzlich ist `MMC=n` gesetzt, da die generische QEMU-`virt`-Maschine
+  keine Samsung-eMMC-Controller bereitstellt. Dadurch bleibt deren MMC-Kern
+  samt herstellerspezifischen HS400-RDQS-Linkabhängigkeiten außen vor.
+  `SDP_MMC_RDQS_FIXUP` und `SDP_MMC_EXECUTE_HS400_RDQS_TUNING`
+  sind ebenfalls ausdrücklich deaktiviert; die vendor-seitigen Definitionen
+  haben keine Kconfig-Abhängigkeit zu `ARCH_SDP`. Für spätere echte
+  Speichercontroller-Tests wird ein separater Build benötigt.
 - Der erste QEMU-Test verwendet ausdrücklich **keine virtuellen Disks**. Daher
   wird `VIRTIO_BLK` für dieses Profil deaktiviert (VirtIO-MMIO bleibt aktiv):
   Samsungs `virtio_blk.c` passt nicht zur `find_vqs`-Signatur und den
