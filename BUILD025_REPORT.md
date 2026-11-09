@@ -89,6 +89,22 @@ Video-Codec, Input/CEC geprüft bzw. implementiert werden. Die
 Android-`gsi_tv_arm64`-Ausgabe enthält diese Samsung-Treiber nicht.
 Siehe AOSP-Hardware-Composer, VINTF und Mesa-Panfrost in den Quellen unten.
 
+**Erweiterung innerhalb desselben Build-025-Branches:**
+
+- `q60t_build025_graphics_pipeline.py` erstellt aus den beiden
+  vorhandenen Firmware-/Quellreports eine überprüfbare
+  GPU-/Display-/HAL-Abhängigkeitsmatrix. Es erkennt ausdrücklich
+  deaktivierte DTB-Knoten (z. B. CEC) und verwechselt Quellen-Treffer
+  nicht mit funktionierenden Treibern.
+- Optional werden nur im ursprünglichen Quellreport benannte Samsung-
+  C-/Header-Dateien auf **wörtliche** Linux-Interface-Hinweise wie ION,
+  DMA-BUF, DRM/KMS, Runtime-PM und Sync-Fences untersucht. Auch das
+  ist noch **kein** ABI- oder Kernel-Portierungsnachweis.
+- Die konkrete Implementierungsreihenfolge und Android-14-HAL-
+  Anforderungen sind in
+  [`porting/build025/GRAPHICS_HAL_PORT.md`](porting/build025/GRAPHICS_HAL_PORT.md)
+  dokumentiert. Keine unimplementierten HAL-Dienste werden deklariert.
+
 ## 4. Boot- und Recovery-Schranke
 
 `sign.bin`, `secos.bin` und `seret.bin` im Referenzupdate und
