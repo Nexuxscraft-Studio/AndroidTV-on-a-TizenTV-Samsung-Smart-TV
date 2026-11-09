@@ -60,8 +60,8 @@ def source_version(source: Path) -> tuple[int, int, int]:
 
 
 def add_selinux_lsm(config_content: str) -> str:
-    """Enable SELinux in Linux 6.6\'s ordered LSM list."""
-    match = re.search(r\'^CONFIG_LSM="([^"]*)"$\', config_content, re.MULTILINE)
+    """Include SELinux in the ordered list of Linux security modules."""
+    match = re.search(r'^CONFIG_LSM="([^"]*)"$', config_content, re.MULTILINE)
     if not match:
         raise ValueError("CONFIG_LSM fehlt in ARM64-defconfig")
     names = [part.strip() for part in match.group(1).split(",") if part.strip()]
