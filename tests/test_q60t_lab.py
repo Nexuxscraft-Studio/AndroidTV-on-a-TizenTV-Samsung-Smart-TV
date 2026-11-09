@@ -1,5 +1,6 @@
 """Synthetic offline test data only; no Samsung firmware distributed."""
 
+from contextlib import redirect_stderr
 from pathlib import Path
 import struct
 import sys
@@ -9,6 +10,7 @@ import json
 import tarfile
 import tempfile
 import unittest
+import warnings
 import zipfile
 import zlib
 
@@ -142,8 +144,10 @@ class ZipTests(unittest.TestCase):
             root = Path(temp)
             out = root / "report.json"
             out.write_text("important user report", encoding="utf-8")
-            self.assertEqual(q60t_lab.main(["inventory", str(root),
-                                            "--output", str(out)]), 2)
+            with redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(q60t_lab.main(["inventory", str(root),
+                                                "--output", str(out)]), 2)
+            self.assertIn("Fehler:", errors.getvalue())
             self.assertEqual(out.read_text(encoding="utf-8"),
                              "important user report")
 
@@ -224,8 +228,10 @@ class PortCheckTests(unittest.TestCase):
                 "--project", str(source / "porting"), "--output", str(out)]), 1)
             content = out.read_text(encoding="utf-8")
             self.assertIn('"status": "BLOCKED"', content)
-            self.assertEqual(q60t_portcheck.main([
-                "--project", str(source / "porting"), "--output", str(out)]), 2)
+            with redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(q60t_portcheck.main([
+                    "--project", str(source / "porting"), "--output", str(out)]), 2)
+            self.assertIn("Port-Prüfung fehlgeschlagen:", errors.getvalue())
             self.assertEqual(out.read_text(encoding="utf-8"), content)
 
 
@@ -455,7 +461,12 @@ class SourceCandidateTests(unittest.TestCase):
             with zipfile.ZipFile(archive, "w") as out:
                 out.writestr("../escape", "bad")
                 out.writestr("good/a", "first")
-                out.writestr("good/a", "second")
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", message=r"Duplicate name: 'good/a'",
+                        category=UserWarning,
+                    )
+                    out.writestr("good/a", "second")
             report = q60t_source_provenance.archive_inventory(archive)
             self.assertFalse(report["archive_paths_safe_for_separate_review"])
             self.assertEqual(len(report["member_issues"]), 2)
@@ -485,7 +496,9 @@ class SourceCandidateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp) / "existing.json"
             out.write_text("KEEP", encoding="utf-8")
-            self.assertEqual(q60t_source_provenance.main(["--report", str(out)]), 2)
+            with redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(q60t_source_provenance.main(["--report", str(out)]), 2)
+            self.assertIn("GPL-Quellenprüfung fehlgeschlagen:", errors.getvalue())
             self.assertEqual(out.read_text(), "KEEP")
 
 
@@ -518,8 +531,10 @@ class IntegratedBuild007Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp) / "preexisting.json"
             out.write_text("KEEP")
-            self.assertEqual(q60t_build007_preflight.main([
-                "--project-root", str(root), "--report", str(out)]), 2)
+            with redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(q60t_build007_preflight.main([
+                    "--project-root", str(root), "--report", str(out)]), 2)
+            self.assertIn("Build-007-Prüfung fehlgeschlagen:", errors.getvalue())
             self.assertEqual(out.read_text(), "KEEP")
 
 

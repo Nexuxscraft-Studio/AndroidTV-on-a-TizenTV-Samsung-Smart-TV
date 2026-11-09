@@ -1,5 +1,7 @@
 """Synthetic tests only; never compile or launch vendor kernel code."""
 
+from contextlib import redirect_stderr
+import io
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
@@ -126,7 +128,9 @@ class KernelBridgeTests(unittest.TestCase):
             info = json.loads(report.read_text(encoding="utf-8"))
             self.assertEqual(info["source_version"], "4.1.10")
             self.assertTrue(fragment.exists())
-            self.assertEqual(bridge.main(args), 2)
+            with redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(bridge.main(args), 2)
+            self.assertIn("Refusing to overwrite output", errors.getvalue())
 
 
 if __name__ == "__main__":

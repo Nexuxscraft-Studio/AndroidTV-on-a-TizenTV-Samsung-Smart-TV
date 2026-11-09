@@ -1,5 +1,7 @@
 """Synthetic fail-closed checks of the frozen AOSP Binder UAPI comparison."""
 
+from contextlib import redirect_stderr
+import io
 from pathlib import Path
 import json
 import tempfile
@@ -69,9 +71,11 @@ class BinderAbiTests(unittest.TestCase):
     def test_do_not_overwrite_report(self):
         target = self.root / "existing.json"
         target.write_text('{"unchanged": true}')
-        self.assertEqual(binder_abi.main([
-            "--source", str(self.source), "--output", str(target)
-        ]), 2)
+        with redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(binder_abi.main([
+                "--source", str(self.source), "--output", str(target)
+            ]), 2)
+        self.assertIn("Binder-ABI-Survey fehlgeschlagen:", errors.getvalue())
         self.assertEqual(json.loads(target.read_text()), {"unchanged": True})
 
     def test_refuse_symlinked_header(self):

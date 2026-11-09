@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from contextlib import redirect_stderr
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -84,10 +86,12 @@ class KernelReadinessTests(unittest.TestCase):
     def test_no_overwriting_reports(self) -> None:
         report = self.root / "existing.json"
         report.write_text(json.dumps({"safe": True}))
-        exit_code = readiness.main([
-            "--source", str(self.source), "--config", str(self.config),
-            "--output", str(report)])
+        with redirect_stderr(io.StringIO()) as errors:
+            exit_code = readiness.main([
+                "--source", str(self.source), "--config", str(self.config),
+                "--output", str(report)])
         self.assertEqual(exit_code, 2)
+        self.assertIn("Kernel-Kompatibilitätsprüfung fehlgeschlagen:", errors.getvalue())
         self.assertEqual(json.loads(report.read_text()), {"safe": True})
 
 
