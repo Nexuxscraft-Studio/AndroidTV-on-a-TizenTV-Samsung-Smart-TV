@@ -82,6 +82,9 @@ QEMU_VIRT_OVERLAY = {
     "MMC": "n",
     "SDP_MMC_RDQS_FIXUP": "n",
     "SDP_MMC_EXECUTE_HS400_RDQS_TUNING": "n",
+    # Samsung emergency klog persists to /dev/mmcblk0, absent on QEMU virt;
+    # regular printk, serial logging, and dmesg remain enabled.
+    "EMRG_SAVE_KLOG": "n",
     "ARCH_MULTIPLATFORM": "y",
     "ARCH_MULTI_V7": "y",
     "ARCH_VIRT": "y",

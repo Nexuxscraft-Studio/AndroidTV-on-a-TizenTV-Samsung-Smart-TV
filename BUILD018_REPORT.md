@@ -41,6 +41,10 @@ unverändert auswählbar.
   sind ebenfalls ausdrücklich deaktiviert; die vendor-seitigen Definitionen
   haben keine Kconfig-Abhängigkeit zu `ARCH_SDP`. Für spätere echte
   Speichercontroller-Tests wird ein separater Build benötigt.
+- `EMRG_SAVE_KLOG` speichert bei Kernel-Fehlern Rohlogs über Samsung-MMC-
+  Hilfsfunktionen nach `/dev/mmcblk0`. Da der emulierte Rechner kein solches
+  Gerät besitzt, wird diese Zusatzfunktion deaktiviert. Die normale
+  `printk`-/`dmesg`-/Seriell-Ausgabe bleibt ausdrücklich eingeschaltet.
 - Der erste QEMU-Test verwendet ausdrücklich **keine virtuellen Disks**. Daher
   wird `VIRTIO_BLK` für dieses Profil deaktiviert (VirtIO-MMIO bleibt aktiv):
   Samsungs `virtio_blk.c` passt nicht zur `find_vqs`-Signatur und den
