@@ -1,0 +1,36 @@
+{
+  "build": "024",
+  "selected_userspace_candidate_for_qemu_only": "lineage-21.0",
+  "stages": [
+    {
+      "name": "source_manifest_and_kernel_gate",
+      "requires": ["Exact pinned LineageOS manifest", "Complete source checkout", "Linux 6.6.162 AArch64 QEMU guest result"],
+      "status": "SOURCE_BRANCH_VERIFIED_FULL_CHECKOUT_NOT_SYNCED_HERE"
+    },
+    {
+      "name": "first_stage_init",
+      "requires": ["Real LineageOS/AOSP ARM64 first-stage /init", "Static ELF64 with no PT_INTERP", "Explicit QEMU-only first-stage ramdisk"],
+      "status": "BOOTSTRAP_PACKER_PREPARED_GUEST_NOT_EXECUTED"
+    },
+    {
+      "name": "selinux_setup",
+      "requires": ["Mounted Android system/vendor partitions", "Matched platform+vendor CIL policy", "File/property/service contexts", "secilc and sepolicy-analyze", "Policy-versus-Linux-6.6-kernel validation"],
+      "status": "BLOCKED_NO_POLICY_BUNDLE"
+    },
+    {
+      "name": "second_stage_init_property_service",
+      "requires": ["Valid SELinux policy loaded by init", "Complete init*.rc and first-stage fstab", "Real ARM64 /system/bin/init and shared library closure", "Property area and /dev/socket setup"],
+      "status": "BLOCKED_BY_SELINUX_AND_SYSTEM_IMAGES"
+    },
+    {
+      "name": "basic_services",
+      "requires": ["Second-stage init", "ueventd", "logd", "servicemanager", "hwservicemanager", "Binder drivers and Android VINTF/HAL definitions"],
+      "status": "NOT_STARTED"
+    },
+    {
+      "name": "samsung_real_hardware",
+      "requires": ["Confirmed Samsung SoC 64-bit capability", "Real Mali/display/audio drivers", "Reversible boot and verified recovery"],
+      "status": "NOT_AUTHORIZED_NO_FLASH"
+    }
+  ]
+}
