@@ -1,0 +1,23 @@
+{
+  "build": "022",
+  "status": "DEVICE_SPEC_DRAFT_NOT_A_BUILDABLE_LINEAGE_PRODUCT",
+  "board_type": "QEMU virt",
+  "board_target": "virt,highmem=off",
+  "cpu": "cortex-a15",
+  "architecture": "arm",
+  "abi": "armeabi-v7a",
+  "pointer_width": 32,
+  "ram_mb": 1024,
+  "console": "ttyAMA0,115200",
+  "kernel_version": "4.1.10",
+  "kernel_origin": "Samsung Nike source, QEMU-only shadow profile",
+  "legacy_binder_protocol": 8,
+  "network_enabled": false,
+  "requires_custom_qemu_virt_device_tree": true,
+  "does_not_use_goldfish_or_ranchu_hardware": true,
+  "qemu_only": true,
+  "samsung_hardware_verified": false,
+  "android_tv_ui_built": false,
+  "lineage_product_lunch_target_available": false,
+  "flash_authorized": false
+}
