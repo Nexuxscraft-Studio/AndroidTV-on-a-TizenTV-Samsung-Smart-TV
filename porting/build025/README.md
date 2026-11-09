@@ -19,6 +19,19 @@ und bestätigt absichtlich **keine** Kompatibilität mit dem 50-Zoll-TV.
 Wenn der neue Ausgabepfad schon existiert, bricht es ab. Dann einen
 anderen Dateinamen benutzen.
 
+Der separate Boot-Contract-Check untersucht außerdem die zwei
+bekannten, kryptografisch per SHA-256 zugeordneten DTB-Varianten:
+
+```bash
+python3 q60t_build025_boot_contract.py \
+  --dtb /opt/samsung-atv-lab/samsung/decrypted-2743.0/dtb.bin \
+  --output /opt/samsung-atv-lab/build025-boot-contract.json
+```
+
+Den `--dtb`-Pfad vorher auf dem Entwicklungsrechner auf den tatsächlich
+vorhandenen **Originalreferenz-Firmware**-Pfad abgleichen; er ist ein
+Beispielpfad. Kein Tool schreibt ins DTB oder auf den Fernseher.
+
 ## B. Linux 6.6.x nach Samsung-Gerätetreibern durchsuchen
 
 Wenn der **separate, unveränderte** Linux-6.6.162-Quellbaum bereits
