@@ -54,3 +54,15 @@ Keine der hier genannten Klassen stellt automatisch einen realen,
 einsatzbereiten oder lizenzrechtlich verteilbaren Treiber dar.
 `status = "disabled"` im Referenz-DTB schließt eine spätere Aktivierung
 durch Bootloader oder Software nicht aus; sie ist hier lediglich nicht belegt.
+
+## Build-011-Abgleich mit tatsächlich vorliegenden Quellen
+
+Der zusätzliche statische Nachweis in
+[`../reports/source_compat_build011.json`](../reports/source_compat_build011.json)
+enthält wörtliche C-/Header-Code-Referenzen für `arm,mali-midgard`
+(`sdp_gpu_nike`), `samsung,sdp-drm` (`sdp_drm_nike`),
+`samsung,sdp-mfc` (`sdp_codec_nike`), `samsung,sdp-mc-audio`
+(`sdp_alsa_nike`) und `samsung,sdp-nikel` (Kernel-Boardcode).
+Die HDMI-Umschaltkennung `samsung,tztv-hdmi-sw` fand sich nicht wörtlich
+im gescannten Quelltext. Für Grafik/Video/Audio fehlen insbesondere
+Android-kompatible Userspace-HALs und eine geprüfte Laufzeit-ABI.

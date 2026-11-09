@@ -1,0 +1,57 @@
+{
+  "type": "q60t_arm32_host_compile_evidence",
+  "build": "013",
+  "date": "2026-11-09",
+  "status": "HOST_KERNEL_COMPILED_NOT_BOOTABLE_VALIDATED",
+  "source": {
+    "archive": "20_DTV_NikeL.zip",
+    "archive_sha256": "3e38ad1baf54be8ed91c1c18b2c3137692c28e01ca894db9690f632a1fbd3bad",
+    "version": "4.1.10",
+    "defconfig": "Nike.M-Tizen_release_defconfig",
+    "exact_live_2743_0_source_match": false,
+    "original_sources_modified": false
+  },
+  "compiler": {
+    "issuer": "Texas Instruments",
+    "package": "gcc-linaro-6.2.1-ti2017.01-armv5-x86_64_arm-linux-gnueabi.tar.xz",
+    "official_package_md5": "afc80fe3e45d2992433b639c242f8ac6",
+    "version_banner": "Linaro GCC 6.2-2016.11; 6.2.1 20161016",
+    "triple": "arm-linux-gnueabi",
+    "samsung_build_sh_requires": "20161213",
+    "exact_samsung_compiler_verified": false
+  },
+  "experimental_changes_in_shadow_copy": [
+    "porting/patches/0001-android-binder32-modern-abi.patch",
+    "porting/patches/0002-legacy-dtc-yylloc-host-gcc.patch",
+    "synthetic HOST_ONLY_TEST vdlp_version.h (not a Samsung version)",
+    "kernel/t2ddebugd/include in host compile include paths"
+  ],
+  "kconfig": {
+    "exit_code": 0,
+    "resolved_sha256": "1289a0d2f7ba0e4ae03045edc17c752ebc633f261822ae79be39ddccb08de0d5",
+    "feature_and_vendor_security_checks_passed": 11,
+    "binder_enabled": true,
+    "legacy_binder_32bit_disabled": true,
+    "samsung_smack_preserved": true,
+    "samsung_sfd_preserved": true
+  },
+  "compile": {
+    "exit_code": 0,
+    "errors": [],
+    "log_sha256": "79de7daf06ef17088fa21ded71789149c3323212dd5de8d94d9b4a2734c99295",
+    "artifact_type": "Linux ARM32 zImage (little-endian)",
+    "artifact_bytes": 3622592,
+    "artifact_sha256": "95752132f34257595f87fba787bd021fae1b905de1b92e36bae3ba411798e45f",
+    "reproducible_command_execution": true,
+    "byte_identical_output_verified": false
+  },
+  "checks": {
+    "python_tests_passed": 80,
+    "release_audit": "PASS",
+    "tv_accessed": false,
+    "boot_or_flash_performed": false,
+    "android_userspace_verified": false,
+    "safe_to_flash": false
+  },
+  "note": "Compilerprobe only; never use this zImage to flash a Samsung TV."
+}

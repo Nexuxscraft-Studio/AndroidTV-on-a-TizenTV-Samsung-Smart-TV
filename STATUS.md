@@ -1,6 +1,6 @@
-# Forschungsprotokoll – Build 009
+# Forschungsprotokoll – Build 013
 
-Stand: 08.11.2026
+Stand: 09.11.2026
 
 ## Gesicherte Daten
 
@@ -168,6 +168,87 @@ Stand: 08.11.2026
 - Firmware-2743.0-Gleichheit, Sourcehash, Defconfig und Rollback
   bleiben **ungeklärt**.
 
+## Build 010 – erhaltenes Quellarchiv untersucht
+
+- Benutzer hat das Samsung-Paket `20_DTV_NikeL.zip` über einen eigenen
+  HTTPS-Link bereitgestellt. Es wurde vollständig heruntergeladen:
+  **743308262 Bytes**, SHA-256
+  `3e38ad1baf54be8ed91c1c18b2c3137692c28e01ca894db9690f632a1fbd3bad`.
+- Beide ZIP-Ebenen sind technisch intakt. Die innere enthält 116
+  Pakete/Einträge; der Kernel `linux-4.1.10-tizen5.5.tgz` enthält
+  **54173** Einträge.
+- Erstmals liegt der **tatsächliche Samsung-Q60T-Quellbaum lokal** vor:
+  Kernel 4.1.10 mit `samsung,sdp-nikel` in Board- und SoC-Code,
+  Mali-kbase, VDFS sowie zusätzliche Media-/Hardwarequellen.
+- Die mitgelieferte ARM-Defconfig heißt `Nike.M-Tizen_release_defconfig`;
+  **keine** Datei `Nike.L-Tizen_release_defconfig` gefunden. Der
+  Paket-Begleittext verlinkt auf `NikeM`; genaue Freigabezuordnung
+  bleibt zu prüfen.
+- Der Compiler ist als Quellpaket mit Bauskripten, nicht als verifizierte
+  fertige Toolchain vorhanden. **Kein Kernelbuild und kein Bootversuch.**
+- Alle Einzelheiten und Hashwerte in `BUILD010_REPORT.md`.
+
+## Build 011 – Firmware-DTB und Quelltreiber abgeglichen
+
+- `q60t_source_compat.py`: vergleicht **53 verschiedene `compatible`-Kennungen**
+  aus zwei Referenz-Device-Trees mit den extrahierten Kernel- und
+  Media-Quellen; ausschließlich lokale, begrenzte Textanalyse.
+- **11** Kennungen mit Kernel-Code-Referenz, **11** mit Media-Code-
+  Referenz, **30** nur mit DTS-Deklaration, **1** ohne wörtlichen Treffer
+  (`samsung,tztv-hdmi-sw`).
+- Besonders relevant: `samsung,sdp-nikel` im Kernel, `arm,mali-midgard`
+  im GPU-Code, `samsung,sdp-drm` im Display-Code und `samsung,sdp-mfc`
+  in Samsung-MFC-Quellen. **Keine Android-HAL daraus nachgewiesen.**
+- Nur `Nike.M`-Defconfig-Varianten vorhanden; exakte 2743.0-Herkunft,
+  Toolchain, Rebuild und sichere Bootkette bleiben offen.
+- **53** synthetische Tests bestanden. Alle Ergebnisse in
+  `BUILD011_REPORT.md` und `reports/source_compat_build011.json`.
+
+## Build 012 – Android-Kconfig und Binder-ABI nachgestellt
+
+- Alle **9** Samsung-Nike-ARM-Defconfigs und **25** Konfigurationsziele
+  statisch mit 1.072 Kconfig-Dateien abgeglichen.
+- Binder, Ashmem, Memcg und SELinux sind in allen neun Profilen
+  deaktiviert. Release-Konfiguration hat außerdem ION und OverlayFS
+  ausgeschaltet; die beiden moderneren Symbole BinderFS und DMA_HEAPS
+  sind nicht als ARM-Kconfig-Deklaration vorhanden.
+- Neue `q60t_android_kernel.py`, `q60t_kernel_stage.py` und
+  `q60t_kconfig_verify.py`: reproduzierbare Host-Konfiguration
+  mit unmodifiziertem Vendor-Sicherheitsprofil.
+- **Zwei echte Host-`make olddefconfig`-Läufe erfolgreich**, keiner
+  davon ein Kernel- oder Android-Image-Build.
+- Kritischer Fund: die namenlose `ANDROID_BINDER_IPC_32BIT`-Option
+  wird durch Samsung-Kconfig ohne Patch wieder `y`. Ein **Ein-Zeilen-
+  Patch ausschließlich in einer Schattenkopie** setzt sie auf `n`.
+  Die beiden aufgelösten `.config`-Dateien unterscheiden sich genau
+  in dieser einen Option; Binder bleibt eingeschaltet.
+- **72 synthetische Tests erfolgreich**, separate Kconfig-
+  Prüfberichte in `reports/*build012.json`; ausführlicher
+  [`BUILD012_REPORT.md`](BUILD012_REPORT.md).
+- Kein ARM-Cross-Compiler vorhanden, keine Kernelkompilierung,
+  keine Android-HAL, **kein Zugriff auf den TV**.
+
+## Build 013 – ARM32-Linux-Kernel erstmals erfolgreich kompiliert
+
+- Original-Samsung-Archiv erneut per SHA-256 bestätigt; Originalquellen
+  bleiben unverändert.
+- Offizielle TI-Linaro-Cross-Toolchain GCC 6.2.1 (20161016) heruntergeladen,
+  Herausgeber-MD5 bestätigt. **Nicht** mit Samsungs in `BUILD.sh`
+  verlangter Compilerkennung `20161213` gleichsetzen.
+- Experimentelle `Nike.M`-Android-Kconfig mit Binder-ABI-Patch und
+  unveränderten Smack-/SFD-Sicherheitsoptionen erfolgreich aufgelöst.
+- Nur in Schattenkopien: Host-DTC-`yylloc`-Kompatibilitätspatch,
+  ausdrücklich künstlicher Versionsheader, Debug-Header-Include-Pfad.
+- **Echter `make zImage` mit ARM32-Linaro-6.2.1 erfolgreich**;
+  zweiter automatisierter Testlauf ebenfalls erfolgreich (Exitcode 0).
+- Neuer wiederholbarer Builder `q60t_compile_probe.py`, Bericht
+  `reports/arm32_compile_build013.json`, Anleitung
+  `porting/KERNEL_COMPILE_PROBE.md`.
+- **80 synthetische Tests** und Projekt-Release-Audit **PASS**.
+- Kein originales Nike-L-Profil, keine verifizierte 2743.0-Buildidentität,
+  keine Android-HAL, keine Freigabe zum Booten/Flashen.
+- Details: `BUILD013_REPORT.md`.
+
 ## Noch nicht gemacht (und nicht behauptet)
 
 - Den tatsächlichen 50-Zoll-TV untersucht oder kontaktiert.
@@ -178,8 +259,9 @@ Stand: 08.11.2026
 
 ## Nächste Freigabestufe
 
-Ein originales Samsung-Archiv aus der **exakten** Gerätevariante wird
-benötigt, sofern dessen Veröffentlichung und lokale Analyse zulässig sind.
-Erst nach read-only Hardware- und Signaturprüfung folgt eine Entscheidung
-über einen Test-Bootweg und eine LineageOS-Portierung. Kein Flash ohne
-separaten, verifizierten Wiederherstellungsplan.
+Das von Samsung für die Q60T-Familie bereitgestellte **Nike-L-Quellarchiv
+ist jetzt vorhanden**. Für den exakten Firmwarestand 2743.0 müssen noch
+Quell-/Defconfig-/Toolchain-Gleichheit, reale Boarddaten und eine
+unabhängig geprüfte Wiederherstellung geklärt werden. Statische
+Portierungsarbeiten dürfen beginnen; **kein Flash oder eigener Boot**
+ohne separat verifizierten sicheren Rückweg.

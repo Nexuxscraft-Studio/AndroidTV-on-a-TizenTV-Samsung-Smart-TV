@@ -1,0 +1,666 @@
+{
+  "type": "q60t_offline_compatible_source_matrix",
+  "status": "ANALYSIS_ONLY",
+  "model": "GQ50Q60TGUXZG (reference family, actual board not read)",
+  "dtb_bundle_sha256": "9698e1aeca3f614bfb536dc73f8f02fc9acc8f34887070c333f47324c7b342e2",
+  "firmware_device_tree_count": 2,
+  "source_kernel_version": "4.1.10",
+  "nike_candidate_configs": [
+    "Nike.M-Tizen-KASAN_debug_defconfig",
+    "Nike.M-Tizen-KASAN_perf_defconfig",
+    "Nike.M-Tizen-KASAN_release_defconfig",
+    "Nike.M-Tizen-KUBSAN_debug_defconfig",
+    "Nike.M-Tizen-KUBSAN_perf_defconfig",
+    "Nike.M-Tizen-KUBSAN_release_defconfig",
+    "Nike.M-Tizen_debug_defconfig",
+    "Nike.M-Tizen_perf_defconfig",
+    "Nike.M-Tizen_release_defconfig"
+  ],
+  "nike_l_named_config_present": false,
+  "compatibility_references": {
+    "audio": [
+      {
+        "compatible": "samsung,sdp-audio",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "arch/arm/boot/dts/sdp1501.dtsi"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-audio-spdif",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "arch/arm/boot/dts/sdp1501.dtsi"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-mc-audio",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "arch/arm/boot/dts/sdp1501.dtsi"
+        ],
+        "media_references": [
+          "sdp_alsa_nike/sdp_audio_machine.c"
+        ]
+      }
+    ],
+    "board": [
+      {
+        "compatible": "samsung,dtv",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1302-eval.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd.prehawk.orsay.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-us-1mp.dts",
+          "arch/arm/boot/dts/sdp1304-eval-fhd.dts",
+          "arch/arm/boot/dts/sdp1304-eval-uhd.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-nikel",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/mach-sdp/board-nike-dt.c",
+          "drivers/soc/sdp/common.c"
+        ],
+        "media_references": []
+      }
+    ],
+    "cpu": [
+      {
+        "compatible": "arm,armv8",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm64/boot/dts/apm/apm-storm.dtsi",
+          "arch/arm64/boot/dts/arm/foundation-v8.dts",
+          "arch/arm64/boot/dts/arm/juno.dts",
+          "arch/arm64/boot/dts/arm/rtsm_ve-aemv8a.dts",
+          "arch/arm64/boot/dts/cavium/thunder-88xx.dtsi",
+          "arch/arm64/boot/dts/exynos/exynos7.dtsi",
+          "arch/arm64/boot/dts/qcom/msm8916.dtsi",
+          "arch/arm64/boot/dts/sdp/sdp1600.dtsi"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "arm,cortex-a57",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm64/boot/dts/arm/juno.dts",
+          "arch/arm64/boot/dts/exynos/exynos7.dtsi",
+          "arch/arm64/boot/dts/freescale/fsl-ls2085a.dtsi",
+          "arch/arm64/boot/dts/mediatek/mt8173.dtsi",
+          "arch/arm64/boot/dts/sdp/sdp1600.dtsi"
+        ],
+        "media_references": []
+      }
+    ],
+    "display": [
+      {
+        "compatible": "dummy_panel",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1302-eval.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd.prehawk.orsay.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-us-1mp.dts"
+        ],
+        "media_references": [
+          "sdp_drm_nike/sdp_dummy_panel.c"
+        ]
+      },
+      {
+        "compatible": "samsung,sdp-drm",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "arch/arm/boot/dts/sdp1501-jazzmt-eval.dts",
+          "arch/arm/boot/dts/sdp1501.dtsi",
+          "arch/arm/boot/dts/sdp1531-jazzml-eval.dts"
+        ],
+        "media_references": [
+          "sdp_drm_nike/sdp_drm_drv.c"
+        ]
+      },
+      {
+        "compatible": "samsung,sdp-frc-8k",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [],
+        "media_references": [
+          "sdp_ofrc_nike/sdp_frc_drv.c"
+        ]
+      },
+      {
+        "compatible": "samsung,sdp-frc-l",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [],
+        "media_references": [
+          "sdp_frc_nike/nikel/sdp_frc_drv.c"
+        ]
+      },
+      {
+        "compatible": "samsung,sdp-hdmi",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1501.dtsi"
+        ],
+        "media_references": [
+          "sdp_hdmi_nike/sdp_hdmi_main.c"
+        ]
+      },
+      {
+        "compatible": "samsung,sdp1202-panel",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1404-av.dts",
+          "arch/arm/boot/dts/sdp1404-dtv.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts",
+          "drivers/gpu/drm/panel/panel-sdp.c"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp_pqe_frc",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [],
+        "media_references": [
+          "sdp_pqe_frc_nike/sdp_pqe_init.c"
+        ]
+      },
+      {
+        "compatible": "samsung,tztv-frc-end",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-frc-nvt-main",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-frc-sdp-main",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-frc-sdp-sub1",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-frc-sdp-sub2",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-frc-start",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-hdmi-sw",
+        "classification": "NO_LITERAL_SOURCE_REFERENCE",
+        "kernel_references": [],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon-end",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon-start",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon1",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon2",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon21",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon22",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon28",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon3",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon30",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon31",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon4",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-tcon5",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      }
+    ],
+    "gpu": [
+      {
+        "compatible": "arm,mali-midgard",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [],
+        "media_references": [
+          "sdp_gpu_nike/drivers/gpu/arm/midgard/mali_kbase_core_linux.c"
+        ]
+      }
+    ],
+    "input": [
+      {
+        "compatible": "regulator-sdpmicom",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1406.fhd.1.5G.dts",
+          "arch/arm/boot/dts/sdp1406.fhd.dts",
+          "arch/arm/boot/dts/sdp1406.uhd.1.5G.dts",
+          "arch/arm/boot/dts/sdp1406.uhd.2.0G.dts",
+          "arch/arm/boot/dts/sdp1406.uhd.2.5G.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-mc-cecif",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "drivers/soc/sdp/sdp_micom_cecif.c"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-mc-cecif-test",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "drivers/soc/sdp/sdp_micom_cecif_test.c"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-mc-irb",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "drivers/soc/sdp/sdp_micom_irb.c"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-mc-irs",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "drivers/soc/sdp/sdp_micom_irs.c"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-micom-ctrl",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1501.dtsi",
+          "drivers/mailbox/sdp_micom_ctrl.c"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-micom-pinctrl",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1501.dtsi",
+          "drivers/soc/sdp/sdp_micom_pinctrl.c"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,tztv-micom",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "drivers/mfd/sdp_micom_messagebox.c"
+        ],
+        "media_references": []
+      }
+    ],
+    "network": [
+      {
+        "compatible": "samsung,sdp-mac",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1302.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304.prehawk.orsay.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1307.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi"
+        ],
+        "media_references": []
+      }
+    ],
+    "storage": [
+      {
+        "compatible": "jedec,spi-nor",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "drivers/mtd/devices/m25p80.c"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-mmc",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1207.dtsi",
+          "arch/arm/boot/dts/sdp1302.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304.prehawk.orsay.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1307.dtsi"
+        ],
+        "media_references": []
+      }
+    ],
+    "usb": [
+      {
+        "compatible": "samsung,sdp-ehci",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1207.dtsi",
+          "arch/arm/boot/dts/sdp1302.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304.prehawk.orsay.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1307.dtsi"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-ohci",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1207.dtsi",
+          "arch/arm/boot/dts/sdp1302.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304.prehawk.orsay.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1307.dtsi"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "samsung,sdp-usben",
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "drivers/usb/host/usb_enable_common.c",
+          "drivers/usb/host/usb_enable_etc.c"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "usb-ehci",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/at91sam9g45.dtsi",
+          "arch/arm/boot/dts/at91sam9x5.dtsi",
+          "arch/arm/boot/dts/sama5d3.dtsi",
+          "arch/arm/boot/dts/sama5d4.dtsi",
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1207.dtsi",
+          "arch/arm/boot/dts/sdp1302.dtsi"
+        ],
+        "media_references": []
+      },
+      {
+        "compatible": "usb-ohci",
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_references": [
+          "arch/arm/boot/dts/at91rm9200.dtsi",
+          "arch/arm/boot/dts/at91sam9260.dtsi",
+          "arch/arm/boot/dts/at91sam9261.dtsi",
+          "arch/arm/boot/dts/at91sam9263.dtsi",
+          "arch/arm/boot/dts/at91sam9g45.dtsi",
+          "arch/arm/boot/dts/at91sam9n12.dtsi",
+          "arch/arm/boot/dts/at91sam9x5.dtsi",
+          "arch/arm/boot/dts/lpc32xx.dtsi"
+        ],
+        "media_references": []
+      }
+    ],
+    "video": [
+      {
+        "compatible": "samsung,sdp-codec",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "arch/arm/boot/dts/sdp1501.dtsi"
+        ],
+        "media_references": [
+          "sdp_alsa_nike/sdp_audio_machine.c"
+        ]
+      },
+      {
+        "compatible": "samsung,sdp-mfc",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "arch/arm/boot/dts/sdp1501.dtsi"
+        ],
+        "media_references": [
+          "sdp_codec_nike/sdp_mfc.c"
+        ]
+      },
+      {
+        "compatible": "samsung,sdp-sif-codec",
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_references": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "arch/arm/boot/dts/sdp1501.dtsi"
+        ],
+        "media_references": [
+          "sdp_alsa_nike/sdp_audio_machine.c"
+        ]
+      }
+    ]
+  },
+  "classification_counts": {
+    "DTS_DECLARATION_ONLY": 30,
+    "MEDIA_CODE_REFERENCE": 11,
+    "KERNEL_CODE_REFERENCE": 11,
+    "NO_LITERAL_SOURCE_REFERENCE": 1
+  },
+  "source_scan": {
+    "kernel": {
+      "files_scanned": 41968,
+      "bytes_scanned": 534653495,
+      "symlinks_skipped": 9,
+      "oversize_skipped": 0
+    },
+    "media": {
+      "files_scanned": 1293,
+      "bytes_scanned": 63371652,
+      "symlinks_skipped": 0,
+      "oversize_skipped": 1
+    }
+  },
+  "source_matches_firmware_2743_0": false,
+  "android_hal_verified": false,
+  "kernel_built": false,
+  "boot_or_flash_attempted": false,
+  "flash_authorized": false,
+  "interpretation": "A compatible string found in source proves only a literal reference. It does not prove driver binding, usable Android HAL, GPU/video acceleration, exact kernel provenance, or a safe boot path."
+}

@@ -1,4 +1,4 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 009)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 013)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
@@ -45,6 +45,39 @@ Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmwar
   Modellfamilie `GQ**Q60T**`. Die Portalversion `1000` ist **nicht**
   als zur Firmware `2743.0` passend bestätigt. Der browserbasierte
   Download blieb gesperrt; das Originalarchiv ist nicht lokal vorhanden.
+- Build 010: Der Besitzer hat das zuvor gefundene Samsung-Paket über
+  HTTPS verfügbar gemacht. Die beiden ZIP-Ebenen wurden fehlerfrei
+  geprüft. Darin liegen echte **Linux-4.1.10-Nike-L-Quelltexte**, Samsung-
+  Treiber, eine `Nike.M`-ARM-Defconfig und Compilerquellen. Das ist der
+  **erste tatsächliche Quellcodefund**, aber noch kein Beleg für
+  den exakten Kernelpatchstand der Firmware 2743.0 oder ein baubares ROM.
+  Details und Hashes: [BUILD010_REPORT.md](BUILD010_REPORT.md).
+- Build 011: **53 Hardware-`compatible`-Kennungen** aus zwei Firmware-
+  Device-Trees gegen die tatsächlichen Samsung-Kernel- und Mediaquellen
+  abgeglichen. **22** Kennungen haben eine C-/Header-Code-Referenz,
+  **30** nur einen DTS-Treffer und **eine** keine wörtliche Referenz.
+  Unter den Treffern sind der Nike-L-Boardcode, Mali-Kernelcode, MFC-
+  Videocodec und Samsung-Displaycode. Das beweist **keine** Android-HAL
+  und keinen sicheren Boot. Details: [BUILD011_REPORT.md](BUILD011_REPORT.md).
+- Build 012: Die tatsächlich vorliegenden **neun Nike-Kernelprofile**
+  mit **25** Android-/Gerätetreiber-Optionen abgeglichen. Ein Host-Kconfig-
+  Lauf hat den alten automatisch erzwungenen Binder-32-Bit-Modus
+  aufgedeckt. Ein **Ein-Zeilen-Patch nur in einer Schattenkopie** und
+  ein zweiter Kconfig-Lauf bestätigten die Korrektur: Beide resultierenden
+  Konfigurationen unterscheiden sich exakt in der Binder-ABI-Option.
+  **72 Tests** bestanden; noch kein Kernel kompiliert oder TV kontaktiert.
+  Details: [BUILD012_REPORT.md](BUILD012_REPORT.md) und
+  [porting/ANDROID_KERNEL_BRIDGE.md](porting/ANDROID_KERNEL_BRIDGE.md).
+- Build 013: **Erstmals wurde ein echter ARM32-`zImage` aus dem
+  Samsung-4.1.10-Quellpaket erfolgreich auf einem Host kompiliert**, danach
+  mit dem neuen `q60t_compile_probe.py` unabhängig erneut. Dafür wurde
+  eine von TI veröffentlichte Linaro-GCC-6.2.1-Toolchain mit verifizierter
+  MD5-Prüfsumme verwendet. Zwei minimale Patches und ein ausdrücklich
+  synthetischer Versionsheader betreffen **nur Schattenkopien**.
+  **80 Tests** bestehen. Ein erfolgreicher Compilerlauf ist keine
+  installierbare Samsung-Firmware und kein lauffähiges Android.
+  Details: [BUILD013_REPORT.md](BUILD013_REPORT.md) und
+  [porting/KERNEL_COMPILE_PROBE.md](porting/KERNEL_COMPILE_PROBE.md).
 - Ein echtes Android-Bootimage, ein entsperrter Bootloader und passende
   Android-Hardwaretreiber **existieren hier noch nicht**.
 - Neue Erkenntnisse, Treibermatrix und offene Sicherheitsbedingungen:
@@ -88,11 +121,25 @@ die passende offizielle Firmware von der Samsung-Supportseite nötig.
 - Build 005: Kernel-Prüfung, ELF-Metadaten und Boot-Evidence-Audit
   funktionieren ebenfalls nur mit Python-Standardbibliothek. Eine reale
   Kernelkompilierung erfordert zusätzlich den **exakten** Samsung-
-  GPL-Quellbaum und passenden ARM-Cross-Compiler; diese fehlen derzeit.
+  GPL-Quellbaum und passenden ARM-Cross-Compiler; ein Samsung-Nike-
+  Quellpaket liegt seit Build 010 vor, der **exakte 2743.0-Patchstand
+  sowie der passende Cross-Compiler** fehlen weiterhin.
 - Build 007: integrierte Prüfungen benötigen weiterhin nur die
   Python-Standardbibliothek; CI testet unter Python 3.11 und 3.12.
 - Build 008: Quellenverzeichnis und Tests bleiben offline und benötigen
   keine zusätzlichen Pakete; **kein automatischer Fremdquellendownload**.
+- Build 011: Die originalen, lokal entpackten Samsung-Quellen sind
+  optionale Eingaben; sie werden weder ins Projekt eingecheckt noch
+  ausgeführt. Der statische Abgleich benötigt nur Python.
+- Build 012: Der Konfigurationsvergleich selbst ist rein lesend.
+  Ein optionaler `make olddefconfig`-Versuch **führt Samsung-Kbuild-
+  Hilfsprogramme aus** und darf nur in isolierter Entwicklungsumgebung
+  mit getrenntem `O=`-Verzeichnis erfolgen; kein solcher Schritt ist
+  mit einem Flash- oder Android-Image-Build gleichzusetzen.
+- Build 013: Der ausdrücklich angeforderte Kernel-Compile-Test führt
+  Quell-Kbuild-Hilfsprogramme und Cross-Compiler **nur auf einem
+  Entwicklungsrechner** aus. Die CLI erstellt Kopien der Samsung-
+  Quellen und eine separate Buildausgabe, berührt aber keinen Fernseher.
 
 ## In fünf Minuten prüfen
 
@@ -152,6 +199,30 @@ python3 q60t_build007_preflight.py
 
 # Build 008: Fundstellen und begrenzte Herkunftsnachweise lesen:
 # BUILD008_REPORT.md und porting/source-candidates-build008.json
+
+# Build 011: DTB-Kennungen mit lokal entpacktem Samsung-Code abgleichen:
+python3 q60t_source_compat.py \
+  --dtb /pfad/zu/decrypted/dtb.bin \
+  --kernel-source /pfad/zu/linux-4.1.10 \
+  --media-source /pfad/zu/tztv-media-nike \
+  --report neuer-source-abgleich.json
+
+# Build 012: Kconfig-Android-Gates und sicheres Staging vorbereiten:
+python3 q60t_android_kernel.py \
+  --source /pfad/zu/linux-4.1.10 \
+  --report neuer-kconfig-report.json \
+  --fragment-out /pfad/zu/neuer-kandidat.cfg
+python3 q60t_kernel_stage.py \
+  --source /pfad/zu/linux-4.1.10 \
+  --fragment /pfad/zu/neuer-kandidat.cfg \
+  --stage-dir /pfad/zu/neues-separates-buildverzeichnis
+
+# Build 013: echter ARM32-Host-Testbuild, niemals auf den TV flashen:
+python3 q60t_compile_probe.py \
+  --source /pfad/zu/linux-4.1.10 \
+  --workspace /pfad/zu/NEUEM-build013-arbeitsverzeichnis \
+  --cross-prefix /pfad/zu/linaro/bin/arm-linux-gnueabi- \
+  --jobs 4 --timeout 1800
 
 # REA selbst ausführen (Node.js/npm nötig, ohne globale Installation):
 npx --yes rea-agents@latest inspect-devicetree /pfad/zu/decrypted/dtb.bin --format json

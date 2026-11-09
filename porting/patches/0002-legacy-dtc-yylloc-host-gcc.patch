@@ -1,0 +1,16 @@
+diff --git a/scripts/dtc/dtc-lexer.l b/scripts/dtc/dtc-lexer.l
+--- a/scripts/dtc/dtc-lexer.l
++++ b/scripts/dtc/dtc-lexer.l
+@@ -42,3 +42,3 @@
+ 
+-YYLTYPE yylloc;
++extern YYLTYPE yylloc;
+ 
+diff --git a/scripts/dtc/dtc-lexer.lex.c_shipped b/scripts/dtc/dtc-lexer.lex.c_shipped
+--- a/scripts/dtc/dtc-lexer.lex.c_shipped
++++ b/scripts/dtc/dtc-lexer.lex.c_shipped
+@@ -639,3 +639,3 @@
+ 
+-YYLTYPE yylloc;
++extern YYLTYPE yylloc;
+ 

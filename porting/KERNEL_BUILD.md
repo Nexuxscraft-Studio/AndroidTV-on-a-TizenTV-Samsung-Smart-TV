@@ -1,6 +1,7 @@
 # Teilprojekt 1: Originalkernel 4.1.10 reproduzieren
 
-**Status: Werkzeugkette vorbereitet, Originalkernel noch nicht neu gebaut.**
+**Status: Samsung-Quellbaum vorhanden, Android-Kconfig im isolierten
+Hostlauf erfolgreich abgeglichen; Originalkernel noch nicht neu gebaut.**
 
 ## Verifizierte Buildparameter aus der Firmware
 
@@ -26,10 +27,11 @@ Buildmetadaten und etwaige proprietäre Module müssen ebenfalls passen.
 
 Synacktivs Q60T-Forschung bestätigt, dass Samsung den Kernel und viele
 Treiberquellen im [Samsung Open Source Release Center](https://opensource.samsung.com/uploadSearch?searchValue=Q60T)
-veröffentlicht hat. Der konkrete, zu **2743.0** passende Quellcode wurde
-im aktuellen Arbeitskontext **nicht bezogen**. Die direkte Portalabfrage
-war hier nicht erfolgreich; ein beliebiger Linux-4.1.10-Tarball wäre kein
-Ersatz.
+veröffentlicht hat. Seit Build 010 liegt das vom Besitzer über HTTPS
+bereitgestellte Paket `20_DTV_NikeL.zip` lokal vor. Darin gibt es
+Linux-4.1.10-Kernel- und Mediaquellen. **Die exakte Übereinstimmung
+mit dem Firmwarepatchstand 2743.0 ist noch nicht belegt**; auch eine
+nachweislich richtige `Nike.L`-Defconfig fehlt weiterhin.
 
 - Referenz: [Synacktiv GreHack 2021, „Rooting Samsung Q60T“](https://www.synacktiv.com/sites/default/files/2021-11/GreHack2021_Rooting_Samsung_Q60T_Smart_TV.pdf).
 - Samsung zu Kernel-/Defconfig-Buildgrundlagen:
@@ -91,8 +93,28 @@ Der Status kann maximal `MANUAL_REVIEW_REQUIRED` werden; das bedeutet
 Das Samsung-Portal ließ sich in der verwendeten Umgebung nicht abrufen.
 Die historische Quelle von Synacktiv benennt ausdrücklich die
 [Q60T-Suche im Samsung OSSRC](https://opensource.samsung.com/uploadSearch?searchValue=Q60T).
-Benötigt werden das tatsächliche Releasepaket, dessen Build-Anleitung,
-die Nike-L-Defconfig, Compiler und eine Prüfung der Herkunft.
+Das Releasepaket ist seit Build 010 vorhanden. Weiterhin benötigt werden
+die exakte Nike-L-/2743.0-Defconfig, ein passender Cross-Compiler und
+eine strengere Versions-/Patchstandsprüfung.
+
+## Build 012 – echte Kconfig-Auflösung statt bloßer Befehlsplanung
+
+Die Host-Tools konnten **zweimal erfolgreich `make olddefconfig`**
+mit `O=`-Ausgabe ausführen. Im ersten Lauf wurde ein alter
+Binder-32-Bit-Modus trotz `n` im Fragment durch einen versteckten
+`default y`-Wert aktiviert. In einer separaten Kernelkopie hat ein
+kleiner Patch diesen Default geändert; der zweite Lauf behielt dann
+`CONFIG_ANDROID_BINDER_IPC_32BIT=n`, während Binder aktiv blieb.
+Die restlichen untersuchten Konfigurationswerte und Samsungs Smack-
+/SFD-Sicherheit blieben unverändert.
+
+Die vollständige Begründung, Patchdatei und reproduzierbaren Schritte
+stehen in [`ANDROID_KERNEL_BRIDGE.md`](ANDROID_KERNEL_BRIDGE.md)
+und [`BUILD012_REPORT.md`](../BUILD012_REPORT.md).
+
+**Es gibt weiterhin kein gebautes `zImage` oder Android-Bootimage.
+Die passende ARM32-Toolchain fehlt und Binder-/Grafik-/SELinux-
+Kompatibilität mit Android ist nicht nachgewiesen.**
 
 ## Build 008 – Fundstellen und Compiler-Abgrenzung
 

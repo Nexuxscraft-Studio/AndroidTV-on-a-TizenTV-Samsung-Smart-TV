@@ -1,0 +1,514 @@
+{
+  "type": "q60t_nikel_android_kernel_bringup",
+  "status": "OFFLINE_ANALYSIS_ONLY",
+  "model": "GQ50Q60TGUXZG (reference; live board not verified)",
+  "source_version": "4.1.10",
+  "source_matches_firmware_2743_0": false,
+  "reference_config": {
+    "name": "Nike.M-Tizen_release_defconfig",
+    "sha256": "54dab3e4d55462362d074e6ee11bac7be4d201cb0daa6b18de1454f162f06bc0",
+    "symbol_count": 2996
+  },
+  "candidate_profile_names": [
+    "Nike.M-Tizen-KASAN_debug_defconfig",
+    "Nike.M-Tizen-KASAN_perf_defconfig",
+    "Nike.M-Tizen-KASAN_release_defconfig",
+    "Nike.M-Tizen-KUBSAN_debug_defconfig",
+    "Nike.M-Tizen-KUBSAN_perf_defconfig",
+    "Nike.M-Tizen-KUBSAN_release_defconfig",
+    "Nike.M-Tizen_debug_defconfig",
+    "Nike.M-Tizen_perf_defconfig",
+    "Nike.M-Tizen_release_defconfig"
+  ],
+  "nike_l_named_profile_present": false,
+  "feature_definitions": [
+    {
+      "symbol": "CONFIG_ANDROID_BINDER_IPC",
+      "group": "android_ipc",
+      "desired_research_value": "y",
+      "intent": "candidate",
+      "baseline_value": "n",
+      "arm_source_declarations": [
+        "drivers/android/Kconfig"
+      ],
+      "state": "DISABLED",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_ANDROID_BINDER_IPC_32BIT",
+      "group": "android_ipc",
+      "desired_research_value": "n",
+      "intent": "manual_binder_abi_review",
+      "baseline_value": "absent",
+      "arm_source_declarations": [
+        "drivers/android/Kconfig"
+      ],
+      "state": "UNSPECIFIED",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_ANDROID_BINDERFS",
+      "group": "android_ipc",
+      "desired_research_value": "y",
+      "intent": "newer_interface",
+      "baseline_value": "absent",
+      "arm_source_declarations": [],
+      "state": "NOT_DECLARED_FOR_ARM_TREE",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_ASHMEM",
+      "group": "legacy_android_memory",
+      "desired_research_value": "y",
+      "intent": "candidate",
+      "baseline_value": "n",
+      "arm_source_declarations": [
+        "drivers/staging/android/Kconfig"
+      ],
+      "state": "DISABLED",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_MEMCG",
+      "group": "memory_control",
+      "desired_research_value": "y",
+      "intent": "candidate",
+      "baseline_value": "n",
+      "arm_source_declarations": [
+        "init/Kconfig"
+      ],
+      "state": "DISABLED",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_ION",
+      "group": "legacy_gpu_buffers",
+      "desired_research_value": "y",
+      "intent": "candidate",
+      "baseline_value": "n",
+      "arm_source_declarations": [
+        "drivers/staging/android/ion/Kconfig"
+      ],
+      "state": "DISABLED",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_DMA_SHARED_BUFFER",
+      "group": "gpu_buffers",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "drivers/base/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_SYNC",
+      "group": "gpu_buffers",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "drivers/staging/android/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_DMA_HEAPS",
+      "group": "gpu_buffers",
+      "desired_research_value": "y",
+      "intent": "newer_interface",
+      "baseline_value": "absent",
+      "arm_source_declarations": [],
+      "state": "NOT_DECLARED_FOR_ARM_TREE",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_SECURITY_SELINUX",
+      "group": "security",
+      "desired_research_value": "y",
+      "intent": "manual_security_review",
+      "baseline_value": "n",
+      "arm_source_declarations": [
+        "security/selinux/Kconfig"
+      ],
+      "state": "DISABLED",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_SECURITY_SMACK",
+      "group": "security",
+      "desired_research_value": "n",
+      "intent": "vendor_security_observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "security/smack/Kconfig"
+      ],
+      "state": "DIFFERS_FROM_RESEARCH_GOAL",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_SECURITY_SFD",
+      "group": "security",
+      "desired_research_value": "n",
+      "intent": "vendor_security_observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "security/sfd/Kconfig"
+      ],
+      "state": "DIFFERS_FROM_RESEARCH_GOAL",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_CGROUPS",
+      "group": "process_control",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "init/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_CPUSETS",
+      "group": "process_control",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "init/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_PID_NS",
+      "group": "process_control",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "init/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_NET_NS",
+      "group": "process_control",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "init/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_SECCOMP",
+      "group": "process_control",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "arch/arm/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_EXT4_FS",
+      "group": "filesystems",
+      "desired_research_value": "y",
+      "intent": "candidate",
+      "baseline_value": "m",
+      "arm_source_declarations": [
+        "fs/ext4/Kconfig"
+      ],
+      "state": "MODULE_ONLY",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_OVERLAY_FS",
+      "group": "filesystems",
+      "desired_research_value": "y",
+      "intent": "candidate",
+      "baseline_value": "n",
+      "arm_source_declarations": [
+        "fs/overlayfs/Kconfig"
+      ],
+      "state": "DISABLED",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_TUN",
+      "group": "network",
+      "desired_research_value": "y",
+      "intent": "candidate",
+      "baseline_value": "n",
+      "arm_source_declarations": [
+        "drivers/net/Kconfig"
+      ],
+      "state": "DISABLED",
+      "profiles_with_goal": []
+    },
+    {
+      "symbol": "CONFIG_VETH",
+      "group": "network",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "drivers/net/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_DRM_SDP",
+      "group": "samsung_display",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "drivers/gpu/drm/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_DRM_PANEL_SDP",
+      "group": "samsung_display",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "drivers/gpu/drm/panel/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_VIDEO_V4L2",
+      "group": "samsung_video",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "drivers/media/v4l2-core/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    },
+    {
+      "symbol": "CONFIG_SND_SOC",
+      "group": "samsung_audio",
+      "desired_research_value": "y",
+      "intent": "observe",
+      "baseline_value": "y",
+      "arm_source_declarations": [
+        "sound/soc/Kconfig"
+      ],
+      "state": "MATCHES_RESEARCH_GOAL",
+      "profiles_with_goal": [
+        "Nike.M-Tizen-KASAN_debug_defconfig",
+        "Nike.M-Tizen-KASAN_perf_defconfig",
+        "Nike.M-Tizen-KASAN_release_defconfig",
+        "Nike.M-Tizen-KUBSAN_debug_defconfig",
+        "Nike.M-Tizen-KUBSAN_perf_defconfig",
+        "Nike.M-Tizen-KUBSAN_release_defconfig",
+        "Nike.M-Tizen_debug_defconfig",
+        "Nike.M-Tizen_perf_defconfig",
+        "Nike.M-Tizen_release_defconfig"
+      ]
+    }
+  ],
+  "feature_state_counts": {
+    "DISABLED": 7,
+    "UNSPECIFIED": 1,
+    "NOT_DECLARED_FOR_ARM_TREE": 2,
+    "MATCHES_RESEARCH_GOAL": 12,
+    "DIFFERS_FROM_RESEARCH_GOAL": 2,
+    "MODULE_ONLY": 1
+  },
+  "cross_profile_variations": {
+    "CONFIG_OVERLAY_FS": {
+      "Nike.M-Tizen-KASAN_debug_defconfig": "y",
+      "Nike.M-Tizen-KASAN_perf_defconfig": "y",
+      "Nike.M-Tizen-KASAN_release_defconfig": "n",
+      "Nike.M-Tizen-KUBSAN_debug_defconfig": "y",
+      "Nike.M-Tizen-KUBSAN_perf_defconfig": "y",
+      "Nike.M-Tizen-KUBSAN_release_defconfig": "n",
+      "Nike.M-Tizen_debug_defconfig": "y",
+      "Nike.M-Tizen_perf_defconfig": "y",
+      "Nike.M-Tizen_release_defconfig": "n"
+    }
+  },
+  "fragment_proposals": [
+    "CONFIG_ANDROID_BINDER_IPC=y",
+    "CONFIG_ASHMEM=y",
+    "CONFIG_MEMCG=y",
+    "CONFIG_ION=y",
+    "CONFIG_EXT4_FS=y",
+    "CONFIG_OVERLAY_FS=y",
+    "CONFIG_TUN=y",
+    "# CONFIG_ANDROID_BINDER_IPC_32BIT is not set"
+  ],
+  "binder_abi_risk": {
+    "source": "drivers/android/Kconfig",
+    "legacy_32bit_symbol_defined": true,
+    "kconfig_default_y": true,
+    "source_warning_detected": true,
+    "baseline_explicit_setting": "unspecified",
+    "requires_manual_binder_abi_review": true
+  },
+  "unvalidated_fragment_requires_olddefconfig": true,
+  "vendor_security_review": {
+    "smack_enabled": true,
+    "samsung_sfd_enabled": true,
+    "selinux_enabled": false,
+    "requires_manual_policy_and_lsm_review": true,
+    "vendor_security_options_untouched": true
+  },
+  "kconfig_scan": {
+    "files_scanned": 1072,
+    "bytes_scanned": 3879502,
+    "links_skipped": 0
+  },
+  "host_compiler_candidates": {
+    "arm-linux-gnueabi-gcc": false,
+    "arm-linux-gnueabihf-gcc": false,
+    "armv7l-tizen-linux-gnueabi-gcc": false,
+    "clang": false
+  },
+  "cross_compiler_exact_provenance_verified": false,
+  "kernel_built": false,
+  "android_hal_verified": false,
+  "tv_accessed": false,
+  "boot_or_flash_performed": false,
+  "flash_authorized": false,
+  "caution": "These are research goals, not a validated Android 14 compatibility profile. Fragment proposals require Kconfig dependency resolution and manual security/Binder ABI review. Linux 4.1.10, boot signing, driver ABI, Android HAL and recovery remain separate blockers."
+}

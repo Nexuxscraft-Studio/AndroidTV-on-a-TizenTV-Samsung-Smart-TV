@@ -1,0 +1,32 @@
+{
+  "type": "q60t_binder_abi_offline_kconfig_verification",
+  "status": "KCONFIG_RESULT_VERIFIED_IN_ISOLATED_HOST_TREE",
+  "kconfig_original_sha256": "2e92b1dc5e3dc9f8822488cb4479891932eb419f9ce97d2a81167f361e74f795",
+  "kconfig_binder_patch_sha256": "f0fb7d7ec4107f642fdefa623b6e083ce3cfed9331f386b687fbfbeae348c4c3",
+  "candidate_before_sha256": "efad00c32b6fbfb1e3466e28f9c94e75f84d037f86efd766bfc825e2436816f7",
+  "candidate_patched_sha256": "1289a0d2f7ba0e4ae03045edc17c752ebc633f261822ae79be39ddccb08de0d5",
+  "verified_research_values": {
+    "CONFIG_ANDROID_BINDER_IPC": "y",
+    "CONFIG_ANDROID_BINDER_IPC_32BIT": "n",
+    "CONFIG_ASHMEM": "y",
+    "CONFIG_MEMCG": "y",
+    "CONFIG_ION": "y",
+    "CONFIG_EXT4_FS": "y",
+    "CONFIG_OVERLAY_FS": "y",
+    "CONFIG_TUN": "y"
+  },
+  "observed_config_changes": {
+    "CONFIG_ANDROID_BINDER_IPC_32BIT": {
+      "before": "y",
+      "after": "n"
+    }
+  },
+  "vendor_security_unchanged_between_runs": true,
+  "only_binder_kconfig_default_changed": true,
+  "no_android_userspace_abi_tested": true,
+  "source_patch_matches_firmware_2743_0": false,
+  "kernel_compiled": false,
+  "boot_or_flash_attempted": false,
+  "flash_authorized": false,
+  "caution": "Host-only Kconfig equivalence; compile, Android Binder userspace ABI, secure boot and recovery remain unverified."
+}
