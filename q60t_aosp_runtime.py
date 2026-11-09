@@ -113,16 +113,14 @@ def check_runtime_files(files: dict[str, Path]) -> dict:
     provided = {Path(name).name for name in files if name.startswith("system/lib/")}
     for name, path in files.items():
         elf = read_elf32_arm(path)
-        # Some historical Android linkers are themselves ELF executables
-        # with a self-referential PT_INTERP. The kernel does not recursively
-        # load PT_INTERP for the interpreter it has already loaded. Only
-        # accept the expected /system/bin/linker path for this one file.
-        if name == "system/bin/linker":
-            if elf["interpreter"] not in (None, "/system/bin/linker"):
-                raise ValueError(
-                    f"Unerwarteter Android-Linker-Interpreter: {elf['interpreter']}")
-        elif elf["interpreter"] is not None:
-            raise ValueError(f"Runtime-Library hat unerwarteten PT_INTERP: {name}")
+        # PT_INTERP is meaningful when a file is executed by the kernel,
+        # not when a shared object is mapped as a library. Older Android
+        # system images can contain the expected interpreter field even
+        # in their Bionic .so files. Do not reject those genuine files,
+        # but reject an alien interpreter anywhere in the runtime.
+        if elf["interpreter"] not in (None, "/system/bin/linker"):
+            raise ValueError(
+                f"Unerwarteter Android-PT_INTERP ({name}): {elf['interpreter']}")
         if not name.endswith("/linker") and elf["type"] != "ET_DYN":
             raise ValueError(f"Runtime-Library ist nicht ET_DYN: {name}")
         if name.startswith("system/lib/"):

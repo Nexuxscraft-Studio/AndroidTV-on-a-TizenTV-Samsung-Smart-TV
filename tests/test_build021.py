@@ -81,7 +81,7 @@ class Build021Tests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "fehlen"):
                 aosp.check_runtime_files(files)
 
-    def test_android_linker_self_interpreter_is_not_rejected(self):
+    def test_bionic_runtime_interpreters_must_be_android_arm32(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             files = {}
@@ -89,21 +89,30 @@ class Build021Tests(unittest.TestCase):
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(synthetic_arm_elf(
-                    interpreter="/system/bin/linker"
-                    if name == "system/bin/linker" else None))
+                    interpreter="/system/bin/linker"))
                 files[name] = path
+
+            # AOSP image may expose PT_INTERP on the linker *and*
+            # libc.so/libdl.so/libm.so; none is an error by itself.
             checked = aosp.check_runtime_files(files)
-            self.assertEqual(checked["system/bin/linker"]["elf"]["interpreter"],
-                             "/system/bin/linker")
-            files["system/bin/linker"].write_bytes(
-                synthetic_arm_elf(interpreter="/lib/ld-linux.so.3"))
-            with self.assertRaisesRegex(ValueError, "Linker-Interpreter"):
-                aosp.check_runtime_files(files)
-            files["system/bin/linker"].write_bytes(synthetic_arm_elf())
-            files["system/lib/libc.so"].write_bytes(
-                synthetic_arm_elf(interpreter="/system/bin/linker"))
-            with self.assertRaisesRegex(ValueError, "Runtime-Library"):
-                aosp.check_runtime_files(files)
+            self.assertEqual(set(checked), set(aosp.RUNTIME_FILES))
+            self.assertTrue(all(
+                item["elf"]["interpreter"] == "/system/bin/linker"
+                for item in checked.values()))
+
+            # Reject a foreign loader path in any runtime ELF.
+            for name in files:
+                files[name].write_bytes(
+                    synthetic_arm_elf(interpreter="/lib/ld-linux-armhf.so.3"))
+                with self.assertRaisesRegex(ValueError, "Android-PT_INTERP"):
+                    aosp.check_runtime_files(files)
+                files[name].write_bytes(
+                    synthetic_arm_elf(interpreter="/system/bin/linker"))
+
+            # Having no PT_INTERP remains legal for shared objects.
+            for name in files:
+                files[name].write_bytes(synthetic_arm_elf())
+            aosp.check_runtime_files(files)
 
     def test_runtime_manifest_detects_tampering(self):
         with tempfile.TemporaryDirectory() as temp:
