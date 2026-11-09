@@ -1,7 +1,12 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 021, Host-Branch)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 024)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
+
+**Build 024:** Offizieller LineageOS-22.2-(Android-15)-`system/core`-Quellaudit,
+ARM64-`/init`-ELF-Prüfung, QEMU-Initramfs-Staging und streng korrelierte
+Gastloganalyse. **Noch kein echtes LineageOS-`/init` ausgeführt und kein Android-
+oder TV-Boot nachgewiesen.** [BUILD024_REPORT.md](BUILD024_REPORT.md).
 
 **Build 018 wurde im separaten Proxmox/QEMU-Labor erfolgreich getestet:**
 ARM32-Linux-4.1.10-Boot, statischer Gast-`/init`, drei Binder-Version-IOCTLs
