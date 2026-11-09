@@ -1,0 +1,156 @@
+{
+  "type": "q60t_build022_kernel_migration_audit",
+  "build": "022",
+  "status": "HOST_ONLY_HARDWARE_AUDIT_BLOCKED_FOR_DEVICE_BOOT",
+  "target_device": "GQ50Q60TGUXZG (user stated; reference firmware only)",
+  "target_userspace": "LineageOS Android TV (version not selected)",
+  "firmware_reference": "T-NKLDEUC 2743.0 (reference package, not live device)",
+  "evidence": {
+    "hardware_report_sha256": "e2b5127d900b1b6597efc4ccd34cac18ed10364ebdd93e8ad24047990827a1cf",
+    "source_report_sha256": "66a236c432c5d86f3dd25a8f279132897cb75fbef12b4f2df1790ffe2e0de0dd",
+    "reference_dtb_bundle_sha256": "9698e1aeca3f614bfb536dc73f8f02fc9acc8f34887070c333f47324c7b342e2",
+    "raw_reference_dtb_bytes_verified_in_this_run": false,
+    "reference_device_tree_count": 2,
+    "stock_kernel_source_version_candidate": "4.1.10",
+    "source_matches_firmware_2743_0": false,
+    "stock_image": {
+      "supplied": false,
+      "stock_kernel_architecture": "NOT_CHECKED"
+    }
+  },
+  "cpu_architecture": {
+    "profiles": [
+      {
+        "profile_index": 0,
+        "dtb_sha256": "0189cc94fe8dd7d016462f22e9f8e965fe328cbc901066c8955f26130f86ab61",
+        "cpu_nodes": 4,
+        "cpu_compatible_identifiers": [
+          "arm,armv8",
+          "arm,cortex-a57"
+        ],
+        "armv8_declared_in_every_cpu_node": true,
+        "memory_profile_label_from_reference": "2 GiB (firmware profile label)",
+        "board_model_from_reference": "Samsung DTV based on Nike-L SoC"
+      },
+      {
+        "profile_index": 1,
+        "dtb_sha256": "36e8e77898ce2e253ffd959f96d0fb1d27e3fcf58887325d668b190ac8dcd79e",
+        "cpu_nodes": 4,
+        "cpu_compatible_identifiers": [
+          "arm,armv8",
+          "arm,cortex-a57"
+        ],
+        "armv8_declared_in_every_cpu_node": true,
+        "memory_profile_label_from_reference": "1.5 GiB (firmware profile label)",
+        "board_model_from_reference": "Samsung DTV based on Nike-L SoC"
+      }
+    ],
+    "reference_dts_indicate_armv8": true,
+    "arm64_hardware_on_exact_tv_verified": false,
+    "bootloader_64bit_entry_verified": false,
+    "qemu_arm32_bionic_result_proves_arm64_capability": false
+  },
+  "device_driver_evidence": {
+    "board": [
+      {
+        "compatible": "samsung,sdp-nikel",
+        "source_reference_classification": "KERNEL_CODE_REFERENCE",
+        "driver_ported_to_modern_kernel": false,
+        "android_hal_verified": false
+      }
+    ],
+    "gpu": [
+      {
+        "compatible": "arm,mali-midgard",
+        "source_reference_classification": "MEDIA_CODE_REFERENCE",
+        "driver_ported_to_modern_kernel": false,
+        "android_hal_verified": false
+      }
+    ],
+    "display": [
+      {
+        "compatible": "samsung,sdp-drm",
+        "source_reference_classification": "MEDIA_CODE_REFERENCE",
+        "driver_ported_to_modern_kernel": false,
+        "android_hal_verified": false
+      },
+      {
+        "compatible": "samsung,sdp-hdmi",
+        "source_reference_classification": "MEDIA_CODE_REFERENCE",
+        "driver_ported_to_modern_kernel": false,
+        "android_hal_verified": false
+      },
+      {
+        "compatible": "samsung,sdp1202-panel",
+        "source_reference_classification": "KERNEL_CODE_REFERENCE",
+        "driver_ported_to_modern_kernel": false,
+        "android_hal_verified": false
+      }
+    ],
+    "video": [
+      {
+        "compatible": "samsung,sdp-mfc",
+        "source_reference_classification": "MEDIA_CODE_REFERENCE",
+        "driver_ported_to_modern_kernel": false,
+        "android_hal_verified": false
+      }
+    ],
+    "audio": [
+      {
+        "compatible": "samsung,sdp-mc-audio",
+        "source_reference_classification": "MEDIA_CODE_REFERENCE",
+        "driver_ported_to_modern_kernel": false,
+        "android_hal_verified": false
+      }
+    ],
+    "input": [
+      {
+        "compatible": "samsung,sdp-mc-irb",
+        "source_reference_classification": "KERNEL_CODE_REFERENCE",
+        "driver_ported_to_modern_kernel": false,
+        "android_hal_verified": false
+      }
+    ]
+  },
+  "future_gki_reference_only": {
+    "examples_by_android_version": {
+      "14": "android14-6.1",
+      "15": "android15-6.6",
+      "16": "android16-6.12"
+    },
+    "gki_requires_aarch64": true,
+    "these_kernels_are_verified_on_q60t": false,
+    "kernel_selected_for_lineageos": false,
+    "matrix_source": "https://source.android.com/docs/core/architecture/kernel/android-common",
+    "architecture_source": "https://source.android.com/docs/core/architecture/kernel"
+  },
+  "checks": {
+    "reference_report_claimed_dtb_sha256_matches_expected": true,
+    "raw_reference_dtb_reparsed_in_this_run": false,
+    "all_reference_profiles_declare_armv8_cpu_nodes": true,
+    "exact_50_inch_board_profile_verified_on_device": false,
+    "arm64_kernel_execution_state_verified_on_device": false,
+    "bootloader_accepts_arm64_test_kernel": false,
+    "firmware_source_matches_stock_kernel_exactly": false,
+    "modern_soc_display_and_gpu_drivers_ported": false,
+    "lineageos_device_tree_vendor_hals_verified": false,
+    "nonpersistent_boot_and_recovery_proven": false
+  },
+  "blocking_gates": [
+    "exact_50_inch_board_profile_verified_on_device",
+    "arm64_kernel_execution_state_verified_on_device",
+    "bootloader_accepts_arm64_test_kernel",
+    "firmware_source_matches_stock_kernel_exactly",
+    "modern_soc_display_and_gpu_drivers_ported",
+    "lineageos_device_tree_vendor_hals_verified",
+    "nonpersistent_boot_and_recovery_proven"
+  ],
+  "android_booted": false,
+  "lineageos_built": false,
+  "hardware_test_performed": false,
+  "tv_accessed": false,
+  "original_samsung_files_modified": false,
+  "safe_to_flash": false,
+  "flash_authorized": false,
+  "conclusion": "Cortex-A57/ARMv8 declarations in reference firmware do not prove an ARM64 boot path on the exact Q60T. Kernel 6.x needs SoC drivers, display/GPU, Android HALs, boot-chain and reversible recovery evidence. No flash or TV boot authorized."
+}
