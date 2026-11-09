@@ -1,0 +1,88 @@
+name: Q60T source-only package and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Test, audit and package offline source
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out research files
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run all synthetic tests
+        run: python3 -m unittest discover -s tests -q
+
+      - name: Audit repository for binary payloads and potential secrets
+        run: |
+          python3 -c 'import q60t_release_audit as x; from pathlib import Path; r=x.audit(Path(".")); print(r["status"], r["files_checked"], r["problems"]); assert r["status"] == "PASS"'
+
+      - name: Confirm TV flashing and ROM building remain blocked
+        run: |
+          python3 -c 'import q60t_build007_preflight as x; from pathlib import Path; r=x.assess(Path(".")); print(r["status"],r["port_blockers"]); assert r["status"] == "BLOCKED" and r["flash_authorized"] is False and r["android_build_attempted"] is False'
+
+      - name: Package audited sources with deterministic timestamps
+        run: |
+          mkdir -p dist
+          python3 q60t_package_release.py --source . \
+            --output "dist/q60t-source-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.zip" \
+            --label "build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cd dist
+          sha256sum -c -- *.sha256
+
+      - name: Upload source-only archive and integrity manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: q60t-source-only-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Create marked experimental GitHub prerelease
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Retrieve audited archive from this exact workflow run
+        uses: actions/download-artifact@v4
+        with:
+          name: q60t-source-only-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist
+
+      - name: Verify downloaded archive integrity
+        run: |
+          cd dist
+          sha256sum -c -- *.sha256
+
+      - name: Publish a source-only prerelease for the pushed version tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            dist/*.zip dist/*.manifest.json dist/*.sha256 \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
+            --title "$RELEASE_TAG - Q60T offline research" \
+            --notes "EXPERIMENTAL SOURCE-ONLY RESEARCH ARCHIVE.
+
+          Not an Android TV ROM, Tizen replacement, kernel distribution or flashable TV firmware.
+          No Samsung-proprietary firmware or executable kernel image is included.
+          No TV boot, recovery or rollback procedure has been verified.
+          Do not flash these files to a Samsung TV."

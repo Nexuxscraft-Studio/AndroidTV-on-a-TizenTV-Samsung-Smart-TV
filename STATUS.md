@@ -1,4 +1,4 @@
-# Forschungsprotokoll – Build 013
+# Forschungsprotokoll – Build 014
 
 Stand: 09.11.2026
 
@@ -248,6 +248,22 @@ Stand: 09.11.2026
 - Kein originales Nike-L-Profil, keine verifizierte 2743.0-Buildidentität,
   keine Android-HAL, keine Freigabe zum Booten/Flashen.
 - Details: `BUILD013_REPORT.md`.
+
+## Build 014 – Automatisierte GitHub-Quellpakete
+
+- `q60t_package_release.py`: deterministische, auditierte ZIP-Erstellung
+  mit Dateimanifest und SHA-256-Prüfsumme; keine Samsung-Binärdateien.
+- Bestehende Zieldateien bleiben geschützt; das Ziel muss außerhalb des
+  Projektbaums liegen. Ein Sicherheits-Audit ist vor jedem Paket Pflicht.
+- GitHub Actions führt bei Commits auf `main` und beim manuellen Start
+  Tests, die weiterhin negativen Boot-/Flash-Gates und die Paketierung
+  aus. GitHub-Artefakte werden 30 Tage vorgehalten.
+- Bei bewusst gepushten `v*`-Tags wird nach erfolgreichem Paketierungsjob
+  ein als experimentell markiertes GitHub-Prerelease erstellt.
+- **88 synthetische Tests erfolgreich**; vollständige Dokumentation
+  `BUILD014_REPORT.md`.
+- **Kein** Android-ROM, kein installierbares Tizen-Update und keine
+  Freigabe zur Ausführung auf dem Fernseher.
 
 ## Noch nicht gemacht (und nicht behauptet)
 

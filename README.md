@@ -1,4 +1,4 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 013)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 014)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
@@ -78,6 +78,14 @@ Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmwar
   installierbare Samsung-Firmware und kein lauffähiges Android.
   Details: [BUILD013_REPORT.md](BUILD013_REPORT.md) und
   [porting/KERNEL_COMPILE_PROBE.md](porting/KERNEL_COMPILE_PROBE.md).
+- Build 014: Neue **automatische GitHub-Actions-Paketierung** prüft bei
+  jedem Push auf `main` alle synthetischen Tests, Quellcode-Audit und
+  die weiterhin gesperrten Boot-/Flash-Gates. Sie erzeugt ein
+  **reproduzierbares Quellcode-ZIP samt SHA-256 und Dateimanifest**.
+  Bei einem eigens gepushten Versionstag `v*` wird nach erfolgreicher
+  Prüfung zusätzlich ein als experimentell markiertes **Prerelease**
+  veröffentlicht. **Keine Samsung-Firmware und kein gebauter Kernel**
+  werden dabei mitgeliefert. Details: [BUILD014_REPORT.md](BUILD014_REPORT.md).
 - Ein echtes Android-Bootimage, ein entsperrter Bootloader und passende
   Android-Hardwaretreiber **existieren hier noch nicht**.
 - Neue Erkenntnisse, Treibermatrix und offene Sicherheitsbedingungen:
@@ -140,6 +148,9 @@ die passende offizielle Firmware von der Samsung-Supportseite nötig.
   Quell-Kbuild-Hilfsprogramme und Cross-Compiler **nur auf einem
   Entwicklungsrechner** aus. Die CLI erstellt Kopien der Samsung-
   Quellen und eine separate Buildausgabe, berührt aber keinen Fernseher.
+- Build 014: Die CI lädt niemals originale Samsung-Dateien nach und
+  kompiliert keinen Kernel. Ihr Release-Artefakt enthält nur geprüfte
+  Projekt-Textquellen; Veröffentlichungen sind auf Versionstags beschränkt.
 
 ## In fünf Minuten prüfen
 
@@ -174,6 +185,13 @@ python3 q60t_release_audit.py .
 
 # Vollständige synthetische Test-Suite:
 python3 -m unittest discover -s tests -v
+
+# Build 014: geprüftes Quell-ZIP außerhalb des Projektverzeichnisses erstellen:
+mkdir -p /pfad/zu/NEUEM-dist
+python3 q60t_package_release.py --source . \
+  --output /pfad/zu/NEUEM-dist/q60t-research.zip --label build014
+# Dazu entstehen q60t-research.manifest.json und q60t-research.sha256.
+# Im Ausgabeordner: sha256sum -c q60t-research.sha256
 
 # Build 005: Kernel-Source-, Toolchain- und Defconfig-Vorprüfung:
 python3 q60t_kernel_build.py
