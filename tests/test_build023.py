@@ -76,6 +76,12 @@ class Build023Tests(unittest.TestCase):
         self.assertIn("CONFIG_SECURITY_SELINUX", flags["missing_required"])
         self.assertTrue(flags["binder_device_names_match"])
 
+    def test_selinux_kernel_prerequisites_are_required_not_optional(self):
+        # Linux 6.6 SELinux depends on SECURITY_NETWORK, AUDIT, NET and INET.
+        for option in ("SECURITY", "SECURITY_NETWORK", "AUDIT", "NET", "INET"):
+            self.assertIn(option, kernel.REQUESTED_BUILTINS)
+            self.assertNotIn(option, kernel.OPTIONAL_BUILTINS)
+
     def test_kernel_version_exact_and_uses_distinct_source_and_output(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
