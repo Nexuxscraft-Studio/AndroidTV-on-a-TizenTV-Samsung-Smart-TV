@@ -36,18 +36,19 @@ jobs:
 
       - name: Package audited sources with deterministic timestamps
         run: |
-          mkdir -p dist
+          # The packager deliberately refuses output paths inside its source tree.
+          mkdir -p "$RUNNER_TEMP/q60t-release"
           python3 q60t_package_release.py --source . \
-            --output "dist/q60t-source-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.zip" \
+            --output "$RUNNER_TEMP/q60t-release/q60t-source-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.zip" \
             --label "build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          cd dist
+          cd "$RUNNER_TEMP/q60t-release"
           sha256sum -c -- *.sha256
 
       - name: Upload source-only archive and integrity manifest
         uses: actions/upload-artifact@v4
         with:
           name: q60t-source-only-${{ github.run_id }}-${{ github.run_attempt }}
-          path: dist/*
+          path: ${{ runner.temp }}/q60t-release/*
           if-no-files-found: error
           retention-days: 30
 
