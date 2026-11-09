@@ -20,7 +20,7 @@ ALLOWED_SPECIAL = {".gitignore"}
 # a broad extension rule could accidentally ship proprietary vendor sources.
 ALLOWED_C_PROBES = {"porting/probes/binder_uapi_arm32.c", "q60t_binder_init.c",
                     "q60t_android_probe_init.c", "q60t_ion_probe_init.c",
-                    "q60t_bionic_hello.c"}
+                    "q60t_bionic_hello.c", "q60t_bionic_init.c"}
 IGNORED_DIRECTORIES = {"__pycache__", ".git"}
 MAX_FILE_BYTES = 2 * 1024 * 1024
 MAX_TOTAL_BYTES = 8 * 1024 * 1024
