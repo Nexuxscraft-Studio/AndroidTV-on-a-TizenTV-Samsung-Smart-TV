@@ -108,6 +108,10 @@ def inspect_console(log: Path) -> dict:
         contents = stream.read(MAX_LOG_INSPECTION + 1)
     truncated = len(contents) > MAX_LOG_INSPECTION
     contents = contents[:MAX_LOG_INSPECTION]
+    # QEMU's PL011 serial console often emits CRLF (sometimes CRCRLF).
+    # Keep the original log untouched for hashing/forensics; normalize only
+    # the in-memory inspection buffer so exact guest markers still match.
+    contents = contents.replace(b"\r", b"")
     kernel_seen = bool(KERNEL_BANNER.search(contents))
     panic_seen = b"Kernel panic" in contents
     guest_started = b"Q60T_GUEST_INIT_STARTED host_only=1 no_flash=1\n" in contents

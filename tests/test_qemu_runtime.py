@@ -104,6 +104,22 @@ class QemuRuntimeTests(unittest.TestCase):
         self.assertFalse(findings["binder_transactions_executed"])
         self.assertFalse(findings["android_userspace_compatible"])
 
+    def test_qemu_pl011_crlf_guest_markers(self):
+        log = self.root / "qemu-serial.log"
+        log.write_bytes(
+            b"Linux version 4.1.10 (root@debian) #1\r\n"
+            b"Q60T_GUEST_INIT_STARTED host_only=1 no_flash=1\r\r\n"
+            b"Q60T_BINDER_VERSION_IOCTL_PASS name=binder protocol=8\r\n"
+            b"Q60T_BINDER_VERSION_IOCTL_PASS name=hwbinder protocol=8\r\n"
+            b"Q60T_BINDER_VERSION_IOCTL_PASS name=vndbinder protocol=8\r\n"
+            b"Q60T_BINDER_ABI_PROBE_FINISHED transaction_tested=0\r\n")
+        findings = runner.inspect_console(log)
+        self.assertEqual(findings["status"], "GUEST_BINDER_VERSION_IOCTL_PASS_REPORTED")
+        self.assertTrue(findings["guest_init_started"])
+        self.assertTrue(findings["binder_devices_checked_by_guest"])
+        self.assertTrue(findings["binder_version_ioctl_pass_reported_by_guest"])
+        self.assertFalse(findings["binder_transactions_executed"])
+
     def test_ioctl_marker_requires_guest_init_marker(self):
         log = self.root / "console.log"
         log.write_bytes(b"Linux version 4.1.10\nQ60T_BINDER_VERSION_IOCTL_PASS name=binder protocol=8\n")

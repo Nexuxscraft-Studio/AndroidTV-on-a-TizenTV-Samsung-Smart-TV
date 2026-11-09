@@ -1,6 +1,30 @@
 # Build 018 – QEMU-ARMv7-Binder-Bootlabor (experimenteller Branch)
 
-**Status: ARM32-Kernel unter QEMU `virt` gestartet; Boot bis zum Rootfs-Mount bestätigt.**
+**Status: ARM32-Kernel und statischer ARM32-`/init` unter QEMU gestartet; drei Binder-Versions-IOCTLs erfolgreich.**
+
+### Bestätigter Initramfs-/Binder-ABI-Test (09.11.2026)
+
+Im QEMU-Lauf `build018-qemu-007` mit dem generierten Initramfs hat der
+Gast die folgenden Meldungen ausgegeben:
+
+```
+Q60T_GUEST_INIT_STARTED host_only=1 no_flash=1
+Q60T_BINDER_VERSION_IOCTL_PASS name=binder protocol=8
+Q60T_BINDER_VERSION_IOCTL_PASS name=hwbinder protocol=8
+Q60T_BINDER_VERSION_IOCTL_PASS name=vndbinder protocol=8
+Q60T_BINDER_ABI_PROBE_FINISHED transaction_tested=0
+```
+
+Ein `Kernel panic` trat nicht auf. Der QEMU-Exitcode 124 bedeutet hier
+den planmäßigen 30-Sekunden-Timeout, da `/init` nach den Tests in einer
+Warteschleife bleibt. Dies ist ein **Gastnachweis des `BINDER_VERSION`-IOCTLs**,
+kein kompletter Binder-Transaktionstest und kein Android-Start.
+
+Der erste JSON-Bericht markierte den Gaststart und IOCTL-Pass fälschlich
+als `false`, obwohl die Rohkonsole die Marker enthielt. Der Parser erwartete
+LF-Zeilenenden, die PL011-Konsole liefert jedoch auch CRLF/CRCRLF. Eine
+nachfolgende Parserkorrektur normalisiert Carriage-Returns nur im
+Auswertungsbuffer; die Original-Logs und SHA-256-Hashes bleiben unverändert.
 
 ### Reproduzierter QEMU-Meilenstein (09.11.2026)
 
@@ -17,7 +41,7 @@ Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)
 Dieser Panic entsteht, weil der bisherige Lauf weder initramfs noch Disk
 hatte; er ist **kein** Beleg für Android oder Binder-IOCTL-Funktion.
 
-### Nächster isolierter Test: statisches ARM32-/init
+### Isolierter Test: statisches ARM32-/init
 
 `q60t_binder_init.c` ist ein minimales, statisch gelinktes ARM32-Programm,
 das im Gast `/dev` (devtmpfs), `/proc` und `/sys` bereitstellt. Es fragt
@@ -58,8 +82,8 @@ bleiben erhalten. Jede Run-ID muss neu sein. Auch ein erfolgreiches
 `binder_runtime_verified=false`, `binder_transactions_executed=false`,
 `android_userspace_compatible=false` und `safe_to_flash=false`.
 
-Der statische ARM32-Build und dieser neue QEMU-Lauf müssen noch auf der
-Nutzer-VM ausgeführt werden. Die GitHub-Tests prüfen dazu nur synthetische
+Der statische ARM32-Build und der QEMU-Lauf sind auf der Nutzer-VM
+erfolgreich ausgeführt worden. GitHub Actions prüft weiterhin nur synthetische
 ELF-/Initramfs- und Log-Parser-Fälle, keinen virtuellen ARM-Boot.
 
 Branch: `feature/build018-qemu-binder-lab`. Der Samsung-Fernseher wird nicht kontaktiert.
@@ -146,11 +170,9 @@ verifiziert und kann an Assembler-Registerchecks scheitern.
 ## Offene Blocker
 
 1. ARM32-Cross-Compile ist mit Linaro GCC 6.2.1 auf der Nutzer-VM gelungen.
-2. QEMU-Boot bis zum VFS-Rootfs-Mount ist nachgewiesen. Ein Userspace-
-   Start ist noch nicht bestätigt.
-3. Das ARM32-Initramfs mit `BINDER_VERSION`-IOCTL ist implementiert, aber auf
-   der Nutzer-VM noch nicht ausgeführt. Vollständige Binder-Transaktionen
-   bleiben offen.
+2. QEMU-Boot bis zum statischen ARM32-Userspace-`/init` ist nachgewiesen.
+3. Drei `BINDER_VERSION`-IOCTLs (jeweils Protokoll 8) sind im Gast
+   erfolgreich; vollständige Binder-Transaktionen bleiben offen.
 4. Keine vollständige neuere Binder-UAPI, kein Android-Userspace/LineageOS,
    keine Samsung-HAL und kein sicherer Boot-/Rollbackweg auf dem TV.
 
