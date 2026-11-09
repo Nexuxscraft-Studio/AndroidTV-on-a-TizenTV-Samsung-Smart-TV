@@ -105,7 +105,11 @@ QEMU_VIRT_OVERLAY = {
     "RD_GZIP": "y",
     "TMPFS": "y",
 }
-PROFILES = {"tizen", "selinux-lab", "android-bootlab", "binder-lab", "qemu-binder-lab"}
+# Build 020 is an opt-in derivative of Build 018. The Build-018 QEMU
+# configuration and existing workspaces remain byte-for-byte untouched.
+QEMU_ION_OVERLAY = {"ION_DUMMY": "y"}
+QEMU_PROFILES = {"qemu-binder-lab", "qemu-ion-lab"}
+PROFILES = {"tizen", "selinux-lab", "android-bootlab", "binder-lab"} | QEMU_PROFILES
 RESEARCH_FEATURES = {
     "ANDROID_BINDER_IPC": "y",
     "ANDROID_BINDER_IPC_32BIT": "n",
@@ -247,12 +251,14 @@ def make_args(source: Path, output: Path, prefix: str, jobs: int, major: int,
 
 def apply_research_overlay(output: Path, profile: str) -> None:
     """Opt-in change to *staged* .config only, never to vendor source."""
-    if profile not in {"selinux-lab", "android-bootlab", "binder-lab", "qemu-binder-lab"}:
+    if profile not in {"selinux-lab", "android-bootlab", "binder-lab"} | QEMU_PROFILES:
         raise ValueError("Für dieses Profil ist kein Overlay erlaubt")
-    changes = (ANDROID_BOOTLAB_OVERLAY if profile in {"android-bootlab", "binder-lab", "qemu-binder-lab"}
+    changes = (ANDROID_BOOTLAB_OVERLAY if profile in {"android-bootlab", "binder-lab"} | QEMU_PROFILES
                else SELINUX_LAB_OVERLAY)
-    if profile == "qemu-binder-lab":
+    if profile in QEMU_PROFILES:
         changes = changes | QEMU_VIRT_OVERLAY
+    if profile == "qemu-ion-lab":
+        changes = changes | QEMU_ION_OVERLAY
     config_path = output / ".config"
     config_path.write_text(stage.shadow_config(
         config_path.read_text(encoding="utf-8"), changes),
@@ -263,16 +269,18 @@ def apply_research_overlay(output: Path, profile: str) -> None:
     manifest["profile"] = profile
     manifest["vendor_security_untouched"] = False
     manifest["experimental_config_changes"] = changes
-    if profile == "qemu-binder-lab":
+    if profile in QEMU_PROFILES:
         manifest["virtual_machine"] = "QEMU virt / ARMv7 Cortex-A15 (not Samsung Nike)"
         manifest["qemu_boot_or_binder_runtime_verified"] = False
     manifest["staged_config_sha256"] = file_sha256(config_path)
-    if profile == "qemu-binder-lab":
+    if profile in QEMU_PROFILES:
         manifest["note"] = (
             "Host-only QEMU experiment: SELinux is default. Samsung SFD "
             "is disabled because its SecureContainer hook assumes Smack "
             "ownership of inode->i_security. This is not a Samsung TV "
             "security configuration. Never flash the image.")
+        if profile == "qemu-ion-lab":
+            manifest["note"] += " Build 020 enables ION_DUMMY in this QEMU shadow only."
     else:
         manifest["note"] = (
             "Host-only experiment: switch default kernel LSM to SELinux. "
@@ -285,6 +293,42 @@ def apply_research_overlay(output: Path, profile: str) -> None:
 def apply_selinux_lab_overlay(output: Path) -> None:
     """Keep the explicit SELinux-only test helper for repeatable unit tests."""
     apply_research_overlay(output, "selinux-lab")
+
+
+def validate_ion_dummy_source(shadow: Path) -> None:
+    """Fail closed unless this *specific* vendor snapshot has a wired dummy.
+
+    Never inject unreviewed upstream driver code into Samsung's source tree.
+    Only the QEMU profile enables CONFIG_ION_DUMMY in the shadow .config.
+    """
+    ion_dir = shadow / "drivers/staging/android/ion"
+    required = ("Kconfig", "Makefile", "ion_dummy_driver.c")
+    for name in required:
+        path = ion_dir / name
+        if not path.is_file() or path.is_symlink():
+            raise ValueError(f"ION-Dummy fehlt im Samsung-Quellstand: {path}")
+    kconfig = (ion_dir / "Kconfig").read_text(encoding="utf-8", errors="replace")
+    makefile = (ion_dir / "Makefile").read_text(encoding="utf-8", errors="replace")
+    driver = (ion_dir / "ion_dummy_driver.c").read_text(encoding="utf-8", errors="replace")
+    if not re.search(r"(?m)^\s*config\s+ION_DUMMY\b", kconfig):
+        raise ValueError("ION-Dummy-Kconfig-Symbol fehlt – kein stiller Fake-Treiber")
+    if not re.search(r"CONFIG_ION_DUMMY\).*ion_dummy_driver\.o", makefile):
+        raise ValueError("ION-Dummy nicht in Kernel-Makefile verdrahtet")
+    if "ion_device_create" not in driver or "ion_device_add_heap" not in driver:
+        raise ValueError("ION-Dummy-Treiber-API passt nicht zum erwarteten Kernel")
+    # Build-020 guest uses the *legacy* 4.1 ION handle ABI, not the later
+    # dma-buf-fd-only ABI. Refuse to run an ioctl with the wrong structure.
+    candidates = (shadow / "drivers/staging/android/uapi/ion.h",
+                  shadow / "drivers/staging/android/ion/ion.h",
+                  shadow / "include/uapi/linux/ion.h")
+    header_text = "\n".join(
+        candidate.read_text(encoding="utf-8", errors="replace")
+        for candidate in candidates if candidate.is_file() and not candidate.is_symlink()
+    )
+    if not all(token in header_text for token in (
+            "struct ion_allocation_data", "heap_id_mask", "align",
+            "ion_user_handle_t", "ION_IOC_ALLOC", "ION_IOC_FREE")):
+        raise ValueError("ION-UAPI ist nicht das erwartete Legacy-Handle-ABI – kein ioctl-Test")
 
 
 def prepare_shadow(source: Path, workspace: Path,
@@ -312,12 +356,14 @@ def prepare_shadow(source: Path, workspace: Path,
         raise ValueError("Unerwarteter vdlp_version.h; nicht ersetzen")
     header.write_text(GENERATED_HEADER, encoding="utf-8")
     binder_metadata = (binder_lab.patch_shadow(shadow, workspace)
-                       if profile in {"binder-lab", "qemu-binder-lab"} else None)
+                       if profile in {"binder-lab"} | QEMU_PROFILES else None)
+    if profile == "qemu-ion-lab":
+        validate_ion_dummy_source(shadow)
     generated_fragment = workspace / "android-research.fragment"
     generated_fragment.write_text(android.fragment(android.compute_report(source)), encoding="utf-8")
     output = workspace / "output"
     stage.stage(source, generated_fragment, output)
-    if profile in {"selinux-lab", "android-bootlab", "binder-lab", "qemu-binder-lab"}:
+    if profile in {"selinux-lab", "android-bootlab", "binder-lab"} | QEMU_PROFILES:
         apply_research_overlay(output, profile)
     return shadow, output, binder_metadata
 
@@ -326,13 +372,16 @@ def verify_config(output: Path, profile: str = "tizen") -> dict:
     resolved = android.read_config(output / ".config")["symbols"]
     security = (SELINUX_LAB_SECURITY if profile != "tizen"
                 else RESEARCH_SECURITY)
-    if profile in {"android-bootlab", "binder-lab", "qemu-binder-lab"}:
+    if profile in {"android-bootlab", "binder-lab"} | QEMU_PROFILES:
         security = security | ANDROID_BOOTLAB_FEATURES
     checked = {name: resolved.get(name, "n") for name in (*RESEARCH_FEATURES, *security)}
     expected = RESEARCH_FEATURES | security
-    if profile == "qemu-binder-lab":
+    if profile in QEMU_PROFILES:
         expected = expected | QEMU_VIRT_OVERLAY
         checked.update({name: resolved.get(name, "n") for name in QEMU_VIRT_OVERLAY})
+    if profile == "qemu-ion-lab":
+        expected = expected | QEMU_ION_OVERLAY
+        checked.update({name: resolved.get(name, "n") for name in QEMU_ION_OVERLAY})
     differences = {name: {"expected": value, "actual": checked[name]}
                    for name, value in expected.items() if checked[name] != value}
     return {"sha256": file_sha256(output / ".config"),
@@ -357,8 +406,8 @@ def execute(source: Path, workspace: Path, prefix: str, jobs: int,
         raise ValueError("Kernel-Build benötigt 'bc' (Host-Werkzeug)")
     report = {
         "type": "q60t_arm32_host_compile_probe",
-        "build": "018" if profile == "qemu-binder-lab" else (
-            "016" if profile == "binder-lab" else ("015" if profile != "tizen" else "013")),
+        "build": "020" if profile == "qemu-ion-lab" else ("018" if profile == "qemu-binder-lab" else (
+            "016" if profile == "binder-lab" else ("015" if profile != "tizen" else "013"))),
         "profile": profile, "target": "zImage", "kernel_version": "4.1.10",
         "source_reference": "Samsung 20_DTV_NikeL.zip (Nike-L package; Nike.M candidate config)",
         "source_matches_live_firmware_2743_0": False,
