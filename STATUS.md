@@ -1,4 +1,4 @@
-# Forschungsprotokoll – Build 014
+# Forschungsprotokoll – Build 015
 
 Stand: 09.11.2026
 
@@ -264,6 +264,26 @@ Stand: 09.11.2026
   `BUILD014_REPORT.md`.
 - **Kein** Android-ROM, kein installierbares Tizen-Update und keine
   Freigabe zur Ausführung auf dem Fernseher.
+
+## Build 015 – Echte SELinux- und Initramfs-Host-Kernelbuilds
+
+- Zwei Opt-in-Profile im `q60t_compile_probe.py`: `selinux-lab` mit
+  `SECURITY_SELINUX=y`, `DEFAULT_SECURITY="selinux"` und
+  `android-bootlab` zusätzlich mit `BLK_DEV_INITRD=y`, `IKCONFIG=y`,
+  `IKCONFIG_PROC=y`. Im Standardprofil bleibt Samsung-SMACK/SFD aktiv.
+- **Beide neuen ARM32-`zImage`-Compilerläufe erfolgreich** (Exitcode 0),
+  `3.685.024` bzw. `3.720.480` Bytes, jeweils verifizierte `.config`.
+  Die Compiler-Binärdateien liegen außerhalb des Projekt-Repositories.
+- `q60t_kernel_readiness.py` vergleicht eine **begrenzte, historische**
+  Android-Basis-Teilmenge; aktiviert sind 7/12 (Tizen), 9/12 (SELinux-Lab)
+  bzw. 12/12 (Bootlab). **Keines** ist ein funktionierendes Android.
+- Im Treiber weiterhin **nur eine globale Binder-Kontextverwaltung**;
+  separate Binder-IPC-Domänen sind nicht verifiziert. Android 14
+  unterstützt offiziell nicht die Kernelbasis Linux 4.1.10.
+- Neuer Bericht `BUILD015_REPORT.md`, technische Einordnung
+  `porting/ANDROID_COMPATIBILITY.md` und drei JSON-Reports.
+- **96** synthetische Unit-Tests erfolgreich; Boot-/Flashfreigabe
+  weiter **BLOCKED**, kein Fernseher kontaktiert.
 
 ## Noch nicht gemacht (und nicht behauptet)
 

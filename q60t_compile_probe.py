@@ -41,6 +41,29 @@ RESEARCH_SECURITY = {
     "SECURITY_SFD": "y",
     "SECURITY_SELINUX": "n",
 }
+# An intentionally separate *host-only* configuration experiment. Keeping
+# Samsung's SMACK/SFD code compiled is not a claim that both can enforce
+# policy simultaneously, or that its vendor software works with SELinux.
+SELINUX_LAB_SECURITY = {
+    "SECURITY_SMACK": "y",
+    "SECURITY_SFD": "y",
+    "SECURITY_SELINUX": "y",
+    "DEFAULT_SECURITY_SELINUX": "y",
+    "DEFAULT_SECURITY_SMACK": "n",
+    "DEFAULT_SECURITY": '"selinux"',
+}
+SELINUX_LAB_OVERLAY = {
+    "SECURITY_SELINUX": "y",
+    "DEFAULT_SECURITY_SELINUX": "y",
+    "DEFAULT_SECURITY_SMACK": "n",
+}
+ANDROID_BOOTLAB_FEATURES = {
+    "BLK_DEV_INITRD": "y",
+    "IKCONFIG": "y",
+    "IKCONFIG_PROC": "y",
+}
+ANDROID_BOOTLAB_OVERLAY = SELINUX_LAB_OVERLAY | ANDROID_BOOTLAB_FEATURES
+PROFILES = {"tizen", "selinux-lab", "android-bootlab"}
 RESEARCH_FEATURES = {
     "ANDROID_BINDER_IPC": "y",
     "ANDROID_BINDER_IPC_32BIT": "n",
@@ -180,7 +203,38 @@ def make_args(source: Path, output: Path, prefix: str, jobs: int, major: int,
     return args
 
 
-def prepare_shadow(source: Path, workspace: Path) -> tuple[Path, Path]:
+def apply_research_overlay(output: Path, profile: str) -> None:
+    """Opt-in change to *staged* .config only, never to vendor source."""
+    if profile not in {"selinux-lab", "android-bootlab"}:
+        raise ValueError("Für dieses Profil ist kein Overlay erlaubt")
+    changes = (ANDROID_BOOTLAB_OVERLAY if profile == "android-bootlab"
+               else SELINUX_LAB_OVERLAY)
+    config_path = output / ".config"
+    config_path.write_text(stage.shadow_config(
+        config_path.read_text(encoding="utf-8"), changes),
+        encoding="utf-8")
+    manifest_path = output / "STAGE_MANIFEST.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["status"] = "EXPERIMENTAL_PROFILE_STAGED_NOT_KCONFIG_VALIDATED"
+    manifest["profile"] = profile
+    manifest["vendor_security_untouched"] = False
+    manifest["experimental_config_changes"] = changes
+    manifest["staged_config_sha256"] = file_sha256(config_path)
+    manifest["note"] = (
+        "Host-only experiment: switch default kernel LSM to SELinux. "
+        "Samsung SMACK/SFD remain compiled but Android runtime policy and "
+        "device compatibility are unverified. Never deploy to a television.")
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                             encoding="utf-8")
+
+
+def apply_selinux_lab_overlay(output: Path) -> None:
+    """Keep the explicit SELinux-only test helper for repeatable unit tests."""
+    apply_research_overlay(output, "selinux-lab")
+
+
+def prepare_shadow(source: Path, workspace: Path,
+                   profile: str = "tizen") -> tuple[Path, Path]:
     shadow = workspace / "linux-4.1.10-shadow"
     shutil.copytree(source, shadow, symlinks=True)
     for patch in PATCHES:
@@ -207,13 +261,19 @@ def prepare_shadow(source: Path, workspace: Path) -> tuple[Path, Path]:
     generated_fragment.write_text(android.fragment(android.compute_report(source)), encoding="utf-8")
     output = workspace / "output"
     stage.stage(source, generated_fragment, output)
+    if profile in {"selinux-lab", "android-bootlab"}:
+        apply_research_overlay(output, profile)
     return shadow, output
 
 
-def verify_config(output: Path) -> dict:
+def verify_config(output: Path, profile: str = "tizen") -> dict:
     resolved = android.read_config(output / ".config")["symbols"]
-    checked = {name: resolved.get(name, "n") for name in (*RESEARCH_FEATURES, *RESEARCH_SECURITY)}
-    expected = RESEARCH_FEATURES | RESEARCH_SECURITY
+    security = (SELINUX_LAB_SECURITY if profile != "tizen"
+                else RESEARCH_SECURITY)
+    if profile == "android-bootlab":
+        security = security | ANDROID_BOOTLAB_FEATURES
+    checked = {name: resolved.get(name, "n") for name in (*RESEARCH_FEATURES, *security)}
+    expected = RESEARCH_FEATURES | security
     differences = {name: {"expected": value, "actual": checked[name]}
                    for name, value in expected.items() if checked[name] != value}
     return {"sha256": file_sha256(output / ".config"),
@@ -221,7 +281,10 @@ def verify_config(output: Path) -> dict:
 
 
 def execute(source: Path, workspace: Path, prefix: str, jobs: int,
-            timeout_seconds: int, preflight_only: bool = False) -> dict:
+            timeout_seconds: int, preflight_only: bool = False,
+            profile: str = "tizen") -> dict:
+    if profile not in PROFILES:
+        raise ValueError("Unbekanntes experimentelles Kernelprofil")
     validate_directories(source, workspace)
     # Kbuild interprets a relative O= differently after make -C. Normalize
     # *all* paths before invoking it, or it may build in an unintended tree.
@@ -235,12 +298,15 @@ def execute(source: Path, workspace: Path, prefix: str, jobs: int,
         raise ValueError("Kernel-Build benötigt 'bc' (Host-Werkzeug)")
     report = {
         "type": "q60t_arm32_host_compile_probe",
-        "build": "013", "target": "zImage", "kernel_version": "4.1.10",
+        "build": "015" if profile != "tizen" else "013",
+        "profile": profile, "target": "zImage", "kernel_version": "4.1.10",
         "source_reference": "Samsung 20_DTV_NikeL.zip (Nike-L package; Nike.M candidate config)",
         "source_matches_live_firmware_2743_0": False,
         "original_source_modified": False,
         "source_symlinks_checked": link_count,
         "vendor_build_script_executed": False,
+        "vendor_security_config_unchanged": profile == "tizen",
+        "default_lsm_changed_for_host_experiment": profile != "tizen",
         "synthetic_version_header": not preflight_only,
         "compiler": compiler,
         "host_only": True, "tv_accessed": False, "boot_or_flash_performed": False,
@@ -256,7 +322,7 @@ def execute(source: Path, workspace: Path, prefix: str, jobs: int,
     workspace.mkdir(mode=0o700)
     result_path = workspace / "compile-report.json"
     try:
-        shadow, output = prepare_shadow(source, workspace)
+        shadow, output = prepare_shadow(source, workspace, profile)
         kconfig_log = workspace / "kconfig.log"
         config_result = run_logged(
             make_args(shadow, output, prefix, 1, compiler["major"], "olddefconfig"),
@@ -265,7 +331,7 @@ def execute(source: Path, workspace: Path, prefix: str, jobs: int,
         if config_result["exit_code"]:
             report["status"] = "KCONFIG_FAILED"
             return report
-        report["resolved_config"] = verify_config(output)
+        report["resolved_config"] = verify_config(output, profile)
         if not report["resolved_config"]["verified"]:
             report["status"] = "KCONFIG_SECURITY_OR_FEATURE_MISMATCH"
             return report
@@ -302,12 +368,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--timeout", type=int, default=1800)
     parser.add_argument("--preflight", action="store_true")
+    parser.add_argument("--profile", choices=sorted(PROFILES), default="tizen",
+                        help="SELinux/Android boot feature labs: isolated host only; NOT for TV")
     args = parser.parse_args(argv)
     try:
         if not 1 <= args.jobs <= 32 or not 60 <= args.timeout <= 7200:
             raise ValueError("jobs 1..32 und timeout 60..7200 Sekunden erwartet")
         report = execute(args.source, args.workspace, args.cross_prefix,
-                         args.jobs, args.timeout, args.preflight)
+                         args.jobs, args.timeout, args.preflight, args.profile)
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
         print(f"Build-013-Vorprüfung fehlgeschlagen: {exc}", file=sys.stderr)
         return 2

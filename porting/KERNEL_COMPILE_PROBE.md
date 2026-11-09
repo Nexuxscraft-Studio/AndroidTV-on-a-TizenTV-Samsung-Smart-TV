@@ -1,5 +1,13 @@
 # Build 013: ARM32-Kompilierung – strikt offline am Entwicklungsrechner
 
+**Build 015 ergänzt zwei separat auswählbare Kernelversuche:**
+`--profile selinux-lab` schaltet in der Schattenkonfiguration SELinux
+als Standard-LSM ein; `--profile android-bootlab` aktiviert zusätzlich
+`BLK_DEV_INITRD`, `IKCONFIG` und `IKCONFIG_PROC`. **Beide Profile haben
+einen echten ARM32-Hostcompile erfolgreich durchlaufen**, Details und
+Hashes in [`BUILD015_REPORT.md`](../BUILD015_REPORT.md).
+Ohne `--profile` bleibt das bisherige `tizen`-Standardprofil unverändert.
+
 Dieses Experiment verwendet den von Samsung bereitgestellten Linux-4.1.10-
 Quellbaum aus `20_DTV_NikeL.zip`. **Es erzeugt keine installierbare Samsung-
 Firmware, kein Android-ROM und keinen sicheren Flash-/Bootpfad.** Das
@@ -62,9 +70,14 @@ vorgenommen:
   Firmwareversion vorgibt.
 - Für den Compiler wird der in den Samsung-Quellen vorhandene
   `kernel/t2ddebugd/include`-Pfad bereitgestellt.
+- Nur bei explizitem `--profile` wird danach ein zusätzliches
+  SELinux-/Initramfs-Konfigurationsoverlay angewendet und im
+  `STAGE_MANIFEST.json` als verändertes experimentelles Sicherheitsprofil
+  kenntlich gemacht.
 
 Erst `make olddefconfig`, dann – **nur bei exaktem Abgleich** der acht
-Android-Forschungsoptionen und drei Sicherheitskonfigurationen –
+Android-Forschungsoptionen und der profilabhängigen Sicherheits- und
+Bootkonfiguration –
 `make zImage` mit `ARCH=arm` und explizitem `CROSS_COMPILE`.
 Es wird nie das Samsung-Skript `BUILD.sh` ausgeführt: Dieses ist
 interaktiv und führt auch Aufräum-, Signatur- und Systemschritte aus.

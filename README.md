@@ -1,4 +1,4 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 014)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 015)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
@@ -86,6 +86,16 @@ Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmwar
   Prüfung zusätzlich ein als experimentell markiertes **Prerelease**
   veröffentlicht. **Keine Samsung-Firmware und kein gebauter Kernel**
   werden dabei mitgeliefert. Details: [BUILD014_REPORT.md](BUILD014_REPORT.md).
+- Build 015: Zwei neue **ARM32-Kernelprofile erfolgreich kompiliert**:
+  `selinux-lab` setzt SELinux als Standard-LSM, und `android-bootlab`
+  aktiviert zusätzlich Initramfs und die auslesbare Kernelkonfiguration.
+  Eine neue Offline-Prüfung zeigt trotz **12/12 ausgewählter alter
+  Kconfig-Merkmale** im Bootlab weiterhin fundamentale Android-Blocker:
+  keine nachgewiesenen separaten Binder-Kontexte, Kernel 4.1.10 außerhalb
+  der Android-14-Kernelmatrix, keine Android-HAL und keine sichere
+  Samsung-Bootkette. **96 synthetische Tests** erfolgreich. Details:
+  [BUILD015_REPORT.md](BUILD015_REPORT.md) und
+  [porting/ANDROID_COMPATIBILITY.md](porting/ANDROID_COMPATIBILITY.md).
 - Ein echtes Android-Bootimage, ein entsperrter Bootloader und passende
   Android-Hardwaretreiber **existieren hier noch nicht**.
 - Neue Erkenntnisse, Treibermatrix und offene Sicherheitsbedingungen:
@@ -151,6 +161,9 @@ die passende offizielle Firmware von der Samsung-Supportseite nötig.
 - Build 014: Die CI lädt niemals originale Samsung-Dateien nach und
   kompiliert keinen Kernel. Ihr Release-Artefakt enthält nur geprüfte
   Projekt-Textquellen; Veröffentlichungen sind auf Versionstags beschränkt.
+- Build 015: Auch die neuen SELinux-/Initramfs-Experimente nutzen nur
+  getrennte Host-Schattenquellen. **Weder deren zImages noch ihre
+  Build-Logs gehören ins GitHub-Release oder auf den Fernseher.**
 
 ## In fünf Minuten prüfen
 
@@ -241,6 +254,19 @@ python3 q60t_compile_probe.py \
   --workspace /pfad/zu/NEUEM-build013-arbeitsverzeichnis \
   --cross-prefix /pfad/zu/linaro/bin/arm-linux-gnueabi- \
   --jobs 4 --timeout 1800
+
+# Build 015: wahlweise experimentell mit SELinux und Initramfs:
+python3 q60t_compile_probe.py \
+  --source /pfad/zu/linux-4.1.10 \
+  --workspace /pfad/zu/NEUEM-build015-arbeitsverzeichnis \
+  --cross-prefix /pfad/zu/linaro/bin/arm-linux-gnueabi- \
+  --profile android-bootlab --jobs 4 --timeout 1800
+
+# Unabhängiger, rein lesender Android-Kompatibilitäts-Survey:
+python3 q60t_kernel_readiness.py \
+  --source /pfad/zu/linux-4.1.10 \
+  --config /pfad/zu/NEUEM-build015-arbeitsverzeichnis/output/.config \
+  --output /pfad/zu/NEUEM-kernel-gap-report.json
 
 # REA selbst ausführen (Node.js/npm nötig, ohne globale Installation):
 npx --yes rea-agents@latest inspect-devicetree /pfad/zu/decrypted/dtb.bin --format json
