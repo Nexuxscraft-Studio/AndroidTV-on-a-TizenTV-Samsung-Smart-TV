@@ -42,25 +42,25 @@ static void mount_fs(const char *name, const char *path, const char *type) {
 static void binderfs_setup(void) {
     static const char *const devices[] = {"binder", "hwbinder", "vndbinder"};
     if (mkdir("/dev/binderfs", 0755) != 0 && errno != EEXIST) {
-        printf("Q60T_ARM64_BINDERFS status=fail phase=mkdir errno=%d\\n", errno);
+        printf("Q60T_ARM64_BINDERFS status=fail phase=mkdir errno=%d\n", errno);
         return;
     }
     if (mount("binder", "/dev/binderfs", "binder", 0, NULL) != 0 && errno != EBUSY) {
-        printf("Q60T_ARM64_BINDERFS status=fail phase=mount errno=%d\\n", errno);
+        printf("Q60T_ARM64_BINDERFS status=fail phase=mount errno=%d\n", errno);
         return;
     }
     int ctl = open("/dev/binderfs/binder-control", O_RDWR | O_CLOEXEC);
     if (ctl < 0) {
-        printf("Q60T_ARM64_BINDERFS status=fail phase=control errno=%d\\n", errno);
+        printf("Q60T_ARM64_BINDERFS status=fail phase=control errno=%d\n", errno);
         return;
     }
     for (size_t i = 0; i < sizeof(devices) / sizeof(devices[0]); i++) {
         struct binderfs_device request = {0};
         (void)snprintf(request.name, sizeof(request.name), "%s", devices[i]);
         if (ioctl(ctl, BINDER_CTL_ADD, &request) == 0) {
-            printf("Q60T_ARM64_BINDERFS_DEVICE name=%s status=pass\\n", devices[i]);
+            printf("Q60T_ARM64_BINDERFS_DEVICE name=%s status=pass\n", devices[i]);
         } else {
-            printf("Q60T_ARM64_BINDERFS_DEVICE name=%s status=fail errno=%d\\n",
+            printf("Q60T_ARM64_BINDERFS_DEVICE name=%s status=fail errno=%d\n",
                    devices[i], errno);
         }
     }
