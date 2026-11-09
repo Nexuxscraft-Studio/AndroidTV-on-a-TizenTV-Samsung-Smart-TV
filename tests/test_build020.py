@@ -37,6 +37,12 @@ def elf32(interpreter="/system/bin/linker", kind=3, machine=40):
 
 
 class Build020Tests(unittest.TestCase):
+    def test_guest_020_markers_are_consistent_with_result_parser(self):
+        source = (Path(__file__).resolve().parents[1] / "q60t_ion_probe_init.c").read_text()
+        self.assertIn("Q60T_ANDROID_PROBE_BEGIN version=020 host_only=1 no_flash=1", source)
+        self.assertIn("Q60T_ANDROID_PROBE_END version=020", source)
+        self.assertNotIn("Q60T_ANDROID_PROBE_END version=019", source)
+
     def test_ion_requires_real_guest_4k_alloc_and_free(self):
         self.assertTrue(ion.inspect(ION_GOOD)["ion_4k_allocation_verified_in_guest_log"])
         for missing in (b"stage=alloc", b"stage=free", b"name=ion result=pass",

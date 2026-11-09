@@ -239,7 +239,7 @@ int main(void)
     check_ion_allocation();
     check_cgroups();
     check_selinux();
-    dprintf(STDOUT_FILENO, "Q60T_ANDROID_PROBE_END version=019\n");
+    dprintf(STDOUT_FILENO, "Q60T_ANDROID_PROBE_END version=020\n");
     for (;;)
         pause();
 }
