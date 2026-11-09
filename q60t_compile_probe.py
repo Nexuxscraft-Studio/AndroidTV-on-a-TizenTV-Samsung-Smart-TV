@@ -69,6 +69,10 @@ ANDROID_BOOTLAB_OVERLAY = SELINUX_LAB_OVERLAY | ANDROID_BOOTLAB_FEATURES
 QEMU_VIRT_OVERLAY = {
     "ARCH_SDP": "n",
     "ARCH_SDP_NIKE": "n",
+    # Samsung-only PM GPIO addresses and VDFS hardware headers do not exist on virt.
+    "POWER_SAVING_MODE": "n",
+    "ALWAYS_INSTANT_ON": "n",
+    "VDFS4_FS": "n",
     "ARCH_MULTIPLATFORM": "y",
     "ARCH_MULTI_V7": "y",
     "ARCH_VIRT": "y",

@@ -22,6 +22,13 @@ unverändert auswählbar.
   multiplatform, `ARCH_VIRT`, PL011-Konsole, PSCI, virtio-mmio, devtmpfs und
   Initramfs-Unterstützung. Nach `make olddefconfig` wird jede erwartete
   QEMU-/Android-/Sicherheitsoption geprüft. Ein Konflikt stoppt den Build.
+- Für QEMU deaktiviert das Overlay ausdrücklich `POWER_SAVING_MODE`,
+  `ALWAYS_INSTANT_ON` und `VDFS4_FS`: Diese Samsung-Funktionen referenzieren
+  physische Micom-GPIO-Adressen bzw. einen `mach/hw_decompress.h`-Header,
+  den es auf der virtuellen ARM-`virt`-Plattform nicht gibt. Die beiden
+  initialen Build-018-Compilerfehler wurden auf diese Abhängigkeiten
+  zurückgeführt. Diese Abschaltung betrifft **nur** `qemu-binder-lab`,
+  nicht die Samsung-Quellen oder das reguläre `binder-lab`-Profil.
 - `q60t_qemu_runtime.py` akzeptiert **nur** den nachweislich erfolgreichen
   Build-018-Compile-Bericht, dessen Hash-validiertes `zImage` und die
   QEMU-spezifische `.config`.
