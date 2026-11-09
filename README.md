@@ -1,7 +1,16 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 021, Host-Branch)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 022, Host-Branch)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
+
+**Build 022 – moderner Kernel und echte Hardwarearchitektur:** Ein neuer
+[Offline-Migrationsaudit](BUILD022_REPORT.md) gleicht die vorhandenen
+Referenz-Device-Trees und alten Nike-L-Treiberbelege ab. Beide Referenz-
+profile deklarieren vier ARMv8/Cortex-A57-Kerne; ob der konkrete Q60T einen
+eigenen ARM64-Kernel startet, bleibt **ungeprüft**. Linux 6.x, moderne
+Android-HALs und ein reversibler Bootweg sind **nicht portiert oder
+freigegeben**. Das prüfbare Skript heißt `q60t_kernel_migration.py`, sein
+Offline-Beispielbericht liegt unter `reports/kernel_migration_build022.json`.
 
 **Build 018 wurde im separaten Proxmox/QEMU-Labor erfolgreich getestet:**
 ARM32-Linux-4.1.10-Boot, statischer Gast-`/init`, drei Binder-Version-IOCTLs
