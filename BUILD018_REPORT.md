@@ -29,6 +29,11 @@ unverändert auswählbar.
   initialen Build-018-Compilerfehler wurden auf diese Abhängigkeiten
   zurückgeführt. Diese Abschaltung betrifft **nur** `qemu-binder-lab`,
   nicht die Samsung-Quellen oder das reguläre `binder-lab`-Profil.
+- Der erste QEMU-Test verwendet ausdrücklich **keine virtuellen Disks**. Daher
+  wird `VIRTIO_BLK` für dieses Profil deaktiviert (VirtIO-MMIO bleibt aktiv):
+  Samsungs `virtio_blk.c` passt nicht zur `find_vqs`-Signatur und den
+  `VIRTIO_BLK_F_WCE`-Definitionen im zugehörigen 4.1.10-Headerbestand.
+  Für spätere Disk-Tests ist ein gesonderter Treiber-Fix nötig.
 - `q60t_qemu_runtime.py` akzeptiert **nur** den nachweislich erfolgreichen
   Build-018-Compile-Bericht, dessen Hash-validiertes `zImage` und die
   QEMU-spezifische `.config`.

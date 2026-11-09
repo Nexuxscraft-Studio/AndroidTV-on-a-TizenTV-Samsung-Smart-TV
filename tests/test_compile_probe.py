@@ -162,6 +162,7 @@ class CompileProbeTests(unittest.TestCase):
             self.assertIn("CONFIG_ARCH_VIRT=y", result)
             self.assertIn("CONFIG_SERIAL_AMBA_PL011_CONSOLE=y", result)
             self.assertIn("CONFIG_VIRTIO_MMIO=y", result)
+            self.assertIn("# CONFIG_VIRTIO_BLK is not set", result)
             for feature in ("POWER_SAVING_MODE", "ALWAYS_INSTANT_ON", "VDFS4_FS"):
                 self.assertIn(f"# CONFIG_{feature} is not set", result)
             manifest = json.loads((output / "STAGE_MANIFEST.json").read_text())

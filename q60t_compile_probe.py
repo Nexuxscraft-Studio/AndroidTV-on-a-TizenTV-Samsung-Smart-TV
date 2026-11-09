@@ -83,7 +83,9 @@ QEMU_VIRT_OVERLAY = {
     "DEVTMPFS_MOUNT": "y",
     "VIRTIO": "y",
     "VIRTIO_MMIO": "y",
-    "VIRTIO_BLK": "y",
+    # The first boot probe uses -nodefaults and no disks; vendor virtio_blk.c
+    # is incompatible with the 4.1.10 virtio API in this source snapshot.
+    "VIRTIO_BLK": "n",
     "RD_GZIP": "y",
     "TMPFS": "y",
 }
