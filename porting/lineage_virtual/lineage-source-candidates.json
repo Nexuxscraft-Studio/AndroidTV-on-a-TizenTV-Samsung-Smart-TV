@@ -1,0 +1,50 @@
+{
+  "build": "022",
+  "observed_date": "2026-11-09",
+  "upstream_repo": "https://github.com/LineageOS/android.git",
+  "manifest_path": "default.xml",
+  "selected_branch": null,
+  "research_only_no_flash": true,
+  "candidates": [
+    {
+      "branch": "cm-14.1",
+      "android_version": "7.1",
+      "android_api_level": 25,
+      "branch_head_sha": "3053abb15b4427431b42505a13e7465e92fc2920",
+      "manifest_git_blob_sha": "8de62943eb175e55a055e47f6b5580e81246e86b",
+      "source_ref_verified": true,
+      "qemu_virt_compatible": false,
+      "qemu_virt_compatibility_verified": false
+    },
+    {
+      "branch": "lineage-15.1",
+      "android_version": "8.1",
+      "android_api_level": 27,
+      "branch_head_sha": "5b74c7aac0aac13fcc11908d767aa4c1455947d5",
+      "manifest_git_blob_sha": "0074c7b7d84670bee8ce0b57cdc6ec290a721c01",
+      "source_ref_verified": true,
+      "qemu_virt_compatible": false,
+      "qemu_virt_compatibility_verified": false
+    },
+    {
+      "branch": "lineage-16.0",
+      "android_version": "9",
+      "android_api_level": 28,
+      "branch_head_sha": "e56f933c20b428410d1c53f41e6c0986880cb362",
+      "manifest_git_blob_sha": "754b3794baad53d1c0f122303be47f705edc99f9",
+      "source_ref_verified": true,
+      "qemu_virt_compatible": false,
+      "qemu_virt_compatibility_verified": false
+    },
+    {
+      "branch": "lineage-17.1",
+      "android_version": "10",
+      "android_api_level": 29,
+      "branch_head_sha": "c7b3d4b65b79e2e0d6a891547ad138e1fcdafb56",
+      "manifest_git_blob_sha": "9b7c9e24cd7de730302193856503bd020893a23d",
+      "source_ref_verified": true,
+      "qemu_virt_compatible": false,
+      "qemu_virt_compatibility_verified": false
+    }
+  ]
+}
