@@ -1,0 +1,43 @@
+{
+  "build": "022",
+  "host_only": true,
+  "samsung_tv_boot_not_authorized": true,
+  "steps": [
+    {
+      "id": "01_official_manifest",
+      "target": "Download und Hashprüfung von LineageOS-default.xml",
+      "requires": ["Git SHA1 der offiziellen Quelle", "Dokumentierte Branch-Revision"],
+      "status": "SOURCE_REFS_VERIFIED_MANIFEST_BYTES_NOT_LOCAL"
+    },
+    {
+      "id": "02_arm32_virt_product",
+      "target": "ARM32-QEMU-virt-spezifisches Device/Product-Target",
+      "requires": ["LineageOS-Device-Makefiles", "BoardConfig.mk", "ARM32 Android-TV-Produktdefinition", "Testbare ramdisk- und init.rc-Pfade"],
+      "status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "03_userspace_bionic",
+      "target": "ARM32 Bionic und Android init ohne unbekannte ELF-Abhängigkeiten",
+      "requires": ["Vollständige dynamische Bibliotheks-Closure", "ARM32 ELF-/Interpreterprüfung", "Kernel-Syscall-/Binder- und ION-Test"],
+      "status": "NOT_VERIFIED_FOR_LINEAGEOS"
+    },
+    {
+      "id": "04_android_init",
+      "target": "Echter Android-init-Prozess, erste und zweite Phase in QEMU",
+      "requires": ["SELinux-Policy", "Android-fähige Mountpunkte und Dateisystemlabels", "Ramdisk einschließlich first-stage-Dateien", "Serielle Logbeweise"],
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "05_basic_services",
+      "target": "Property Service, ueventd, logd, servicemanager einzeln prüfen",
+      "requires": ["Android-init erfolgreich", "Passende init.rc-Service-Definitionen", "Dynamische Bibliotheken und Rechte", "Service-Prozessbeweise"],
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "06_samsung_real_hardware",
+      "target": "Samsung-SoC, Bootchain, GPU, WLAN, Ton und Eingabe getrennt untersuchen",
+      "requires": ["Eindeutige SoC-Identifikation", "Dokumentierter Recovery-Weg", "Sicherer Bootweg", "Original-Firmware gesichert"],
+      "status": "NOT_STARTED_NO_FLASH"
+    }
+  ]
+}
