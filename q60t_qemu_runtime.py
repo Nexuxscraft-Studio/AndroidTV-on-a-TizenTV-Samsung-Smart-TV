@@ -65,10 +65,11 @@ def validate_workspace(workspace: Path) -> Path:
             or report_path.stat().st_size > 1024 * 1024):
         raise ValueError("Kein regulärer Compile-Bericht vorhanden")
     report = json.loads(report_path.read_text(encoding="utf-8"))
-    if (report.get("profile") != "qemu-binder-lab"
+    profile = report.get("profile")
+    if (profile not in {"qemu-binder-lab", "qemu-ion-lab"}
             or report.get("status") != "HOST_KERNEL_COMPILED_NOT_BOOTABLE_VALIDATED"
             or report.get("resolved_config", {}).get("verified") is not True):
-        raise ValueError("Nur ein erfolgreiches QEMU-Binder-Lab-Profil darf starten")
+        raise ValueError("Nur erfolgreiche QEMU-Binder-Lab- oder QEMU-ION-Lab-Profile dürfen starten")
     info = report.get("artifact", {})
     if info.get("path_within_workspace") != EXPECTED_ARTIFACT:
         raise ValueError("Unerwarteter Kernel-Artefaktpfad")
@@ -86,6 +87,8 @@ def validate_workspace(workspace: Path) -> Path:
                   if symbols.get(name, "n") != value]
     if mismatches:
         raise ValueError("QEMU-/Binder-Kconfig unvollständig: " + ", ".join(mismatches))
+    if profile == "qemu-ion-lab" and symbols.get("ION_DUMMY", "n") != "y":
+        raise ValueError("Build-020-Profil erfordert CONFIG_ION_DUMMY=y")
     return image
 
 
@@ -197,8 +200,10 @@ def run_probe(workspace: Path, initrd: Path | None, timeout: int,
                 proc.wait()
             code = 124
     findings = inspect_console(log_path)
+    compiled = json.loads((workspace / "compile-report.json").read_text(encoding="utf-8"))
     result = {
-        "type": "q60t_qemu_virt_armv7_host_probe", "build": "018",
+        "type": "q60t_qemu_virt_armv7_host_probe",
+        "build": "020" if compiled["profile"] == "qemu-ion-lab" else "018",
         "command": command, "qemu_exit_code": code,
         "qemu_timeout_reached": timed_out,
         "console_log": log_path.name,
