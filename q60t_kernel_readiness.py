@@ -49,9 +49,6 @@ SUPPORTING = {
     "NET_NS": "Network namespaces",
     "BPF_SYSCALL": "BPF system call (not the full modern eBPF stack)",
 }
-SPECIAL_DEFAULT = "CONFIG_ANDROID_BINDER_DEVICES"
-
-
 def read_limited(path: Path, limit: int = 2 * 1024 * 1024) -> str:
     if not path.is_file() or path.is_symlink() or path.stat().st_size > limit:
         raise ValueError(f"Missing, linked or oversized source: {path.name}")
@@ -98,10 +95,20 @@ def audit(source: Path, resolved_config: Path) -> dict:
         r"^config\s+ANDROID_BINDER_DEVICES\s*$", binder_kconfig, re.M))
     multi_binder = binder_devices_declared and all(
         name in binder_c for name in ("hwbinder", "vndbinder"))
+    # Recognize the opt-in Build-016 host patch but deliberately do not
+    # equate a compiled source scaffold with Binder runtime correctness.
+    lab_scaffold = all(marker in binder_c for marker in (
+        "struct binder_context {", '"hwbinder"', '"vndbinder"',
+        "proc->context->mgr_node", "target_proc->context != proc->context",
+    ))
     selinux_enabled = values.get("SECURITY_SELINUX") == "y"
     selinux_default = values.get("DEFAULT_SECURITY") == '"selinux"'
     gaps = []
-    if not multi_binder:
+    if lab_scaffold:
+        gaps.append("Experimental Binder three-context source is not runtime ABI-tested")
+    elif multi_binder:
+        gaps.append("Multi-device Binder names exist but runtime ABI is unverified")
+    else:
         gaps.append("No proven /dev/hwbinder + /dev/vndbinder contexts")
     if not (selinux_enabled and selinux_default):
         gaps.append("SELinux not built and selected as default LSM")
@@ -112,7 +119,7 @@ def audit(source: Path, resolved_config: Path) -> dict:
     gaps.append("No verified Q60T Nike-L defconfig / TV boot / Android HAL / rollback")
     return {
         "type": "q60t_android_kernel_gap_audit",
-        "build": "015", "kernel_version": version,
+        "build": "016" if lab_scaffold else "015", "kernel_version": version,
         "defconfig_reference": android.REFERENCE_PROFILE,
         "defconfig_sha256": sha256(original_defconfig),
         "resolved_config_sha256": sha256(resolved_config),
@@ -123,7 +130,9 @@ def audit(source: Path, resolved_config: Path) -> dict:
         "binder": {
             "single_misc_binder_declared": single_binder,
             "kconfig_multi_device_option_present": binder_devices_declared,
-            "hwbinder_and_vndbinder_proven": multi_binder,
+            "experimental_three_context_source_detected": lab_scaffold,
+            "multi_device_kconfig_and_names_present": multi_binder,
+            "hwbinder_and_vndbinder_proven": False,
             "protocol_versions_in_source": binder_versions,
             "runtime_abi_tested": False,
         },

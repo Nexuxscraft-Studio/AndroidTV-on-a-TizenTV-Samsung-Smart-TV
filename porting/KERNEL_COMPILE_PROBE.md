@@ -8,6 +8,12 @@ einen echten ARM32-Hostcompile erfolgreich durchlaufen**, Details und
 Hashes in [`BUILD015_REPORT.md`](../BUILD015_REPORT.md).
 Ohne `--profile` bleibt das bisherige `tizen`-Standardprofil unverändert.
 
+**Build 016** ergänzt `--profile binder-lab`: Aufbauend auf
+`android-bootlab` wird auch Samsungs Binder-Treiber ausschließlich im
+Schattenquellbaum um drei voneinander getrennte Managerkontexte erweitert.
+Der Hostkernel wurde erfolgreich kompiliert, die Android-Laufzeit jedoch
+**nicht** getestet. Details: [`BUILD016_REPORT.md`](../BUILD016_REPORT.md).
+
 Dieses Experiment verwendet den von Samsung bereitgestellten Linux-4.1.10-
 Quellbaum aus `20_DTV_NikeL.zip`. **Es erzeugt keine installierbare Samsung-
 Firmware, kein Android-ROM und keinen sicheren Flash-/Bootpfad.** Das

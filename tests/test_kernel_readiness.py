@@ -68,6 +68,19 @@ class KernelReadinessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Linux 4.1.10"):
             readiness.audit(self.source, self.config)
 
+    def test_experimental_binder_scaffold_is_not_runtime_proof(self) -> None:
+        (self.source / "drivers/android/binder.c").write_text(
+            'struct binder_context { void *mgr_node; };\n'
+            '"hwbinder" "vndbinder"\n'
+            'proc->context->mgr_node;\n'
+            'target_proc->context != proc->context;\n')
+        result = readiness.audit(self.source, self.config)
+        self.assertTrue(result["binder"]["experimental_three_context_source_detected"])
+        self.assertFalse(result["binder"]["runtime_abi_tested"])
+        self.assertFalse(result["binder"]["hwbinder_and_vndbinder_proven"])
+        self.assertIn("Experimental Binder three-context source is not runtime ABI-tested",
+                      result["gaps"])
+
     def test_no_overwriting_reports(self) -> None:
         report = self.root / "existing.json"
         report.write_text(json.dumps({"safe": True}))

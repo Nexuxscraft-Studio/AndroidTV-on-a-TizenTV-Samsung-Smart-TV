@@ -128,6 +128,8 @@
   "binder": {
     "single_misc_binder_declared": true,
     "kconfig_multi_device_option_present": false,
+    "experimental_three_context_source_detected": false,
+    "multi_device_kconfig_and_names_present": false,
     "hwbinder_and_vndbinder_proven": false,
     "protocol_versions_in_source": [
       7,

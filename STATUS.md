@@ -1,4 +1,4 @@
-# Forschungsprotokoll – Build 015
+# Forschungsprotokoll – Build 016
 
 Stand: 09.11.2026
 
@@ -284,6 +284,24 @@ Stand: 09.11.2026
   `porting/ANDROID_COMPATIBILITY.md` und drei JSON-Reports.
 - **96** synthetische Unit-Tests erfolgreich; Boot-/Flashfreigabe
   weiter **BLOCKED**, kein Fernseher kontaktiert.
+
+## Build 016 – Isolierte Binder-Domänen im ARM32-Hostkernel
+
+- Samsung-Binder-Quelltext exklusiv in der Host-Schattenkopie angepasst;
+  Original-`binder.c` wird über SHA-256 und eindeutige Quellmarker
+  verifiziert, ansonsten **fail closed**.
+- Drei Managerkontexte für `binder`, `hwbinder` und `vndbinder`
+  experimentell implementiert, inklusive weiterer Prüfungen gegen
+  domänenübergreifende Transaktionen.
+- Automatisch erzeugter, überprüfbarer Unified-Diff im Testworkspace;
+  `patch --dry-run --fuzz=0` gegen Originalquellen **PASS**.
+- **Echter ARM32-`zImage`-Build bestanden**, `3.720.688` Bytes,
+  SHA-256 in `BUILD016_REPORT.md`.
+- `q60t_kernel_readiness.py` markiert die neue Treiberstruktur als
+  experimentell, bewertet deren Laufzeit-ABI **nicht** als getestet.
+- **103** synthetische Tests grün, kein TV-Zugriff, keine Flashfreigabe.
+  Berichte: `BUILD016_REPORT.md`, `porting/BINDER_MULTICONTEXT_LAB.md`,
+  `reports/kernel_gap_build016_binder_lab.json`.
 
 ## Noch nicht gemacht (und nicht behauptet)
 

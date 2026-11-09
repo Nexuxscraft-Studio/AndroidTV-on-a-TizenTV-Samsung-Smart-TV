@@ -65,7 +65,7 @@ class CompileProbeTests(unittest.TestCase):
             self.assertIn("KCFLAGS=-Wno-error=attributes", args)
 
     def test_experimental_profile_is_opt_in(self):
-        self.assertEqual(probe.PROFILES, {"tizen", "selinux-lab", "android-bootlab"})
+        self.assertEqual(probe.PROFILES, {"tizen", "selinux-lab", "android-bootlab", "binder-lab"})
         with self.assertRaisesRegex(ValueError, "Unbekanntes"):
             probe.execute(Path("."), Path("/some/unique/output"), "arm-", 1,
                           60, preflight_only=True, profile="unsafe")
@@ -125,6 +125,24 @@ class CompileProbeTests(unittest.TestCase):
             manifest = json.loads((output / "STAGE_MANIFEST.json").read_text())
             self.assertEqual(manifest["profile"], "android-bootlab")
             self.assertEqual(manifest["experimental_config_changes"]["IKCONFIG"], "y")
+
+    def test_binder_lab_keeps_all_android_boot_features(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp)
+            (output / ".config").write_text(
+                "CONFIG_SECURITY_SMACK=y\nCONFIG_SECURITY_SFD=y\n"
+                "# CONFIG_SECURITY_SELINUX is not set\n"
+                "# CONFIG_BLK_DEV_INITRD is not set\n"
+                "# CONFIG_IKCONFIG is not set\n"
+                "# CONFIG_IKCONFIG_PROC is not set\n")
+            (output / "STAGE_MANIFEST.json").write_text(json.dumps({
+                "vendor_security_untouched": True
+            }))
+            probe.apply_research_overlay(output, "binder-lab")
+            staged = (output / ".config").read_text()
+            for symbol in ("SECURITY_SELINUX", "BLK_DEV_INITRD", "IKCONFIG", "IKCONFIG_PROC"):
+                self.assertIn(f"CONFIG_{symbol}=y", staged)
+            self.assertEqual(json.loads((output / "STAGE_MANIFEST.json").read_text())["profile"], "binder-lab")
 
 
 if __name__ == "__main__":

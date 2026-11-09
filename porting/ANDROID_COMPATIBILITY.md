@@ -56,6 +56,13 @@ besitzt noch keinen nachgewiesenen, voneinander isolierten Kontext pro
 Gerät. Entweder ist ein überprüfter Binder-Backport oder eine wesentlich
 neuere Kernelbasis erforderlich; reine Symbolprüfung bestätigt keine ABI.
 
+Build 016 enthält jetzt einen **separaten, nicht produktionsreifen**
+Binder-Dreifachkontext-Prototyp als Opt-in-Hostprofil. Dessen ARM32-
+Kompilierung war erfolgreich, aber weder Kontextisolation zur Laufzeit
+noch die Android-Binder-ABI sind nachgewiesen. Das ist ausdrücklich
+**noch kein** vollständiger Binder-Backport. Siehe
+[`porting/BINDER_MULTICONTEXT_LAB.md`](BINDER_MULTICONTEXT_LAB.md).
+
 ### SELinux und Samsungs Sicherheitsmodell
 
 Im stocknahen Forschungsprofil ist `CONFIG_SECURITY_SMACK=y`,

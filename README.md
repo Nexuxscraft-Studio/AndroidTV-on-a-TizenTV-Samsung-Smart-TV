@@ -1,4 +1,4 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 015)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 016)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
@@ -96,6 +96,15 @@ Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmwar
   Samsung-Bootkette. **96 synthetische Tests** erfolgreich. Details:
   [BUILD015_REPORT.md](BUILD015_REPORT.md) und
   [porting/ANDROID_COMPATIBILITY.md](porting/ANDROID_COMPATIBILITY.md).
+- Build 016: Ein weiteres, streng opt-in **Binder-Dreifachkontext-
+  Experiment** erzeugt im Schattenquellbaum drei unterschiedliche
+  `/dev/binder`-, `/dev/hwbinder`- und `/dev/vndbinder`-Manager-Kontexte.
+  Der **echte ARM32-Kernelbuild ist erfolgreich** (3.720.688 Bytes),
+  jedoch **ohne** Binder-Laufzeittest, verifizierte Android-ABI oder
+  Samsung-Hardwarefreigabe. Der Diff wird nur im lokalen Workspace
+  erzeugt. **103** synthetische Tests grün. Details:
+  [BUILD016_REPORT.md](BUILD016_REPORT.md) und
+  [porting/BINDER_MULTICONTEXT_LAB.md](porting/BINDER_MULTICONTEXT_LAB.md).
 - Ein echtes Android-Bootimage, ein entsperrter Bootloader und passende
   Android-Hardwaretreiber **existieren hier noch nicht**.
 - Neue Erkenntnisse, Treibermatrix und offene Sicherheitsbedingungen:
@@ -164,6 +173,9 @@ die passende offizielle Firmware von der Samsung-Supportseite nötig.
 - Build 015: Auch die neuen SELinux-/Initramfs-Experimente nutzen nur
   getrennte Host-Schattenquellen. **Weder deren zImages noch ihre
   Build-Logs gehören ins GitHub-Release oder auf den Fernseher.**
+- Build 016: Das neue Binder-Overlay wird ausschließlich im geschützten
+  Schattenquellbaum aktiviert; Quellhash und Quellmarker werden streng
+  geprüft. Noch keine Runtime- oder Gerätevalidierung.
 
 ## In fünf Minuten prüfen
 
@@ -267,6 +279,13 @@ python3 q60t_kernel_readiness.py \
   --source /pfad/zu/linux-4.1.10 \
   --config /pfad/zu/NEUEM-build015-arbeitsverzeichnis/output/.config \
   --output /pfad/zu/NEUEM-kernel-gap-report.json
+
+# Build 016: Binder-Dreifachkontext-Compilerexperiment (kein TV-Test):
+python3 q60t_compile_probe.py \
+  --source /pfad/zu/linux-4.1.10 \
+  --workspace /pfad/zu/NEUEM-binder-labor \
+  --cross-prefix /pfad/zu/linaro/bin/arm-linux-gnueabi- \
+  --profile binder-lab --jobs 4 --timeout 1800
 
 # REA selbst ausführen (Node.js/npm nötig, ohne globale Installation):
 npx --yes rea-agents@latest inspect-devicetree /pfad/zu/decrypted/dtb.bin --format json

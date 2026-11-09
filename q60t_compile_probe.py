@@ -19,6 +19,7 @@ import subprocess
 import sys
 
 import q60t_android_kernel as android
+import q60t_binder_lab as binder_lab
 import q60t_kernel_build as kernel
 import q60t_kernel_stage as stage
 
@@ -63,7 +64,7 @@ ANDROID_BOOTLAB_FEATURES = {
     "IKCONFIG_PROC": "y",
 }
 ANDROID_BOOTLAB_OVERLAY = SELINUX_LAB_OVERLAY | ANDROID_BOOTLAB_FEATURES
-PROFILES = {"tizen", "selinux-lab", "android-bootlab"}
+PROFILES = {"tizen", "selinux-lab", "android-bootlab", "binder-lab"}
 RESEARCH_FEATURES = {
     "ANDROID_BINDER_IPC": "y",
     "ANDROID_BINDER_IPC_32BIT": "n",
@@ -205,9 +206,9 @@ def make_args(source: Path, output: Path, prefix: str, jobs: int, major: int,
 
 def apply_research_overlay(output: Path, profile: str) -> None:
     """Opt-in change to *staged* .config only, never to vendor source."""
-    if profile not in {"selinux-lab", "android-bootlab"}:
+    if profile not in {"selinux-lab", "android-bootlab", "binder-lab"}:
         raise ValueError("Für dieses Profil ist kein Overlay erlaubt")
-    changes = (ANDROID_BOOTLAB_OVERLAY if profile == "android-bootlab"
+    changes = (ANDROID_BOOTLAB_OVERLAY if profile in {"android-bootlab", "binder-lab"}
                else SELINUX_LAB_OVERLAY)
     config_path = output / ".config"
     config_path.write_text(stage.shadow_config(
@@ -234,7 +235,7 @@ def apply_selinux_lab_overlay(output: Path) -> None:
 
 
 def prepare_shadow(source: Path, workspace: Path,
-                   profile: str = "tizen") -> tuple[Path, Path]:
+                   profile: str = "tizen") -> tuple[Path, Path, dict | None]:
     shadow = workspace / "linux-4.1.10-shadow"
     shutil.copytree(source, shadow, symlinks=True)
     for patch in PATCHES:
@@ -257,20 +258,22 @@ def prepare_shadow(source: Path, workspace: Path,
     if header.exists() or header.is_symlink():
         raise ValueError("Unerwarteter vdlp_version.h; nicht ersetzen")
     header.write_text(GENERATED_HEADER, encoding="utf-8")
+    binder_metadata = (binder_lab.patch_shadow(shadow, workspace)
+                       if profile == "binder-lab" else None)
     generated_fragment = workspace / "android-research.fragment"
     generated_fragment.write_text(android.fragment(android.compute_report(source)), encoding="utf-8")
     output = workspace / "output"
     stage.stage(source, generated_fragment, output)
-    if profile in {"selinux-lab", "android-bootlab"}:
+    if profile in {"selinux-lab", "android-bootlab", "binder-lab"}:
         apply_research_overlay(output, profile)
-    return shadow, output
+    return shadow, output, binder_metadata
 
 
 def verify_config(output: Path, profile: str = "tizen") -> dict:
     resolved = android.read_config(output / ".config")["symbols"]
     security = (SELINUX_LAB_SECURITY if profile != "tizen"
                 else RESEARCH_SECURITY)
-    if profile == "android-bootlab":
+    if profile in {"android-bootlab", "binder-lab"}:
         security = security | ANDROID_BOOTLAB_FEATURES
     checked = {name: resolved.get(name, "n") for name in (*RESEARCH_FEATURES, *security)}
     expected = RESEARCH_FEATURES | security
@@ -298,7 +301,7 @@ def execute(source: Path, workspace: Path, prefix: str, jobs: int,
         raise ValueError("Kernel-Build benötigt 'bc' (Host-Werkzeug)")
     report = {
         "type": "q60t_arm32_host_compile_probe",
-        "build": "015" if profile != "tizen" else "013",
+        "build": "016" if profile == "binder-lab" else ("015" if profile != "tizen" else "013"),
         "profile": profile, "target": "zImage", "kernel_version": "4.1.10",
         "source_reference": "Samsung 20_DTV_NikeL.zip (Nike-L package; Nike.M candidate config)",
         "source_matches_live_firmware_2743_0": False,
@@ -322,7 +325,9 @@ def execute(source: Path, workspace: Path, prefix: str, jobs: int,
     workspace.mkdir(mode=0o700)
     result_path = workspace / "compile-report.json"
     try:
-        shadow, output = prepare_shadow(source, workspace, profile)
+        shadow, output, binder_metadata = prepare_shadow(source, workspace, profile)
+        if binder_metadata is not None:
+            report["binder_lab"] = binder_metadata
         kconfig_log = workspace / "kconfig.log"
         config_result = run_logged(
             make_args(shadow, output, prefix, 1, compiler["major"], "olddefconfig"),

@@ -1,0 +1,163 @@
+{
+  "type": "q60t_android_kernel_gap_audit",
+  "build": "016",
+  "kernel_version": "4.1.10",
+  "defconfig_reference": "Nike.M-Tizen_release_defconfig",
+  "defconfig_sha256": "54dab3e4d55462362d074e6ee11bac7be4d201cb0daa6b18de1454f162f06bc0",
+  "resolved_config_sha256": "9220975fcd81c268a7032a8dc898546a2c71dc0c2a17d012b234a1a10ed0f0d5",
+  "supported_android14_kernel": false,
+  "benchmark_is_complete_android_cdd": false,
+  "essential_sample": [
+    {
+      "symbol": "CONFIG_ANDROID_BINDER_IPC",
+      "name": "Android IPC",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_ASHMEM",
+      "name": "Legacy Android shared memory",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_AUDIT",
+      "name": "Security audit",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_BLK_DEV_INITRD",
+      "name": "Initial ramdisk support",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_CGROUPS",
+      "name": "Control groups",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_CGROUP_CPUACCT",
+      "name": "CPU accounting",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_CGROUP_FREEZER",
+      "name": "Freeze process groups",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_HIGH_RES_TIMERS",
+      "name": "High-resolution timers",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_IKCONFIG",
+      "name": "Embedded kernel config",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_IKCONFIG_PROC",
+      "name": "Config accessible via proc",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_SECURITY_SELINUX",
+      "name": "SELinux LSM",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_DEFAULT_SECURITY_SELINUX",
+      "name": "SELinux selected by default",
+      "expected": "y",
+      "actual": "y",
+      "enabled": true
+    }
+  ],
+  "supporting_features": [
+    {
+      "symbol": "CONFIG_ION",
+      "name": "Legacy Android memory allocator",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_OVERLAY_FS",
+      "name": "Overlay filesystem",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_SECCOMP_FILTER",
+      "name": "Seccomp-BPF filters",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_NET_NS",
+      "name": "Network namespaces",
+      "actual": "y",
+      "enabled": true
+    },
+    {
+      "symbol": "CONFIG_BPF_SYSCALL",
+      "name": "BPF system call (not the full modern eBPF stack)",
+      "actual": "n",
+      "enabled": false
+    }
+  ],
+  "binder": {
+    "single_misc_binder_declared": false,
+    "kconfig_multi_device_option_present": false,
+    "experimental_three_context_source_detected": true,
+    "multi_device_kconfig_and_names_present": false,
+    "hwbinder_and_vndbinder_proven": false,
+    "protocol_versions_in_source": [
+      7,
+      8
+    ],
+    "runtime_abi_tested": false
+  },
+  "security": {
+    "selinux_compiled": true,
+    "selinux_default": true,
+    "smack_compiled": true,
+    "samsung_sfd_compiled": true,
+    "android_policy_compatible": false
+  },
+  "gaps": [
+    "Experimental Binder three-context source is not runtime ABI-tested",
+    "Samsung SFD/UEP integration with Android is unverified",
+    "Linux 4.1.10 is outside official Android 14 supported-kernel matrix",
+    "No verified Q60T Nike-L defconfig / TV boot / Android HAL / rollback"
+  ],
+  "status": "GAPS_FOUND_NOT_ANDROID_READY",
+  "tv_accessed": false,
+  "flash_authorized": false,
+  "sources": [
+    "https://android.googlesource.com/kernel/common/+/refs/tags/ASB-2020-04-05_4.4-o/android/configs/android-base.cfg",
+    "https://source.android.com/docs/core/architecture/kernel/android-common",
+    "https://source.android.com/docs/core/architecture/hidl/binder-ipc",
+    "https://source.android.com/docs/security/features/selinux"
+  ],
+  "warning": "A config check is not an Android boot or runtime test. Do not flash."
+}
