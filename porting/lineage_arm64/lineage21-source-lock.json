@@ -1,0 +1,22 @@
+{
+  "build": "024",
+  "scope": "QEMU_VIRT_ARM64_ANDROID14_FIRST_STAGE_INIT_EXPERIMENT",
+  "upstream": "https://github.com/LineageOS/android.git",
+  "branch": "lineage-21.0",
+  "manifest_commit": "121f4ec5f11dc98ff2c427bc9d23165e914c54bb",
+  "manifest_path": "default.xml",
+  "manifest_git_blob_sha1": "8837b599e325c839b38c6a9905b3f6b28fba53ed",
+  "aosp_tag_observed": "android-14.0.0_r67",
+  "android_version": "14",
+  "android_api_level": 34,
+  "lineage_tv_gsi_target": "gsi_tv_arm64",
+  "lineage_sdk_tv_arm64_emulator_target_exists": false,
+  "lineage_qemu_virt_device_target_exists": false,
+  "qemu_arm64_test_kernel": "6.6.162",
+  "android14_gki_reference": "android14-6.1",
+  "kernel6_6_is_android14_gki": false,
+  "samsung_hardware_arch64_verified": false,
+  "android_init_executed": false,
+  "tv_accessed": false,
+  "safe_to_flash": false
+}
