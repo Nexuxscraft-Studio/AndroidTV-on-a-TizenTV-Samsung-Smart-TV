@@ -99,8 +99,10 @@ def run(cross_prefix: str, output: Path, source: Path) -> dict:
     # Exclusive creation; preserve pre-existing user files even on a race.
     with output.open("xb") as destination:
         destination.write(archive)
+    ion_lab = source.name == "q60t_ion_probe_init.c"
     return {
-        "type": "q60t_build018_arm32_binder_initramfs",
+        "type": "q60t_build020_arm32_ion_initramfs" if ion_lab else "q60t_build018_arm32_binder_initramfs",
+        "build": "020" if ion_lab else "018",
         "status": "HOST_ONLY_INITRAMFS_BUILT_NOT_BOOT_TESTED",
         "output": str(output),
         "size_bytes": len(archive),
