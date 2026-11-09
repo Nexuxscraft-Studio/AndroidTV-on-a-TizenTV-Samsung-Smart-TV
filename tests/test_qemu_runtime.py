@@ -120,6 +120,45 @@ class QemuRuntimeTests(unittest.TestCase):
         self.assertTrue(findings["binder_version_ioctl_pass_reported_by_guest"])
         self.assertFalse(findings["binder_transactions_executed"])
 
+    def test_binder_roundtrip_requires_all_three_guest_markers(self):
+        prefix = (
+            b"Linux version 4.1.10 #1\r\n"
+            b"Q60T_GUEST_INIT_STARTED host_only=1 no_flash=1\r\n"
+            b"Q60T_BINDER_VERSION_IOCTL_PASS name=binder protocol=8\r\n"
+            b"Q60T_BINDER_ABI_PROBE_FINISHED transaction_tested=0\r\n"
+        )
+        markers = (
+            b"Q60T_BINDER_SERVICE_REQUEST_OK\r\n",
+            b"Q60T_BINDER_CLIENT_REPLY_OK\r\n",
+            b"Q60T_BINDER_TRANSACTION_PASS protocol=8 request=PING reply=PONG\r\n",
+        )
+        log = self.root / "console.log"
+        for missing in markers:
+            log.write_bytes(prefix + b"".join(m for m in markers if m != missing))
+            findings = runner.inspect_console(log)
+            self.assertFalse(findings["binder_transactions_executed"])
+        log.write_bytes(prefix + b"".join(markers))
+        findings = runner.inspect_console(log)
+        self.assertEqual(findings["status"], "GUEST_BINDER_TRANSACTION_ROUNDTRIP_REPORTED")
+        self.assertTrue(findings["binder_roundtrip_pass_reported_by_guest"])
+        self.assertTrue(findings["binder_transactions_executed"])
+        self.assertFalse(findings["android_userspace_compatible"])
+
+    def test_binder_roundtrip_panic_always_invalidates_pass(self):
+        log = self.root / "console.log"
+        log.write_bytes(
+            b"Linux version 4.1.10 #1\n"
+            b"Q60T_GUEST_INIT_STARTED host_only=1 no_flash=1\n"
+            b"Q60T_BINDER_VERSION_IOCTL_PASS name=binder protocol=8\n"
+            b"Q60T_BINDER_ABI_PROBE_FINISHED transaction_tested=0\n"
+            b"Q60T_BINDER_SERVICE_REQUEST_OK\n"
+            b"Q60T_BINDER_CLIENT_REPLY_OK\n"
+            b"Q60T_BINDER_TRANSACTION_PASS protocol=8 request=PING reply=PONG\n"
+            b"Kernel panic - not syncing\n")
+        findings = runner.inspect_console(log)
+        self.assertEqual(findings["status"], "KERNEL_PANIC_OBSERVED")
+        self.assertFalse(findings["binder_transactions_executed"])
+
     def test_ioctl_marker_requires_guest_init_marker(self):
         log = self.root / "console.log"
         log.write_bytes(b"Linux version 4.1.10\nQ60T_BINDER_VERSION_IOCTL_PASS name=binder protocol=8\n")

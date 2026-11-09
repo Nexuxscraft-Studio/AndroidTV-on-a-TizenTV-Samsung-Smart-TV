@@ -26,6 +26,50 @@ LF-Zeilenenden, die PL011-Konsole liefert jedoch auch CRLF/CRCRLF. Eine
 nachfolgende Parserkorrektur normalisiert Carriage-Returns nur im
 Auswertungsbuffer; die Original-Logs und SHA-256-Hashes bleiben unverändert.
 
+### Build-018-Fortsetzung: isolierter Binder-Transaktionsrundlauf
+
+Das folgende Experiment ist **erst implementiert, nicht auf QEMU ausgeführt**.
+Es erweitert den bereits funktionierenden ARM32-`/init` um zwei getrennte
+Prozesse (je eigener Binder-FD mit `mmap`):
+
+1. Service setzt `BINDER_SET_CONTEXT_MGR` und `BC_ENTER_LOOPER`.
+2. Client sendet `BC_TRANSACTION` an Binder-Handle 0 mit dem bekannten
+   `Q60T_BINDER_PING_018`-Payload.
+3. Service prüft `BR_TRANSACTION` und antwortet mit `BC_REPLY` und
+   `Q60T_BINDER_PONG_018`.
+4. Client verifiziert `BR_REPLY` bytegenau. Erst nach beiden Bestätigungen
+   druckt `/init` `Q60T_BINDER_TRANSACTION_PASS protocol=8 request=PING reply=PONG`.
+
+Jede Binder-IOCTL-Fehlermeldung bleibt sichtbar; es gibt weder Netzwerk noch
+virtuelle Hostdisks oder Samsung-Hardwarezugriff. Der Interpreter akzeptiert
+den Rundlauf nur, wenn Service-, Client- und PASS-Marker vorhanden sind,
+kein Kernel-Panic folgt und das Log vollständig analysiert werden konnte.
+
+Auf dem bereits gebauten Kernel `build018-qemu-007` wird **nur** eine neue
+Initramfs-Datei erzeugt, um vorige Logs und Artefakte zu erhalten:
+
+```bash
+cd /opt/samsung-atv-lab/q60t-github
+GIT_SSH_COMMAND='ssh -i /root/.ssh/id_ed25519_q60t -o IdentitiesOnly=yes' git pull --ff-only
+
+python3 q60t_initramfs_lab.py \
+  --cross-prefix /opt/samsung-atv-lab/toolchains/gcc-linaro-6.2.1-ti2017.01-armv5-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi- \
+  --output /opt/samsung-atv-lab/samsung/build018-qemu-007/binder-roundtrip-initramfs.cpio.gz
+
+python3 q60t_qemu_runtime.py \
+  --workspace /opt/samsung-atv-lab/samsung/build018-qemu-007 \
+  --initrd /opt/samsung-atv-lab/samsung/build018-qemu-007/binder-roundtrip-initramfs.cpio.gz \
+  --run-id transaction-001 --timeout 30
+
+grep -E 'Q60T_BINDER_|Kernel panic' \
+  /opt/samsung-atv-lab/samsung/build018-qemu-007/qemu-serial-transaction-001.log
+```
+
+Ein einzelner erfolgreicher Ping/Pong-Rundlauf würde nur die verwendete
+Binder-IPC-Minimalstrecke auf diesem **QEMU-Hostkernel** zeigen. Er beweist
+weder Android-HAL-Kompatibilität noch eine sichere Möglichkeit, diesen Kernel
+auf dem Samsung Q60T zu starten oder zu flashen.
+
 ### Reproduzierter QEMU-Meilenstein (09.11.2026)
 
 Auf der separaten Debian-13-Test-VM wurde mit Linaro GCC 6.2.1 ein

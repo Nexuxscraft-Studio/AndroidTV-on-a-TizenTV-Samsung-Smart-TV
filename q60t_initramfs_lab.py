@@ -86,7 +86,7 @@ def run(cross_prefix: str, output: Path, source: Path) -> dict:
         raise ValueError("ARM32-Cross-Compiler nicht gefunden")
     with tempfile.TemporaryDirectory(prefix="q60t-binder-init-") as temporary:
         compiled = Path(temporary) / "init"
-        command = [compiler, "-static", "-Os", "-Wall", "-Wextra",
+        command = [compiler, "-std=gnu11", "-static", "-Os", "-Wall", "-Wextra",
                    "-o", str(compiled), str(source)]
         result = subprocess.run(command, capture_output=True, text=True, timeout=120,
                                 check=False)

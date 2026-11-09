@@ -119,10 +119,18 @@ def inspect_console(log: Path) -> dict:
                          b"Q60T_BINDER_VERSION_IOCTL_PASS name=binder protocol=8\n" in contents)
     binder_probe_finished = (guest_started and
                              b"Q60T_BINDER_ABI_PROBE_FINISHED transaction_tested=0\n" in contents)
+    service_request_ok = b"Q60T_BINDER_SERVICE_REQUEST_OK\n" in contents
+    client_reply_ok = b"Q60T_BINDER_CLIENT_REPLY_OK\n" in contents
+    roundtrip_ok = (binder_probe_finished and binder_ioctl_pass and
+                    service_request_ok and client_reply_ok and
+                    b"Q60T_BINDER_TRANSACTION_PASS protocol=8 request=PING reply=PONG\n"
+                    in contents and not panic_seen and not truncated)
     init_seen = (guest_started or b"Run /init as init process" in contents
                  or b"Freeing unused kernel memory" in contents)
     if panic_seen:
         state = "KERNEL_PANIC_OBSERVED"
+    elif roundtrip_ok and kernel_seen:
+        state = "GUEST_BINDER_TRANSACTION_ROUNDTRIP_REPORTED"
     elif binder_ioctl_pass and kernel_seen:
         state = "GUEST_BINDER_VERSION_IOCTL_PASS_REPORTED"
     elif guest_started and kernel_seen:
@@ -142,7 +150,8 @@ def inspect_console(log: Path) -> dict:
         "guest_init_started": guest_started,
         "binder_devices_checked_by_guest": binder_probe_finished,
         "binder_version_ioctl_pass_reported_by_guest": binder_ioctl_pass,
-        "binder_transactions_executed": False,
+        "binder_roundtrip_pass_reported_by_guest": roundtrip_ok,
+        "binder_transactions_executed": roundtrip_ok,
         "android_userspace_compatible": False,
         "safe_to_flash": False,
     }
