@@ -61,6 +61,11 @@ Für einen reproduzierbaren nächsten Schritt gibt es neu:
   Gezählt werden **wörtliche** Treffer in C-/Header-Code vs.
   Device-Tree-Deklarationen. Treffer erlauben niemals die Aussage
   „Treiber läuft“.
+- `q60t_build025_boot_contract.py`: prüft die zwei *hashverifizierten*
+  Referenz-DTBs direkt auf CPU-Enable-Methoden, PSCI-Knoten,
+  Interruptcontroller und Timer. Das kann Hypothesen für einen möglichen
+  ARM64-Boot konkretisieren, belegt aber weder AArch64-Übergabe durch
+  den Samsung-Bootloader noch einen Recoveryweg.
 - Optional liest es ein *gerätespezifisches* Android-VINTF-`manifest.xml`
   ein und stellt deklarierte HAL-Schnittstellen gegenüber. Das Vorhandensein
   eines XML-Eintrags ist **kein** HAL-Laufzeittest.
