@@ -1,4 +1,4 @@
-# Samsung Q60T → LineageOS: Offline-Labor (Build 020, Host-Branch)
+# Samsung Q60T → LineageOS: Offline-Labor (Build 021, Host-Branch)
 
 Ein **nicht-invasives** Arbeitsprojekt zur Untersuchung der Samsung-Q60T-Firmware
 `T-NKLDEUC 2743.0` als Vorbereitung einer möglichen LineageOS-/Android-TV-Portierung.
@@ -413,3 +413,12 @@ Reverse-Engineering-Quelltexte.
 - **Aktuell:** synthetische Tests; Build-020-Kernel und QEMU-ION-Allokation müssen auf dem vorhandenen Proxmox-Labor noch real ausgeführt werden. **Keine Freigabe zum Flashen.**
 
 Alle sicherheitsrelevanten Prüfungen und Commands: [BUILD020_REPORT.md](BUILD020_REPORT.md).
+
+
+## Build 021 – First Android Bionic Execution (QEMU)
+
+Im separaten Proxmox-Testchat wurde **Build 020 mit ION-4-KiB-Allokation und Freigabe im QEMU-Gast bestätigt**. Das NDK-r30-Bionic-Programm ist bereits ARM32/ELF32 mit `/system/bin/linker` und `libdl.so`/`libc.so` als dynamischen Abhängigkeiten; echter Bionic-Start steht noch aus.
+
+Auf diesem Branch liegen jetzt der *offline* SDK-24-AOSP-Systemimage-Extractor `q60t_aosp_runtime.py`, ein sicherheitsgeprüfter ELF32-Reader `q60t_bionic_elf.py`, das eigene statische Gast-`/init` `q60t_bionic_init.c`, der Initramfs-Packer `q60t_bionic_initramfs.py` und der strikte Guest-Log-Validator `q60t_bionic_guest_result.py`.
+
+**Wichtig:** Keine echten Android-Bibliotheken, Binärimages oder Initramfs-Dateien werden ins Repository hochgeladen. Der erste reale Build-021-Gastlauf ist noch offen; keine Freigabe für den Fernseher. Vollständige Anweisungen: [BUILD021_REPORT.md](BUILD021_REPORT.md).
