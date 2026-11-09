@@ -81,6 +81,30 @@ class Build021Tests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "fehlen"):
                 aosp.check_runtime_files(files)
 
+    def test_android_linker_self_interpreter_is_not_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            files = {}
+            for name in aosp.RUNTIME_FILES:
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(synthetic_arm_elf(
+                    interpreter="/system/bin/linker"
+                    if name == "system/bin/linker" else None))
+                files[name] = path
+            checked = aosp.check_runtime_files(files)
+            self.assertEqual(checked["system/bin/linker"]["elf"]["interpreter"],
+                             "/system/bin/linker")
+            files["system/bin/linker"].write_bytes(
+                synthetic_arm_elf(interpreter="/lib/ld-linux.so.3"))
+            with self.assertRaisesRegex(ValueError, "Linker-Interpreter"):
+                aosp.check_runtime_files(files)
+            files["system/bin/linker"].write_bytes(synthetic_arm_elf())
+            files["system/lib/libc.so"].write_bytes(
+                synthetic_arm_elf(interpreter="/system/bin/linker"))
+            with self.assertRaisesRegex(ValueError, "Runtime-Library"):
+                aosp.check_runtime_files(files)
+
     def test_runtime_manifest_detects_tampering(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
