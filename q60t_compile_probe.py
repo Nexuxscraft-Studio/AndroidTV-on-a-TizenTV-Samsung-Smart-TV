@@ -85,6 +85,10 @@ QEMU_VIRT_OVERLAY = {
     # Samsung emergency klog persists to /dev/mmcblk0, absent on QEMU virt;
     # regular printk, serial logging, and dmesg remain enabled.
     "EMRG_SAVE_KLOG": "n",
+    # Samsung SFD securecontainer casts inode->i_security to Smack data;
+    # that is unsafe when this host-only profile selects SELinux as LSM.
+    "SECURITY_SFD": "n",
+    "SECURITY_SFD_SECURECONTAINER": "n",
     "ARCH_MULTIPLATFORM": "y",
     "ARCH_MULTI_V7": "y",
     "ARCH_VIRT": "y",
@@ -263,10 +267,17 @@ def apply_research_overlay(output: Path, profile: str) -> None:
         manifest["virtual_machine"] = "QEMU virt / ARMv7 Cortex-A15 (not Samsung Nike)"
         manifest["qemu_boot_or_binder_runtime_verified"] = False
     manifest["staged_config_sha256"] = file_sha256(config_path)
-    manifest["note"] = (
-        "Host-only experiment: switch default kernel LSM to SELinux. "
-        "Samsung SMACK/SFD remain compiled but Android runtime policy and "
-        "device compatibility are unverified. Never deploy to a television.")
+    if profile == "qemu-binder-lab":
+        manifest["note"] = (
+            "Host-only QEMU experiment: SELinux is default. Samsung SFD "
+            "is disabled because its SecureContainer hook assumes Smack "
+            "ownership of inode->i_security. This is not a Samsung TV "
+            "security configuration. Never flash the image.")
+    else:
+        manifest["note"] = (
+            "Host-only experiment: switch default kernel LSM to SELinux. "
+            "Samsung SMACK/SFD remain compiled but Android runtime policy and "
+            "device compatibility are unverified. Never deploy to a television.")
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
                              encoding="utf-8")
 

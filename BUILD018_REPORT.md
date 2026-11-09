@@ -45,6 +45,14 @@ unverändert auswählbar.
   Hilfsfunktionen nach `/dev/mmcblk0`. Da der emulierte Rechner kein solches
   Gerät besitzt, wird diese Zusatzfunktion deaktiviert. Die normale
   `printk`-/`dmesg`-/Seriell-Ausgabe bleibt ausdrücklich eingeschaltet.
+- Der erste QEMU-Lauf erreichte zwar Kernelcode, löste aber einen Oops im
+  Samsung-SFD-SecureContainer-Hook aus (`sf_security_inode_permission`,
+  `SfdDispatcherHookHandlers.c:146`, ARM-PC `0xc0231e84`). Dieser Hook
+  interpretiert `inode->i_security` als Smack-Struktur; das QEMU-Profil
+  verwendet jedoch SELinux als aktive Standard-LSM. Deshalb deaktiviert
+  **nur dieses Host-Profil** `SECURITY_SFD` und
+  `SECURITY_SFD_SECURECONTAINER`. Für eine echte Samsung-Firmware darf
+  die Hardware-Sicherheitskonfiguration daraus nicht übernommen werden.
 - Der erste QEMU-Test verwendet ausdrücklich **keine virtuellen Disks**. Daher
   wird `VIRTIO_BLK` für dieses Profil deaktiviert (VirtIO-MMIO bleibt aktiv):
   Samsungs `virtio_blk.c` passt nicht zur `find_vqs`-Signatur und den

@@ -162,6 +162,9 @@ class CompileProbeTests(unittest.TestCase):
             self.assertIn("CONFIG_ARCH_VIRT=y", result)
             self.assertIn("CONFIG_SERIAL_AMBA_PL011_CONSOLE=y", result)
             self.assertNotIn("PRINTK", probe.QEMU_VIRT_OVERLAY)
+            self.assertIn("# CONFIG_SECURITY_SFD is not set", result)
+            self.assertIn("# CONFIG_SECURITY_SFD_SECURECONTAINER is not set", result)
+            self.assertEqual(probe.SELINUX_LAB_SECURITY["SECURITY_SFD"], "y")
             self.assertIn("CONFIG_VIRTIO_MMIO=y", result)
             self.assertIn("# CONFIG_VIRTIO_BLK is not set", result)
             for feature in ("POWER_SAVING_MODE", "ALWAYS_INSTANT_ON", "VDFS4_FS",
@@ -173,6 +176,7 @@ class CompileProbeTests(unittest.TestCase):
             manifest = json.loads((output / "STAGE_MANIFEST.json").read_text())
             self.assertEqual(manifest["profile"], "qemu-binder-lab")
             self.assertFalse(manifest["qemu_boot_or_binder_runtime_verified"])
+            self.assertIn("SFD is disabled", manifest["note"])
 
     def test_qemu_verification_refuses_samsung_machine(self):
         with tempfile.TemporaryDirectory() as temp:
