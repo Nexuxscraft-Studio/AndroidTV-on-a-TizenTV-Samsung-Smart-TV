@@ -86,9 +86,14 @@ printf 'Build058 Linux 6.6.162 ARM32 offline compilation; TV access forbidden.\n
 
 if ! record_step arm32_defconfig kernel_make multi_v7_defconfig; then exit 1; fi
 kernel_config="$output_dir/kernel-obj/.config"
-"$kernel_src/scripts/config" --file "$kernel_config" -e DRM -m DRM_PANFROST
+"$kernel_src/scripts/config" --file "$kernel_config" -e MODULES -e DRM -m DRM_PANFROST
 if ! record_step arm32_olddefconfig kernel_make olddefconfig; then exit 1; fi
 
+if ! grep -qx 'CONFIG_MODULES=y' "$kernel_config"; then
+  printf 'kernel_modules_kconfig\tBLOCKED\t2\t%s\n' "$kernel_config" >> "$summary"
+  printf 'Kconfig rejected CONFIG_MODULES=y, cannot compile external objects.\n' >&2
+  exit 2
+fi
 if ! grep -qx 'CONFIG_DRM_PANFROST=m' "$kernel_config"; then
   printf 'panfrost_kconfig\tBLOCKED\t2\t%s\n' "$kernel_config" >> "$summary"
   printf 'Panfrost Kconfig rejected module mode: check ARM32 dependencies and !GENERIC_ATOMIC64.\n' >&2
