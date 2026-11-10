@@ -44,6 +44,9 @@ archive's pinned SHA-256 is
 The runner creates `RESULTS.tsv`, `inputs.txt`, individual logs and staged
 work copies under the output directory. Do not equate a `PASS` on the ported
 utility object with success for the complete Samsung DRM stack.
+It returns a nonzero exit status if any required ARM object is absent, even
+when the partial results and logs are useful. A full PASS for the original
+large Samsung DRM files is **not yet established**.
 
 If the server has `arm-linux-gnueabihf-gcc` instead, invoke with
 `CROSS_COMPILE=arm-linux-gnueabihf-`. Set `JOBS=2` on a small VM to avoid OOM.
