@@ -16,7 +16,9 @@
 
 #include <drm/drm_device.h>
 #include <drm/drm_drv.h>
+#include <drm/drm_file.h>
 #include <drm/drm_gem.h>
+#include <drm/drm_ioctl.h>
 
 static void nover_sdp52_gem_free(struct drm_gem_object *object)
 {
