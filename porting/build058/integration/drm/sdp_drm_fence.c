@@ -5,6 +5,7 @@
  * No GPU jobs, interrupts, or actual fence signal path are implemented.
  */
 #include <linux/atomic.h>
+#include <linux/bug.h>
 #include <linux/dma-fence.h>
 #include <linux/errno.h>
 #include <linux/kref.h>
