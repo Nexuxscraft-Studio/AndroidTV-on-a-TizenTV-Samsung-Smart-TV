@@ -90,6 +90,13 @@ gegen die echten Quelldateien war erfolgreich; eine Kompilierung ist
 noch **nicht** nachgewiesen. Die vollständigen Sicherheitsgrenzen und
 Testkommandos stehen unter [`STAGE1_FIXES.md`](STAGE1_FIXES.md).
 
+**Build-051-Headerfix:** Der aktuelle Stage-1-Komplettpatch enthält
+`<drm/drm_device.h>`. Für Quellkopien, die schon mit dem *älteren*
+Stage-1-Patch geändert wurden, existiert der separate inkrementelle
+[`0002`-Patch](patches/0002-panel-drm-device-header-existing-stage1.patch).
+Der `0002`-Patch darf nicht zusätzlich auf den aktuellen Komplettpatch
+angewendet werden.
+
 ```bash
 python3 -m unittest tests/test_build050_hardware_evidence.py -v
 python3 -m unittest tests/test_build050_vendor_code_audit.py -v
