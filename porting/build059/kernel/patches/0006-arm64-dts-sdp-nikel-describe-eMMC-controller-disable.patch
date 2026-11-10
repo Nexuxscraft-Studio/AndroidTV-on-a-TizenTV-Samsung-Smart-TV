@@ -1,0 +1,58 @@
+From 645255b94123945f62647f8f7c860915775bc9a0 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 10 Nov 2026 21:51:07 +0100
+Subject: [PATCH 6/6] arm64: dts: sdp-nikel: describe eMMC controller
+ (disabled)
+
+Samsung's SDP MMC host is a Synopsys DesignWare MMC with the register
+layout of the Exynos variant (CLKSEL at 0xa8, HS400 registers at
+0x180-0x188). Describe it with an exynos7-dw-mshc fallback, conservative
+52 MHz SDR settings and the phase defaults from the firmware tree.
+Keep it disabled until the controller has been tested on hardware.
+---
+ .../arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi | 29 +++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+index 8ddc6ccb2..4d5e53cb3 100644
+--- a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+@@ -124,6 +124,35 @@ clock: clock-controller@f50000 {
+ 			#clock-cells = <1>;
+ 		};
+ 
++		/*
++		 * eMMC: Synopsys DesignWare MMC in Samsung's Exynos flavour.
++		 * Samsung's register map (sdp_mmc.h) matches the upstream
++		 * dw_mmc-exynos "exynos7" variant: 64-bit IDMAC addresses,
++		 * CLKSEL at 0xa8 (sample phase bits 0-2, drive phase bits
++		 * 16-18), HS400 registers at 0x180/0x184/0x188, ENABLE_SHIFT
++		 * at 0x110. The fallback compatible is a hypothesis that has
++		 * to be confirmed on hardware, hence status = "disabled".
++		 * Phases: firmware initregs set sample = 1, drive = 0.
++		 * Start conservatively at 52 MHz SDR, no HS200/HS400.
++		 */
++		mmc0: mmc@100000 {
++			compatible = "samsung,sdp1804-dw-mshc", "samsung,exynos7-dw-mshc";
++			reg = <0x00100000 0x1000>;
++			interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&clock SDP1804_EMMC_CLK>, <&clock SDP1804_EMMC_CLK>;
++			clock-names = "biu", "ciu";
++			fifo-depth = <0x40>;
++			samsung,dw-mshc-ciu-div = <0>;
++			samsung,dw-mshc-sdr-timing = <1 0>;
++			samsung,dw-mshc-ddr-timing = <1 0>;
++			bus-width = <8>;
++			max-frequency = <52000000>;
++			cap-mmc-highspeed;
++			cap-mmc-hw-reset;
++			non-removable;
++			status = "disabled";
++		};
++
+ 		/*
+ 		 * UART input clock: Samsung uses "apb_pclk" (COREPLL0 / 8).
+ 		 * It is not wired up yet on purpose: until the rate printed
+-- 
+2.43.0
+

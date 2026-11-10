@@ -17,6 +17,7 @@ UART-Treiber und Konsole. Ziel beim ersten echten Start wäre eine Shell
 | `kernel/patches/0003-…dts…patch` | `sdp-nikel.dtsi` + Q60T-Boards für die Profile `nikel-1.5G` und `nikel-2G`; die arm32-Varianten binden die arm64-Dateien ein |
 | `kernel/patches/0004-clk…patch` | Neuer Treiber `drivers/clk/clk-sdp1804.c`: liest die 13 PLLs und leitet `arm_clk`, `apb_pclk`, `ddr2/3_clk`, `emmc_clk` ab – **nur lesend**, keine Gates, kein Umprogrammieren |
 | `kernel/patches/0005-…clock-controller…patch` | Clock-Controller `0xF50000` + 24-MHz-`fin_pll` im Device Tree |
+| `kernel/patches/0006-…eMMC…patch` | eMMC-Knoten `mmc@100000` für den Upstream-Treiber `dw_mmc-exynos` (Variante exynos7), konservativ 52 MHz, **deaktiviert** |
 | `kernel/configs/` | Konfigurations-Fragmente (`common`, `arm64`, `arm`) und Pflicht-Symbole |
 | `kernel/build.sh` | Reproduzierbarer Build: Patches anwenden, konfigurieren, prüfen, bauen |
 | `tools/fdt2dts.py` | DTB → DTS ohne `dtc` (nur Standardbibliothek) |
@@ -81,12 +82,14 @@ verwenden. Ergebnis je Lauf in `~/b059-out/artifacts-<arch>-<profil>/`:
    `rs232=0`; im Firmware-DT gibt es Bootmodi mit Taste „S“ → `init=/bin/sh`).
 3. **Clock-Treiber** erweitern: Gates und Software-Resets (`0x7xx`/`0x8xx`)
    als Reset-Controller, sobald die gelesenen PLL-Raten am Gerät bestätigt sind.
-4. **eMMC**: Samsungs `sdp_mmc.c` trägt `MODULE_LICENSE("Proprietary")` und
-   wird deshalb **nicht** portiert. Die Kommentare darin (IP-Version 2.41a,
-   IDMAC, Card Threshold Control) zeigen, dass es ein **Synopsys
-   DesignWare-MMC** ist → Upstream-Treiber `dw_mmc` + kleine Plattform-
-   Anpassung (Sample-/Drive-Phasen-Register `0x1000a8`/`0x100110` aus dem
-   Firmware-DT). Danach Pinctrl, USB (EHCI/OHCI), Ethernet.
+4. **eMMC am Gerät testen**: Samsungs `sdp_mmc.c` trägt
+   `MODULE_LICENSE("Proprietary")` und wird deshalb **nicht** portiert. Laut
+   seinen Registerdefinitionen ist der Controller ein Synopsys DesignWare MMC
+   in Samsungs Exynos-Ausführung (`CLKSEL` 0xA8, HS400 0x180–0x188,
+   `ENABLE_SHIFT` 0x110) – identisch mit `dw_mmc-exynos` „exynos7“. Der
+   Knoten ist beschrieben, aber deaktiviert; erst nach einem Test mit
+   Shell auf dem TV einschalten, dann HS200/HS400-Tuning ergänzen.
+   Danach Pinctrl, USB (EHCI/OHCI), Ethernet.
 5. Display/GPU: Fortsetzung der Arbeiten aus Build 050–058 auf dieser Basis.
 
 ## Grenzen

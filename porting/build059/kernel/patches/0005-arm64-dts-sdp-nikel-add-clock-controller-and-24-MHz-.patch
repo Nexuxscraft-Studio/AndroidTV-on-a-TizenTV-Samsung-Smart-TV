@@ -1,7 +1,7 @@
 From e204fc8a5d9cdcbc14d9850b7f6c397645e108d5 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Tue, 10 Nov 2026 21:48:52 +0100
-Subject: [PATCH 5/5] arm64: dts: sdp-nikel: add clock controller and 24 MHz
+Subject: [PATCH 5/6] arm64: dts: sdp-nikel: add clock controller and 24 MHz
  input clock
 
 The UART is deliberately not connected to apb_pclk yet; the rate shown

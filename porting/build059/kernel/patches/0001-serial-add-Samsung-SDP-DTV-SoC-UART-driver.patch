@@ -1,7 +1,7 @@
 From ff2b6ed37f8674fc0a14a8ef6a3bf84ba23af27d Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Tue, 10 Nov 2026 21:31:37 +0100
-Subject: [PATCH 1/5] serial: add Samsung SDP DTV SoC UART driver
+Subject: [PATCH 1/6] serial: add Samsung SDP DTV SoC UART driver
 
 Add a driver for the "samsung,sdp-uart2" UART of Samsung SDP digital TV
 SoCs (e.g. Nike-L in 2020 Q60T televisions), including console and

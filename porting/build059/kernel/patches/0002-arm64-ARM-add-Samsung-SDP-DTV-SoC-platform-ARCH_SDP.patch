@@ -1,7 +1,7 @@
 From d279e3a74687faac6f52e2c3ecab0e343738185d Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Tue, 10 Nov 2026 21:31:37 +0100
-Subject: [PATCH 2/5] arm64, ARM: add Samsung SDP DTV SoC platform (ARCH_SDP)
+Subject: [PATCH 2/6] arm64, ARM: add Samsung SDP DTV SoC platform (ARCH_SDP)
 
 Device tree only platform entries for Samsung SDP digital TV SoCs such
 as Nike-L. Secondary CPUs come up through PSCI as described by the
