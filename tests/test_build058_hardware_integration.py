@@ -9,6 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 DIR = ROOT / "porting/build058/integration"
 MEDIA = ROOT / ".build050_vendor/srcarchives/tztv-media-nike.tgz"
+ORIGINAL_KERNEL = ROOT / ".build050_vendor/srcarchives/linux-4.1.10-tizen5.5.tgz"
 
 
 class Build058Integration(unittest.TestCase):
@@ -49,6 +50,44 @@ class Build058Integration(unittest.TestCase):
         self.assertIn("samsung_drm_stage2", src)
         self.assertNotIn("insmod ", src)
         self.assertNotIn("modprobe ", src)
+
+    def test_objects_and_modpost_are_reported_independently(self):
+        src = (DIR / "run-arm32-compile-only.sh").read_text()
+        self.assertIn('"${name}.o"', src)
+        self.assertIn('"${label}_modpost"', src)
+        self.assertIn("SKIPPED_OBJECT_ONLY", src)
+        self.assertIn("BLOCKED_NO_SYMVERS", src)
+        self.assertIn("Module.symvers", src)
+        self.assertIn("BUILD058_FULL_KERNEL", src)
+        self.assertIn("arm32_full_kernel_for_symvers", src)
+        self.assertIn("samsung_drm_tztv_header", src)
+
+    def test_cpufreq_6_6_api_and_name_size(self):
+        src = (ROOT / "porting/build058/cpu/kernel/sdp_nikel_cpufreq.c").read_text()
+        self.assertIn("nikel_cpu_verify(struct cpufreq_policy_data *policy)", src)
+        self.assertNotIn("nikel_cpu_verify(struct cpufreq_policy *policy)", src)
+        self.assertIn('.name = "sdp-nikel-off"', src)
+        self.assertLess(len("sdp-nikel-off"), 16)
+        self.assertIn("NIKEL_CPU_BUILD058_OFFLINE_ONLY 1", src)
+
+    def test_original_early_header_recovered_without_fake_vendor_abi(self):
+        compatibility = DIR / "drm/legacy-include/trace/early.h"
+        code = compatibility.read_text()
+        self.assertIn("2014 Roman Pen", code)
+        self.assertIn("trace_early_message", code)
+        self.assertFalse((DIR / "drm/legacy-include/drm/drm_tztv.h").exists())
+        if ORIGINAL_KERNEL.is_file():
+            with tarfile.open(ORIGINAL_KERNEL) as archive:
+                old = archive.extractfile("linux-4.1.10/include/trace/early.h").read().decode()
+                self.assertIn("trace_early_message", old)
+
+    def test_published_archives_do_not_contain_missing_vendor_abi(self):
+        for path in (MEDIA, ORIGINAL_KERNEL):
+            if not path.is_file():
+                self.skipTest("local Samsung source archives unavailable")
+            with tarfile.open(path) as archive:
+                self.assertFalse(any(name.endswith("/drm_tztv.h")
+                                     for name in archive.getnames()))
 
     def test_samsung_utility_real_api_port(self):
         c_src = (DIR / "drm/sdp_drm_util.c").read_text()
