@@ -1,0 +1,66 @@
+{
+  "build": "058",
+  "status": "PROTOTYPE_FAIL_CLOSED_OFFLINE",
+  "derived_from_build057": "ORIGINAL_POWER_SEQUENCE_CROSSCHECKED_OFFLINE",
+  "original_samsung_archive_sha256": "40c2a25eba331b8b04d8d81baf76061493f15f228a74893c7f825f7a1da724b6",
+  "original_firmware_entries_sha256": {
+    "dtb": "9698e1aeca3f614bfb536dc73f8f02fc9acc8f34887070c333f47324c7b342e2",
+    "gpu": "115aadc5b2874cc4210f9b6c58bf2b4e09abadfe84fe7ad217f17770b21ecf29",
+    "drm": "be8d3e249f813dad1258269dfe074d66668111390b84ed6c7915a310fe4b94ba"
+  },
+  "registers_original_source_crosschecked": {
+    "GPU_CLK_MASK": {
+      "offset": "0x088c",
+      "address": "0x00f5088c",
+      "mask": "0x00001000"
+    },
+    "GPU_BUSIF_SW_RESET": {
+      "offset": "0x07f8",
+      "address": "0x00f507f8",
+      "mask": "0x01000000"
+    },
+    "GPU_CORE_SW_RESET": {
+      "offset": "0x07f8",
+      "address": "0x00f507f8",
+      "mask": "0x10000000"
+    },
+    "GPU_POWER_REQ_IDLE": {
+      "offset": "0x0a10",
+      "address": "0x00f50a10",
+      "mask": "0x00000001"
+    },
+    "GPU_POWER_IDLE": {
+      "offset": "0x0a14",
+      "address": "0x00f50a14",
+      "mask": "0x00000001"
+    }
+  },
+  "register_write_sequences_checked": {
+    "on": 4,
+    "off_including_rollback": 5
+  },
+  "reset_ids": {
+    "BUSIF": 0,
+    "CORE": 1
+  },
+  "linux66_interfaces_in_prototype": [
+    "clk_ops",
+    "devm_clk_hw_register",
+    "reset_control_ops",
+    "devm_reset_controller_register",
+    "devm_of_clk_add_hw_provider"
+  ],
+  "critical_gaps": [
+    "Unverified clock parent/rate",
+    "Unverified power supply/OPP",
+    "Unverified interrupt trigger",
+    "Potential CCF enable state mismatch on idle timeout",
+    "Shared system clock controller ownership unresolved",
+    "Full Nike-L board DT absent"
+  ],
+  "hard_probe_block": true,
+  "dts_status_disabled": true,
+  "arm32_kernel_module_compilation_performed": false,
+  "hardware_access_performed": false,
+  "safe_to_load_or_flash": false
+}
