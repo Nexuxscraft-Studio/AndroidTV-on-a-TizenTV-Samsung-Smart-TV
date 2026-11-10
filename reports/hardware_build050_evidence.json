@@ -1,0 +1,325 @@
+{
+  "android_kernel": {
+    "actual_nike_l_config_verified": false,
+    "android14_on_samsung_tested": false,
+    "legacy_android_policy_and_abi_validated": false,
+    "linux_6_6_samsung_drivers_validated": false,
+    "qemu_arm64_test_is_not_samsung_hardware_proof": true,
+    "sample_nike_m_defconfig_symbols": {
+      "CONFIG_ANDROID_BINDER_IPC": "y",
+      "CONFIG_BPF_SYSCALL": "n",
+      "CONFIG_CGROUPS": "y",
+      "CONFIG_ION": "y",
+      "CONFIG_SECCOMP_FILTER": "y",
+      "CONFIG_SECURITY_SELINUX": "y"
+    }
+  },
+  "boot": {
+    "bootloader_authentication_policy_verified": false,
+    "kernel_security_symbol_strings": [
+      "SfdUepVerifyExecutableBinary",
+      "SfdUepVerifyFileSignature",
+      "SfdUepVerifyDynamicLibrary",
+      "SfdUepHandleVerificationResult",
+      "security.SMACK64EXEC",
+      "kernel/seccomp.c"
+    ],
+    "legacy_image": {
+      "arch_id": 2,
+      "entry_address": "0x80008000",
+      "header_crc_valid": true,
+      "load_address": "0x80008000",
+      "name": "Linux-4.1.10",
+      "payload_crc_valid": true
+    },
+    "nonpersistent_boot_demonstrated": false,
+    "recovery_verified": false,
+    "security_named_components": {
+      "secos.bin": "20e957cffcd89dd3cd942fff6155c0630ab1bfc0986b5f8c57ebe0ceef08ceff",
+      "secos_drv.bin": "027a851e6d2c431b6eb5a86466e01ca23f85ce807b57c84b988217b8b0645460",
+      "seret.bin": "c97ae1b4db73c2981b13fa9b7121930d77702e8705641225c3a1506064bec728",
+      "sign.bin": "244cbe7ef9ad8fc3f198e5f556968bd18cd0a34f986934b9c5126b6284c4b0b4"
+    },
+    "stock_signature_verification_demonstrated": false
+  },
+  "build": "050",
+  "cpu": {
+    "aarch64_boot_contract_verified": false,
+    "live_cpu_midr_verified": false,
+    "reference_dtb_cortex_a57_count": 4,
+    "reference_isa": "ARMv8-A (AArch64-capable)",
+    "running_stock_kernel_image_arch": "ARM32 (U-Boot IH_ARCH_ARM=2)"
+  },
+  "dtb_bundle_sha256": "9698e1aeca3f614bfb536dc73f8f02fc9acc8f34887070c333f47324c7b342e2",
+  "next_steps": [
+    "Verify exact 50-inch board, CPU MIDR, RAM and GPU ID with lawful read-only access",
+    "Inspect original vendor source and immutable 6.6 tree side by side",
+    "Map bootloader acceptance/signature behavior without modifying TV",
+    "Port clock/interrupt/storage prerequisites before graphics and Android HALs",
+    "Prove independent recovery and nonpersistent boot before any device boot attempt"
+  ],
+  "original_oss_archive_scanned_in_this_execution": false,
+  "peripherals": {
+    "audio": {
+      "confirmed_on_target_tv": false,
+      "driver_ported_to_linux_6_6": false,
+      "dt_compatible": "samsung,sdp-mc-audio",
+      "reference_profiles_containing_node": 2,
+      "source": {
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_paths": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "arch/arm/boot/dts/sdp1501.dtsi"
+        ],
+        "media_paths": [
+          "sdp_alsa_nike/sdp_audio_machine.c"
+        ],
+        "source_code_examined_in_this_build": false
+      }
+    },
+    "display_drm": {
+      "confirmed_on_target_tv": false,
+      "driver_ported_to_linux_6_6": false,
+      "dt_compatible": "samsung,sdp-drm",
+      "reference_profiles_containing_node": 2,
+      "source": {
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_paths": [
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "arch/arm/boot/dts/sdp1501-jazzmt-eval.dts",
+          "arch/arm/boot/dts/sdp1501.dtsi",
+          "arch/arm/boot/dts/sdp1531-jazzml-eval.dts"
+        ],
+        "media_paths": [
+          "sdp_drm_nike/sdp_drm_drv.c"
+        ],
+        "source_code_examined_in_this_build": false
+      }
+    },
+    "display_frc": {
+      "confirmed_on_target_tv": false,
+      "driver_ported_to_linux_6_6": false,
+      "dt_compatible": "samsung,sdp-frc-l",
+      "reference_profiles_containing_node": 2,
+      "source": {
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_paths": [],
+        "media_paths": [
+          "sdp_frc_nike/nikel/sdp_frc_drv.c"
+        ],
+        "source_code_examined_in_this_build": false
+      }
+    },
+    "display_panel": {
+      "confirmed_on_target_tv": false,
+      "driver_ported_to_linux_6_6": false,
+      "dt_compatible": "samsung,sdp1202-panel",
+      "reference_profiles_containing_node": 2,
+      "source": {
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_paths": [
+          "arch/arm/boot/dts/sdp1106.dts",
+          "arch/arm/boot/dts/sdp1202.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-fhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1304-dtv-uhd-gptizen.dts",
+          "arch/arm/boot/dts/sdp1404-av.dts",
+          "arch/arm/boot/dts/sdp1404-dtv.dts",
+          "arch/arm/boot/dts/sdp1501-tizen.dts",
+          "drivers/gpu/drm/panel/panel-sdp.c"
+        ],
+        "media_paths": [],
+        "source_code_examined_in_this_build": false
+      }
+    },
+    "gpu": {
+      "confirmed_on_target_tv": false,
+      "driver_ported_to_linux_6_6": false,
+      "dt_compatible": "arm,mali-midgard",
+      "reference_profiles_containing_node": 2,
+      "source": {
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_paths": [],
+        "media_paths": [
+          "sdp_gpu_nike/drivers/gpu/arm/midgard/mali_kbase_core_linux.c"
+        ],
+        "source_code_examined_in_this_build": false
+      }
+    },
+    "hdmi": {
+      "confirmed_on_target_tv": false,
+      "driver_ported_to_linux_6_6": false,
+      "dt_compatible": "samsung,sdp-hdmi",
+      "reference_profiles_containing_node": 2,
+      "source": {
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_paths": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1501.dtsi"
+        ],
+        "media_paths": [
+          "sdp_hdmi_nike/sdp_hdmi_main.c"
+        ],
+        "source_code_examined_in_this_build": false
+      }
+    },
+    "input_ir": {
+      "confirmed_on_target_tv": false,
+      "driver_ported_to_linux_6_6": false,
+      "dt_compatible": "samsung,sdp-mc-irb",
+      "reference_profiles_containing_node": 2,
+      "source": {
+        "classification": "KERNEL_CODE_REFERENCE",
+        "kernel_paths": [
+          "drivers/soc/sdp/sdp_micom_irb.c"
+        ],
+        "media_paths": [],
+        "source_code_examined_in_this_build": false
+      }
+    },
+    "storage": {
+      "confirmed_on_target_tv": false,
+      "driver_ported_to_linux_6_6": false,
+      "dt_compatible": "samsung,sdp-mmc",
+      "reference_profiles_containing_node": 2,
+      "source": {
+        "classification": "DTS_DECLARATION_ONLY",
+        "kernel_paths": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1207.dtsi",
+          "arch/arm/boot/dts/sdp1302.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304.prehawk.orsay.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1307.dtsi"
+        ],
+        "media_paths": [],
+        "source_code_examined_in_this_build": false
+      }
+    },
+    "video_decoder": {
+      "confirmed_on_target_tv": false,
+      "driver_ported_to_linux_6_6": false,
+      "dt_compatible": "samsung,sdp-mfc",
+      "reference_profiles_containing_node": 2,
+      "source": {
+        "classification": "MEDIA_CODE_REFERENCE",
+        "kernel_paths": [
+          "arch/arm/boot/dts/sdp1106.dtsi",
+          "arch/arm/boot/dts/sdp1202.dtsi",
+          "arch/arm/boot/dts/sdp1304.dtsi",
+          "arch/arm/boot/dts/sdp1304_gptizen.dtsi",
+          "arch/arm/boot/dts/sdp1404.dtsi",
+          "arch/arm/boot/dts/sdp1406.dtsi",
+          "arch/arm/boot/dts/sdp1501.dtsi"
+        ],
+        "media_paths": [
+          "sdp_codec_nike/sdp_mfc.c"
+        ],
+        "source_code_examined_in_this_build": false
+      }
+    }
+  },
+  "reference_profiles": [
+    {
+      "bootargs_safe_subset": [
+        "root=/dev/mmcblk0p18",
+        "init=/sbin/init",
+        "rootfstype=vdfs",
+        "ro",
+        "console=ttyS0,115200N8",
+        "rootwait",
+        "earlyprintk",
+        "quiet"
+      ],
+      "cortex_a57_nodes": 4,
+      "firmware_ram_label": "2 GiB (firmware profile label)",
+      "memory_reg_advertised_mib": 1460.5,
+      "offset_bytes": 0,
+      "sha256": "0189cc94fe8dd7d016462f22e9f8e965fe328cbc901066c8955f26130f86ab61"
+    },
+    {
+      "bootargs_safe_subset": [
+        "root=/dev/mmcblk0p18",
+        "init=/sbin/init",
+        "rootfstype=vdfs",
+        "ro",
+        "console=ttyS0,115200N8",
+        "rootwait",
+        "earlyprintk",
+        "quiet"
+      ],
+      "cortex_a57_nodes": 4,
+      "firmware_ram_label": "1.5 GiB (firmware profile label)",
+      "memory_reg_advertised_mib": 1118.25,
+      "offset_bytes": 86016,
+      "sha256": "36e8e77898ce2e253ffd959f96d0fb1d27e3fcf58887325d668b190ac8dcd79e"
+    }
+  ],
+  "reference_scope": "T-NKLDEUC 2743.0, earlier 55-inch firmware extraction",
+  "safe_to_flash": false,
+  "safety_gates": [
+    {
+      "name": "exact_target_hardware_identified",
+      "verified": false
+    },
+    {
+      "name": "bootloader_authentication_policy_verified",
+      "verified": false
+    },
+    {
+      "name": "nonpersistent_test_boot_interface_demonstrated",
+      "verified": false
+    },
+    {
+      "name": "recovery_entrypoint_verified",
+      "verified": false
+    },
+    {
+      "name": "known_good_backup_verified",
+      "verified": false
+    },
+    {
+      "name": "rollback_drill_completed_on_spare_hardware",
+      "verified": false
+    },
+    {
+      "name": "watchdog_fallback_verified",
+      "verified": false
+    },
+    {
+      "name": "power_loss_recovery_verified",
+      "verified": false
+    }
+  ],
+  "soc": {
+    "actual_target_board_identified": false,
+    "dt_compatible": "samsung,sdp-nikel",
+    "exact_chip_id_verified": false,
+    "vendor_family": "Samsung SDP Nike-L"
+  },
+  "source_report_sha256": {
+    "reports/boot_safety_build005.json": "fe919e97a2e8dfa804c01a1491f195757233b2c8f9aa9503bd5e7170c20b9edf",
+    "reports/decrypted_components.json": "e717acec29bf0320be6068dd05907cb3caff579ff0707eb2389b73978f9ccc8c",
+    "reports/graphics_build005.json": "be1c13d2a3e13b63f5a0c0987fae038f575e4bf33e381d0e6b042fbf934487a6",
+    "reports/hardware_2743.0_build004_final.json": "3b3841ab5ff121f0fb38dbead7bba6572a6b96c73a1ec8c065ce1afd012832a4",
+    "reports/kernel_2743.0.json": "0dada5ef7204e6ad5e09cab5bed0e1ed6409361b64157bffab7222dd858b4c47",
+    "reports/kernel_gap_build015_bootlab.json": "64da5da33a5110771a48bc3b75508ba67e1cabde70c5a69f135f8fce7c6d3e6d",
+    "reports/source_compat_build011.json": "66a236c432c5d86f3dd25a8f279132897cb75fbef12b4f2df1790ffe2e0de0dd"
+  },
+  "status": "REFERENCE_IDENTIFIED_LIVE_TV_UNVERIFIED",
+  "stock_kernel_sha256": "6603f3f5082d6ef74471f9233ce17063658daf10e1d9440a8a9c75749a5e72b2",
+  "target_model_reported_by_user": "GQ50Q60TGUXZG",
+  "type": "q60t_build050_reference_hardware_evidence"
+}
