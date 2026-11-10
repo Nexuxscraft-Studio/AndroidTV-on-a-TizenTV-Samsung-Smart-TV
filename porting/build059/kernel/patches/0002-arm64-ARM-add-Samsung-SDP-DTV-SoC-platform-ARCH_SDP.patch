@@ -1,0 +1,71 @@
+From d279e3a74687faac6f52e2c3ecab0e343738185d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 10 Nov 2026 21:31:37 +0100
+Subject: [PATCH 2/3] arm64, ARM: add Samsung SDP DTV SoC platform (ARCH_SDP)
+
+Device tree only platform entries for Samsung SDP digital TV SoCs such
+as Nike-L. Secondary CPUs come up through PSCI as described by the
+firmware device tree, so no machine code is needed on either
+architecture.
+---
+ arch/arm/Kconfig             |  2 ++
+ arch/arm/mach-sdp/Kconfig    | 13 +++++++++++++
+ arch/arm64/Kconfig.platforms |  9 +++++++++
+ 3 files changed, 24 insertions(+)
+ create mode 100644 arch/arm/mach-sdp/Kconfig
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 6028c93f0..636df66da 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -519,6 +519,8 @@ source "arch/arm/mach-s5pv210/Kconfig"
+ 
+ source "arch/arm/mach-sa1100/Kconfig"
+ 
++source "arch/arm/mach-sdp/Kconfig"
++
+ source "arch/arm/mach-shmobile/Kconfig"
+ 
+ source "arch/arm/mach-socfpga/Kconfig"
+diff --git a/arch/arm/mach-sdp/Kconfig b/arch/arm/mach-sdp/Kconfig
+new file mode 100644
+index 000000000..137095680
+--- /dev/null
++++ b/arch/arm/mach-sdp/Kconfig
+@@ -0,0 +1,13 @@
++# SPDX-License-Identifier: GPL-2.0-only
++config ARCH_SDP
++	bool "Samsung SDP digital TV SoC family"
++	depends on ARCH_MULTI_V7
++	select ARM_GIC
++	select HAVE_ARM_ARCH_TIMER
++	select ARM_PSCI
++	help
++	  This enables support for Samsung SDP digital TV SoCs such as
++	  Nike-L (SDP1804), used in 2020 Q60T/TU8xxx televisions.
++
++	  Only device tree based boot is supported. Secondary CPUs are
++	  started through PSCI, as described in the firmware device tree.
+diff --git a/arch/arm64/Kconfig.platforms b/arch/arm64/Kconfig.platforms
+index 606912019..533b889be 100644
+--- a/arch/arm64/Kconfig.platforms
++++ b/arch/arm64/Kconfig.platforms
+@@ -273,6 +273,15 @@ config ARCH_ROCKCHIP
+ 	  This enables support for the ARMv8 based Rockchip chipsets,
+ 	  like the RK3368.
+ 
++config ARCH_SDP
++	bool "Samsung SDP digital TV SoC family"
++	select ARM_GIC
++	select ARM_ARCH_TIMER
++	select ARM_PSCI_FW
++	help
++	  This enables support for Samsung SDP digital TV SoCs such as
++	  Nike-L (SDP1804), used in 2020 Q60T/TU8xxx televisions.
++
+ config ARCH_SEATTLE
+ 	bool "AMD Seattle SoC Family"
+ 	help
+-- 
+2.43.0
+

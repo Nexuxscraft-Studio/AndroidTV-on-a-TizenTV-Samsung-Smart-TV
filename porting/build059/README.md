@@ -1,0 +1,86 @@
+# Build 059 – Nike-L-Basiskernel auf Linux 6.6.162 (arm64 + arm32)
+
+Neuanfang mit Claude, aufbauend auf Build 058. Ziel dieses Builds ist **ein
+einziger, vollständiger Kernel** für den Samsung Q60T (Nike-L-SoC), der von
+unten nach oben wächst – statt einzelner Treiber-Prototypen ohne Plattform.
+
+Stufe 1 (dieser Build): Linux 6.6.162 mit Nike-L-Device-Tree, eigenem
+UART-Treiber und Konsole. Ziel beim ersten echten Start wäre eine Shell
+über die serielle Schnittstelle (initramfs), sonst nichts.
+
+## Inhalt
+
+| Pfad | Zweck |
+|---|---|
+| `kernel/patches/0001-…uart…patch` | Neuer Treiber `drivers/tty/serial/sdp_uart.c` für `samsung,sdp-uart2` mit Konsole (`ttySDP0`) und `earlycon`, plus DT-Binding |
+| `kernel/patches/0002-…ARCH_SDP…patch` | Plattform `ARCH_SDP` für arm64 und arm32 (nur Device Tree, CPUs über PSCI) |
+| `kernel/patches/0003-…dts…patch` | `sdp-nikel.dtsi` + Q60T-Boards für die Profile `nikel-1.5G` und `nikel-2G`; die arm32-Varianten binden die arm64-Dateien ein |
+| `kernel/configs/` | Konfigurations-Fragmente (`common`, `arm64`, `arm`) und Pflicht-Symbole |
+| `kernel/build.sh` | Reproduzierbarer Build: Patches anwenden, konfigurieren, prüfen, bauen |
+| `tools/fdt2dts.py` | DTB → DTS ohne `dtc` (nur Standardbibliothek) |
+| `tests/` | Host-Tests (u. a. Speicherbänke gegen `porting/profiles/*.json`) |
+| `../../.github/workflows/build059-nikel-kernel.yml` | CI: 4 Builds (arm64/arm × tiny/full) mit Artefakten |
+
+## Was aus welcher Quelle stammt
+
+- **Device Tree:** Werte aus dem Firmware-DTB `T-NKLDEUC 2743.0` (SHA-256
+  der beiden Trees stimmen mit `porting/profiles/` überein): 4× Cortex-A57,
+  PSCI 0.2 über SMC, GIC-400 (`0x431000`/`0x432000`), Architected Timer
+  24 MHz, PMU (SPI 220–223), vier UARTs, Speicherbänke.
+- **UART:** Registerlayout, Bitbedeutungen und Interrupt-Ablauf aus Samsungs
+  `sdp_uart2.c` (GPL-Paket `20_DTV_NikeL`). Wichtige Eigenheiten:
+  - zwei Interrupts pro Port, **Index 0 = TX, Index 1 = RX**
+  - Interruptursachen in `UTRSTAT` werden per Schreiben einer 1 quittiert
+  - „enhanced“-Ports haben 64 Byte FIFO mit anderem `UFSTAT`-Layout
+  - Konsole ist `serial@190a00` (bei Samsung `ttyS0`, hier `ttySDP0`)
+- **Takt:** Für `samsung,sdp1804-clock` gibt es noch keinen 6.6-Treiber. Der
+  UART-Treiber rekonstruiert seinen Eingangstakt aus dem vom Bootloader
+  gesetzten Teiler (`UBRDIV`) und 115200 Baud. So funktioniert die Konsole,
+  bevor der Clock-Treiber portiert ist.
+
+## Selbst bauen (z. B. auf dem Debian-VServer)
+
+```bash
+sudo apt-get install -y clang lld llvm flex bison bc libssl-dev libelf-dev make patch python3
+git clone --depth 1 --branch v6.6.162 https://github.com/gregkh/linux.git ~/linux-6.6.162-b059
+bash porting/build059/kernel/build.sh ~/linux-6.6.162-b059 arm64 tiny ~/b059-out
+bash porting/build059/kernel/build.sh ~/linux-6.6.162-b059 arm   tiny ~/b059-out
+```
+
+Der Kernelbaum wird beim ersten Lauf gepatcht – dafür einen eigenen Baum
+verwenden. Ergebnis je Lauf in `~/b059-out/artifacts-<arch>-<profil>/`:
+`Image`/`zImage`, die zwei Q60T-DTBs (plus dekompilierte DTS),
+`config`, `System.map`, `SHA256SUMS`, `BUILD_INFO.txt`.
+
+## Korrekturen gegenüber früheren Annahmen
+
+- `arch/arm64/configs/Nike.M-Tizen_debug_defconfig` aus Samsungs GPL-Paket
+  ist **keine** arm64-Konfiguration: Kopfzeile `Linux/arm 4.1.10`,
+  `CONFIG_ARM=y`, `CONFIG_CPU_V7=y`, `CONFIG_ARM_LPAE=y`. Sie liegt nur im
+  falschen Ordner. Samsungs einziges echtes arm64-Material für die SDP-Familie
+  sind die FPGA-Device-Trees `arch/arm64/boot/dts/sdp/sdp1600*` (SDP1600,
+  Spin-Table über `0x4003E0 + 4·cpu`).
+- Ob der Q60T einen AArch64-Kernel starten kann, ist damit **weiterhin offen**.
+  Der Original-Kernel startet in AArch32-HYP. Ein Wechsel nach AArch64 geht
+  nur, wenn die EL3-Firmware (Secure World) selbst AArch64 ist und den Wechsel
+  erlaubt. Deshalb baut Build 059 **beide** Architekturen aus denselben Quellen.
+
+## Offen / nächste Stufen
+
+1. **Bootkette** (entscheidet arm64 vs. arm32): `secos.bin`, `seret.bin`,
+   `ddr.init`, `sign.bin` analysieren – läuft EL3 in AArch64? Wie prüft der
+   Bootloader `uImage` (Signatur, Architektur-Feld)? Die Dateien liegen
+   bisher nur offline vor.
+2. **Serielle Konsole am TV**: Anschluss und Freischaltung (Bootargs
+   `rs232=0`; im Firmware-DT gibt es Bootmodi mit Taste „S“ → `init=/bin/sh`).
+3. **Clock-Treiber** `samsung,sdp1804-clock` (Samsung `clk-sdp.c`, 94 KB) →
+   echte `apb_pclk`/`emmc_clk`.
+4. **eMMC** (`sdp_mmc.c`, 187 KB), danach Pinctrl, USB (EHCI/OHCI), Ethernet.
+5. Display/GPU: Fortsetzung der Arbeiten aus Build 050–058 auf dieser Basis.
+
+## Grenzen
+
+Nichts davon wurde auf dem Fernseher ausgeführt. Ein grüner CI-Lauf beweist
+nur: Patches passen auf 6.6.162, die Konfiguration enthält alle
+Pflicht-Symbole, der UART-Treiber baut mit `W=1` ohne Warnung, Image und
+DTBs entstehen. Er beweist nicht, dass der Kernel auf dem Q60T startet.

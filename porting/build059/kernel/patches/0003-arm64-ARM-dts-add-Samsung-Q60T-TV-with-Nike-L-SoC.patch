@@ -1,0 +1,340 @@
+From 8c12d8ef5f9c58486c2ed9e8e233b28c0c0f19ee Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 10 Nov 2026 21:31:38 +0100
+Subject: [PATCH 3/3] arm64, ARM: dts: add Samsung Q60T TV with Nike-L SoC
+
+Minimal device trees for the Samsung Q60T television (Nike-L SoC) in
+the two memory profiles found in firmware T-NKLDEUC 2743.0: CPUs, PSCI,
+GIC-400, architected timer, PMU and the four SDP UARTs. Values are taken
+from the firmware device tree. The arm32 trees include the arm64 ones.
+---
+ arch/arm/boot/dts/Makefile                    |   1 +
+ arch/arm/boot/dts/sdp/Makefile                |   4 +
+ arch/arm/boot/dts/sdp/sdp-nikel-q60t-1g5.dts  |   3 +
+ arch/arm/boot/dts/sdp/sdp-nikel-q60t-2g.dts   |   3 +
+ arch/arm64/boot/dts/Makefile                  |   1 +
+ arch/arm64/boot/dts/samsung-sdp/Makefile      |   4 +
+ .../dts/samsung-sdp/sdp-nikel-q60t-1g5.dts    |  25 +++
+ .../dts/samsung-sdp/sdp-nikel-q60t-2g.dts     |  24 +++
+ .../boot/dts/samsung-sdp/sdp-nikel-q60t.dtsi  |  24 +++
+ .../arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi | 148 ++++++++++++++++++
+ 10 files changed, 237 insertions(+)
+ create mode 100644 arch/arm/boot/dts/sdp/Makefile
+ create mode 100644 arch/arm/boot/dts/sdp/sdp-nikel-q60t-1g5.dts
+ create mode 100644 arch/arm/boot/dts/sdp/sdp-nikel-q60t-2g.dts
+ create mode 100644 arch/arm64/boot/dts/samsung-sdp/Makefile
+ create mode 100644 arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t-1g5.dts
+ create mode 100644 arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t-2g.dts
+ create mode 100644 arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t.dtsi
+ create mode 100644 arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index efe38eb25..64ae93b2a 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -29,6 +29,7 @@ subdir-y += realtek
+ subdir-y += renesas
+ subdir-y += rockchip
+ subdir-y += samsung
++subdir-y += sdp
+ subdir-y += sigmastar
+ subdir-y += socionext
+ subdir-y += st
+diff --git a/arch/arm/boot/dts/sdp/Makefile b/arch/arm/boot/dts/sdp/Makefile
+new file mode 100644
+index 000000000..e3a5a82cd
+--- /dev/null
++++ b/arch/arm/boot/dts/sdp/Makefile
+@@ -0,0 +1,4 @@
++# SPDX-License-Identifier: GPL-2.0
++dtb-$(CONFIG_ARCH_SDP) += \
++	sdp-nikel-q60t-1g5.dtb \
++	sdp-nikel-q60t-2g.dtb
+diff --git a/arch/arm/boot/dts/sdp/sdp-nikel-q60t-1g5.dts b/arch/arm/boot/dts/sdp/sdp-nikel-q60t-1g5.dts
+new file mode 100644
+index 000000000..0bbe8b6d4
+--- /dev/null
++++ b/arch/arm/boot/dts/sdp/sdp-nikel-q60t-1g5.dts
+@@ -0,0 +1,3 @@
++// SPDX-License-Identifier: GPL-2.0
++/* 32-bit build of the arm64 Q60T/Nike-L device tree (same hardware). */
++#include "arm64/samsung-sdp/sdp-nikel-q60t-1g5.dts"
+diff --git a/arch/arm/boot/dts/sdp/sdp-nikel-q60t-2g.dts b/arch/arm/boot/dts/sdp/sdp-nikel-q60t-2g.dts
+new file mode 100644
+index 000000000..e3327570c
+--- /dev/null
++++ b/arch/arm/boot/dts/sdp/sdp-nikel-q60t-2g.dts
+@@ -0,0 +1,3 @@
++// SPDX-License-Identifier: GPL-2.0
++/* 32-bit build of the arm64 Q60T/Nike-L device tree (same hardware). */
++#include "arm64/samsung-sdp/sdp-nikel-q60t-2g.dts"
+diff --git a/arch/arm64/boot/dts/Makefile b/arch/arm64/boot/dts/Makefile
+index 30dd6347a..b1ad1e342 100644
+--- a/arch/arm64/boot/dts/Makefile
++++ b/arch/arm64/boot/dts/Makefile
+@@ -25,6 +25,7 @@ subdir-y += qcom
+ subdir-y += realtek
+ subdir-y += renesas
+ subdir-y += rockchip
++subdir-y += samsung-sdp
+ subdir-y += socionext
+ subdir-y += sprd
+ subdir-y += st
+diff --git a/arch/arm64/boot/dts/samsung-sdp/Makefile b/arch/arm64/boot/dts/samsung-sdp/Makefile
+new file mode 100644
+index 000000000..e3a5a82cd
+--- /dev/null
++++ b/arch/arm64/boot/dts/samsung-sdp/Makefile
+@@ -0,0 +1,4 @@
++# SPDX-License-Identifier: GPL-2.0
++dtb-$(CONFIG_ARCH_SDP) += \
++	sdp-nikel-q60t-1g5.dtb \
++	sdp-nikel-q60t-2g.dtb
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t-1g5.dts b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t-1g5.dts
+new file mode 100644
+index 000000000..017ff8537
+--- /dev/null
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t-1g5.dts
+@@ -0,0 +1,25 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Samsung Q60T with Nike-L SoC, "nikel-1.5G" memory profile
++ * (second device tree in firmware dtb.bin, offset 86016).
++ *
++ * The memory banks are copied from the firmware tree. Memory between the
++ * banks belongs to video, GPU and Secure World buffers and must stay
++ * untouched. The boot loader is expected to update /memory itself.
++ */
++/dts-v1/;
++
++#include "sdp-nikel-q60t.dtsi"
++
++/ {
++	model = "Samsung Q60T TV (Nike-L, 1.5G profile)";
++	compatible = "samsung,q60t-nikel-1g5", "samsung,dtv", "samsung,sdp-nikel";
++
++	memory@40000000 {
++		device_type = "memory";
++		reg = <0x0 0x40000000 0x0 0x07800000>,	/* 120 MiB */
++		      <0x0 0x4f000000 0x0 0x10c00000>,	/* 268 MiB */
++		      <0x0 0xa2000000 0x0 0x1e000000>,	/* 480 MiB */
++		      <0x0 0xca000000 0x0 0x0fa40000>;	/* 250.25 MiB */
++	};
++};
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t-2g.dts b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t-2g.dts
+new file mode 100644
+index 000000000..cfca2611e
+--- /dev/null
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t-2g.dts
+@@ -0,0 +1,24 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Samsung Q60T with Nike-L SoC, "nikel-2G" memory profile
++ * (first device tree in firmware dtb.bin, offset 0).
++ *
++ * The memory banks are copied from the firmware tree. Memory between the
++ * banks belongs to video, GPU and Secure World buffers and must stay
++ * untouched. The boot loader is expected to update /memory itself.
++ */
++/dts-v1/;
++
++#include "sdp-nikel-q60t.dtsi"
++
++/ {
++	model = "Samsung Q60T TV (Nike-L, 2G profile)";
++	compatible = "samsung,q60t-nikel-2g", "samsung,dtv", "samsung,sdp-nikel";
++
++	memory@40000000 {
++		device_type = "memory";
++		reg = <0x0 0x40000000 0x0 0x14000000>,	/* 320 MiB */
++		      <0x0 0xa2000000 0x0 0x3dc00000>,	/* 988 MiB */
++		      <0x0 0xe4000000 0x0 0x09880000>;	/* 152.5 MiB */
++	};
++};
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t.dtsi
+new file mode 100644
+index 000000000..de14e5aa1
+--- /dev/null
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel-q60t.dtsi
+@@ -0,0 +1,24 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Samsung Q60T television (e.g. GQ50Q60TGUXZG) with Nike-L SoC,
++ * common board part. Firmware family T-NKLDEUC.
++ */
++
++#include "sdp-nikel.dtsi"
++
++/ {
++	chosen {
++		/*
++		 * Samsung's boot loader fills placeholders in the stock
++		 * bootargs and may replace /chosen entirely; these values
++		 * only apply if it leaves them alone.
++		 */
++		bootargs = "earlycon keep_bootcon loglevel=8";
++		stdout-path = "serial0:115200n8";
++	};
++};
++
++&uart0 {
++	/* debug/service console, ttyS0 in Samsung firmware */
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+new file mode 100644
+index 000000000..5f8c3f9c6
+--- /dev/null
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+@@ -0,0 +1,148 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Samsung SDP1804 "Nike-L" digital TV SoC
++ *
++ * Derived from the device tree shipped in Samsung firmware T-NKLDEUC 2743.0
++ * (decrypted dtb.bin, profiles nikel-2G/nikel-1.5G) and from Samsung's GPL
++ * release 20_DTV_NikeL (linux-4.1.10-tizen5.5). Only blocks with a Linux 6.6
++ * driver in this tree are described; everything else is left out on purpose.
++ *
++ * The same file is used for arm64 and (via include-prefixes) arm32 builds.
++ */
++
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++
++/ {
++	compatible = "samsung,sdp-nikel";
++	interrupt-parent = <&gic>;
++	#address-cells = <2>;
++	#size-cells = <2>;
++
++	aliases {
++		serial0 = &uart0;
++		serial1 = &uart1;
++		serial2 = &uart2;
++		serial3 = &uart3;
++	};
++
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		cpu0: cpu@0 {
++			device_type = "cpu";
++			compatible = "arm,cortex-a57";
++			reg = <0x0>;
++			enable-method = "psci";
++		};
++
++		cpu1: cpu@1 {
++			device_type = "cpu";
++			compatible = "arm,cortex-a57";
++			reg = <0x1>;
++			enable-method = "psci";
++		};
++
++		cpu2: cpu@2 {
++			device_type = "cpu";
++			compatible = "arm,cortex-a57";
++			reg = <0x2>;
++			enable-method = "psci";
++		};
++
++		cpu3: cpu@3 {
++			device_type = "cpu";
++			compatible = "arm,cortex-a57";
++			reg = <0x3>;
++			enable-method = "psci";
++		};
++	};
++
++	/* Firmware: PSCI 0.2 through SMC, provided by the Secure World */
++	psci {
++		compatible = "arm,psci-0.2";
++		method = "smc";
++	};
++
++	/*
++	 * Firmware lists only PPI 14 and 13 (in that order, flags 0xf08) and
++	 * sets clock-frequency because CNTFRQ is not programmed reliably.
++	 * Here the standard four-entry order is used.
++	 */
++	timer {
++		compatible = "arm,armv8-timer", "arm,armv7-timer";
++		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
++			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
++			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
++			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>;
++		clock-frequency = <24000000>;
++		always-on;
++	};
++
++	pmu {
++		compatible = "arm,cortex-a57-pmu";
++		interrupts = <GIC_SPI 220 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 222 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 223 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-affinity = <&cpu0>, <&cpu1>, <&cpu2>, <&cpu3>;
++	};
++
++	soc: soc {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges = <0x0 0x0 0x0 0xffffffff>;
++
++		gic: interrupt-controller@431000 {
++			compatible = "arm,gic-400";
++			reg = <0x00431000 0x1000>,	/* GICD */
++			      <0x00432000 0x1000>;	/* GICC */
++			#interrupt-cells = <3>;
++			interrupt-controller;
++		};
++
++		/*
++		 * UART input clock: Samsung uses "apb_pclk" from the
++		 * samsung,sdp1804-clock controller, which has no Linux 6.6
++		 * driver yet. Without a clock the sdp_uart driver derives the
++		 * input clock from the divisor left by the boot loader
++		 * (samsung,boot-baudrate, default 115200).
++		 * Interrupt index 0 is TX, index 1 is RX (Samsung driver).
++		 */
++		uart0: serial@190a00 {
++			compatible = "samsung,sdp-uart2";
++			reg = <0x00190a00 0x40>;
++			interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 73 IRQ_TYPE_LEVEL_HIGH>;
++			enhanced;
++			status = "disabled";
++		};
++
++		uart1: serial@550e00 {
++			compatible = "samsung,sdp-uart2";
++			reg = <0x00550e00 0x40>;
++			interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 75 IRQ_TYPE_LEVEL_HIGH>;
++			enhanced;
++			status = "disabled";
++		};
++
++		uart2: serial@550f00 {
++			compatible = "samsung,sdp-uart2";
++			reg = <0x00550f00 0x40>;
++			interrupts = <GIC_SPI 76 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 77 IRQ_TYPE_LEVEL_HIGH>;
++			status = "disabled";
++		};
++
++		uart3: serial@551000 {
++			compatible = "samsung,sdp-uart2";
++			reg = <0x00551000 0x40>;
++			interrupts = <GIC_SPI 78 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
++			status = "disabled";
++		};
++	};
++};
+-- 
+2.43.0
+

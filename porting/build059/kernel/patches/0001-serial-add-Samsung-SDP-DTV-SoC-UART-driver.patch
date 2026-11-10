@@ -1,0 +1,957 @@
+From ff2b6ed37f8674fc0a14a8ef6a3bf84ba23af27d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 10 Nov 2026 21:31:37 +0100
+Subject: [PATCH 1/3] serial: add Samsung SDP DTV SoC UART driver
+
+Add a driver for the "samsung,sdp-uart2" UART of Samsung SDP digital TV
+SoCs (e.g. Nike-L in 2020 Q60T televisions), including console and
+earlycon support.
+
+Register layout and interrupt handling follow Samsung's GPL driver
+drivers/tty/serial/sdp_uart2.c from linux-4.1.10-tizen5.5 (release
+20_DTV_NikeL); the code is a rewrite for the Linux 6.6 serial core.
+
+Without an input clock the driver reconstructs it from the divisor the
+boot loader programmed, so a console works before a clock driver exists.
+---
+ .../bindings/serial/samsung,sdp-uart2.yaml    |  70 ++
+ drivers/tty/serial/Kconfig                    |  19 +
+ drivers/tty/serial/Makefile                   |   1 +
+ drivers/tty/serial/sdp_uart.c                 | 806 ++++++++++++++++++
+ 4 files changed, 896 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/serial/samsung,sdp-uart2.yaml
+ create mode 100644 drivers/tty/serial/sdp_uart.c
+
+diff --git a/Documentation/devicetree/bindings/serial/samsung,sdp-uart2.yaml b/Documentation/devicetree/bindings/serial/samsung,sdp-uart2.yaml
+new file mode 100644
+index 000000000..3244bd2a8
+--- /dev/null
++++ b/Documentation/devicetree/bindings/serial/samsung,sdp-uart2.yaml
+@@ -0,0 +1,70 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/serial/samsung,sdp-uart2.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Samsung SDP digital TV SoC UART
++
++maintainers:
++  - Nexuxscraft-Studio Samsung-ATV-Lab
++
++description:
++  UART of Samsung SDP digital TV SoCs (for example Nike-L / SDP1804). The
++  register set follows the Samsung S3C UART family, but every port has
++  separate TX and RX interrupt lines and latched, write-one-to-clear
++  interrupt status bits in UTRSTAT.
++
++allOf:
++  - $ref: serial.yaml#
++
++properties:
++  compatible:
++    const: samsung,sdp-uart2
++
++  reg:
++    maxItems: 1
++
++  interrupts:
++    items:
++      - description: transmit interrupt
++      - description: receive interrupt
++
++  clocks:
++    maxItems: 1
++
++  clock-names:
++    const: apb_pclk
++
++  clock-frequency:
++    description: UART input clock rate, used when no clock is given
++
++  enhanced:
++    type: boolean
++    description: The port has the 64 byte "enhanced" FIFO
++
++  samsung,boot-baudrate:
++    $ref: /schemas/types.yaml#/definitions/uint32
++    default: 115200
++    description:
++      Baud rate the boot loader configured. Used to derive the input clock
++      from the divisor register when neither clocks nor clock-frequency
++      are given.
++
++required:
++  - compatible
++  - reg
++  - interrupts
++
++unevaluatedProperties: false
++
++examples:
++  - |
++    #include <dt-bindings/interrupt-controller/arm-gic.h>
++    serial@190a00 {
++        compatible = "samsung,sdp-uart2";
++        reg = <0x00190a00 0x40>;
++        interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>,
++                     <GIC_SPI 73 IRQ_TYPE_LEVEL_HIGH>;
++        enhanced;
++    };
+diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
+index 2b9b2235e..2fae33ac5 100644
+--- a/drivers/tty/serial/Kconfig
++++ b/drivers/tty/serial/Kconfig
+@@ -272,6 +272,25 @@ config SERIAL_SAMSUNG_CONSOLE
+ 	  your boot loader about how to pass options to the kernel at
+ 	  boot time.)
+ 
++config SERIAL_SDP
++	tristate "Samsung SDP DTV SoC serial port support"
++	depends on ARCH_SDP || COMPILE_TEST
++	depends on HAS_IOMEM
++	select SERIAL_CORE
++	help
++	  Support for the on-chip UARTs ("samsung,sdp-uart2") of Samsung
++	  SDP digital TV SoCs such as Nike-L (2020 Q60T televisions).
++	  The ports are called ttySDP<n>.
++
++config SERIAL_SDP_CONSOLE
++	bool "Console on Samsung SDP DTV SoC serial port"
++	depends on SERIAL_SDP=y
++	select SERIAL_CORE_CONSOLE
++	select SERIAL_EARLYCON
++	help
++	  Allow a Samsung SDP UART to be used as the system console
++	  ("console=ttySDP0") and as early console ("earlycon").
++
+ config SERIAL_TEGRA
+ 	tristate "NVIDIA Tegra20/30 SoC serial controller"
+ 	depends on (ARCH_TEGRA && TEGRA20_APB_DMA) || COMPILE_TEST
+diff --git a/drivers/tty/serial/Makefile b/drivers/tty/serial/Makefile
+index 138abbc89..983bf10b4 100644
+--- a/drivers/tty/serial/Makefile
++++ b/drivers/tty/serial/Makefile
+@@ -31,6 +31,7 @@ obj-$(CONFIG_SERIAL_PXA_NON8250) += pxa.o
+ obj-$(CONFIG_SERIAL_SA1100) += sa1100.o
+ obj-$(CONFIG_SERIAL_BCM63XX) += bcm63xx_uart.o
+ obj-$(CONFIG_SERIAL_SAMSUNG) += samsung_tty.o
++obj-$(CONFIG_SERIAL_SDP) += sdp_uart.o
+ obj-$(CONFIG_SERIAL_MAX3100) += max3100.o
+ obj-$(CONFIG_SERIAL_MAX310X) += max310x.o
+ obj-$(CONFIG_SERIAL_IP22_ZILOG) += ip22zilog.o
+diff --git a/drivers/tty/serial/sdp_uart.c b/drivers/tty/serial/sdp_uart.c
+new file mode 100644
+index 000000000..2f3af69cf
+--- /dev/null
++++ b/drivers/tty/serial/sdp_uart.c
+@@ -0,0 +1,806 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Samsung SDP (DTV SoC) UART driver
++ *
++ * Supports the "samsung,sdp-uart2" UART found on Samsung DTV SoCs such as
++ * Nike-L (2020 Q60T/TU8xxx televisions).
++ *
++ * Register layout, bit meanings and the TX/RX interrupt handling follow
++ * Samsung's GPL driver drivers/tty/serial/sdp_uart2.c from the
++ * linux-4.1.10-tizen5.5 source release ("20_DTV_NikeL"), Copyright (C) 2013
++ * Samsung Electronics Co. Ltd. This file is a rewrite for the Linux 6.6
++ * serial core; it is not a line-by-line port.
++ *
++ * Hardware notes (from the Samsung driver):
++ *  - two interrupt lines per port: index 0 = TX, index 1 = RX
++ *  - interrupt causes are latched in UTRSTAT (RXI/TXI/ERRI), write 1 to clear
++ *  - "enhanced" ports have a 64 byte FIFO with a different UFSTAT layout
++ *  - TX interrupts are enabled with UCON bit 13 (TXIRQ2MODE)
++ */
++
++#include <linux/clk.h>
++#include <linux/console.h>
++#include <linux/delay.h>
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/iopoll.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/serial.h>
++#include <linux/serial_core.h>
++#include <linux/sysrq.h>
++#include <linux/tty.h>
++#include <linux/tty_flip.h>
++
++#define SDP_ULCON		0x00
++#define SDP_UCON		0x04
++#define SDP_UFCON		0x08
++#define SDP_UMCON		0x0c
++#define SDP_UTRSTAT		0x10
++#define SDP_UERSTAT		0x14
++#define SDP_UFSTAT		0x18
++#define SDP_UMSTAT		0x1c
++#define SDP_UTXH		0x20
++#define SDP_URXH		0x24
++#define SDP_UBRDIV		0x28
++#define SDP_UART_REG_SIZE	0x40
++
++#define SDP_ULCON_PNONE		(0 << 3)
++#define SDP_ULCON_PODD		(4 << 3)
++#define SDP_ULCON_PEVEN		(5 << 3)
++#define SDP_ULCON_STOPB		BIT(2)
++#define SDP_ULCON_CS5		(0 << 0)
++#define SDP_ULCON_CS6		(1 << 0)
++#define SDP_ULCON_CS7		(2 << 0)
++#define SDP_ULCON_CS8		(3 << 0)
++
++#define SDP_UCON_ERRIRQEN	BIT(14)
++#define SDP_UCON_TXIRQ2MODE	BIT(13)
++#define SDP_UCON_RXIRQ2MODE	BIT(12)
++#define SDP_UCON_RXFIFO_TOI	BIT(7)
++#define SDP_UCON_SBREAK		BIT(4)
++#define SDP_UCON_TXIRQMODE	BIT(2)
++#define SDP_UCON_RXIRQMODE	BIT(0)
++#define SDP_UCON_DEFAULT	(SDP_UCON_RXIRQMODE | SDP_UCON_TXIRQMODE | \
++				 SDP_UCON_RXFIFO_TOI | SDP_UCON_RXIRQ2MODE | \
++				 SDP_UCON_ERRIRQEN)
++
++#define SDP_UFCON_FIFOMODE	BIT(0)
++#define SDP_UFCON_RESETRX	BIT(1)
++#define SDP_UFCON_RESETTX	BIT(2)
++#define SDP_UFCON_RESETBOTH	(SDP_UFCON_RESETRX | SDP_UFCON_RESETTX)
++#define SDP_UFCON_ENHANCED	BIT(3)
++#define SDP_UFCON_DEFAULT	SDP_UFCON_FIFOMODE	/* RX trig 4, TX trig 0 */
++#define SDP_UFCON2_DEFAULT	(SDP_UFCON_FIFOMODE | SDP_UFCON_ENHANCED)
++#define SDP_UMCON2_DEFAULT	(4 << 8)
++
++#define SDP_UTRSTAT_ERRI	BIT(6)
++#define SDP_UTRSTAT_TXI		BIT(5)
++#define SDP_UTRSTAT_RXI		BIT(4)
++#define SDP_UTRSTAT_TXE		BIT(2)
++#define SDP_UTRSTAT_TXFE	BIT(1)
++#define SDP_UTRSTAT_IRQS	(SDP_UTRSTAT_ERRI | SDP_UTRSTAT_TXI | \
++				 SDP_UTRSTAT_RXI)
++
++#define SDP_UERSTAT_OVERRUN	BIT(0)
++#define SDP_UERSTAT_PARITY	BIT(1)
++#define SDP_UERSTAT_FRAME	BIT(2)
++#define SDP_UERSTAT_BREAK	BIT(3)
++#define SDP_UERSTAT_ANY		(SDP_UERSTAT_OVERRUN | SDP_UERSTAT_FRAME | \
++				 SDP_UERSTAT_BREAK | SDP_UERSTAT_PARITY)
++/* software flag: drop all received characters (CREAD cleared) */
++#define SDP_RXSTAT_DUMMY_READ	BIT(16)
++
++/* 16 byte FIFO layout */
++#define SDP_UFSTAT_RXFIFO_MASK	0xf
++#define SDP_UFSTAT_RXFIFO_FULL	BIT(8)
++#define SDP_UFSTAT_TXFIFO_FULL	BIT(9)
++/* 64 byte "enhanced" FIFO layout */
++#define SDP_UFSTAT2_RXFIFO_MASK	0x3f
++#define SDP_UFSTAT2_RXFIFO_FULL	BIT(6)
++#define SDP_UFSTAT2_TXFIFO_FULL	BIT(14)
++
++#define SDP_UART_NR		5
++#define SDP_UART_DEV_NAME	"ttySDP"
++#define SDP_UART_DEFAULT_BAUD	115200
++
++struct sdp_uart_port {
++	struct uart_port	port;
++	struct clk		*clk;
++	int			tx_irq;
++	int			rx_irq;
++	bool			enhanced;
++	u32			rxfifo_mask;
++	u32			rxfifo_full;
++	u32			txfifo_full;
++};
++
++static struct sdp_uart_port *sdp_uart_ports[SDP_UART_NR];
++static struct uart_driver sdp_uart_driver;
++
++static inline struct sdp_uart_port *to_sdp(struct uart_port *port)
++{
++	return container_of(port, struct sdp_uart_port, port);
++}
++
++static inline u32 sdp_rd(struct uart_port *port, unsigned int reg)
++{
++	return readl_relaxed(port->membase + reg);
++}
++
++static inline void sdp_wr(struct uart_port *port, unsigned int reg, u32 val)
++{
++	writel_relaxed(val, port->membase + reg);
++}
++
++static void sdp_uart_set_fifo_layout(struct sdp_uart_port *sp, bool enhanced)
++{
++	sp->enhanced = enhanced;
++	if (enhanced) {
++		sp->port.fifosize = 64;
++		sp->rxfifo_mask = SDP_UFSTAT2_RXFIFO_MASK;
++		sp->rxfifo_full = SDP_UFSTAT2_RXFIFO_FULL;
++		sp->txfifo_full = SDP_UFSTAT2_TXFIFO_FULL;
++	} else {
++		sp->port.fifosize = 16;
++		sp->rxfifo_mask = SDP_UFSTAT_RXFIFO_MASK;
++		sp->rxfifo_full = SDP_UFSTAT_RXFIFO_FULL;
++		sp->txfifo_full = SDP_UFSTAT_TXFIFO_FULL;
++	}
++}
++
++static bool sdp_uart_tx_full(struct sdp_uart_port *sp)
++{
++	return sdp_rd(&sp->port, SDP_UFSTAT) & sp->txfifo_full;
++}
++
++static unsigned int sdp_uart_rx_count(struct sdp_uart_port *sp, u32 ufstat)
++{
++	if (ufstat & sp->rxfifo_full)
++		return sp->port.fifosize;
++	return ufstat & sp->rxfifo_mask;
++}
++
++/* Reset both FIFOs and program the default control registers. */
++static void sdp_uart_reset_port(struct sdp_uart_port *sp)
++{
++	struct uart_port *port = &sp->port;
++
++	sdp_wr(port, SDP_UCON, sdp_rd(port, SDP_UCON) | SDP_UCON_DEFAULT);
++	if (sp->enhanced) {
++		sdp_wr(port, SDP_UMCON, SDP_UMCON2_DEFAULT);
++		sdp_wr(port, SDP_UFCON, SDP_UFCON2_DEFAULT | SDP_UFCON_RESETBOTH);
++		sdp_wr(port, SDP_UFCON, SDP_UFCON2_DEFAULT);
++	} else {
++		sdp_wr(port, SDP_UFCON, SDP_UFCON_DEFAULT | SDP_UFCON_RESETBOTH);
++		sdp_wr(port, SDP_UFCON, SDP_UFCON_DEFAULT);
++	}
++	/* Samsung: some delay is required after a FIFO reset */
++	udelay(1);
++}
++
++static unsigned int sdp_uart_tx_empty(struct uart_port *port)
++{
++	return (sdp_rd(port, SDP_UTRSTAT) & SDP_UTRSTAT_TXE) ? TIOCSER_TEMT : 0;
++}
++
++static unsigned int sdp_uart_get_mctrl(struct uart_port *port)
++{
++	/* no modem control lines */
++	return TIOCM_CAR | TIOCM_DSR | TIOCM_CTS;
++}
++
++static void sdp_uart_set_mctrl(struct uart_port *port, unsigned int mctrl)
++{
++}
++
++static void sdp_uart_stop_tx(struct uart_port *port)
++{
++	/*
++	 * Like Samsung's driver, leave the TX interrupt enabled: the TXI cause
++	 * is latched and acknowledged in the handler, so an idle transmitter
++	 * does not raise further interrupts.
++	 */
++}
++
++static void sdp_uart_tx_chars(struct sdp_uart_port *sp)
++{
++	struct uart_port *port = &sp->port;
++	u8 ch;
++
++	uart_port_tx_limited(port, ch, port->fifosize,
++		!sdp_uart_tx_full(sp),
++		writeb_relaxed(ch, port->membase + SDP_UTXH),
++		({}));
++}
++
++static void sdp_uart_start_tx(struct uart_port *port)
++{
++	sdp_wr(port, SDP_UCON, sdp_rd(port, SDP_UCON) | SDP_UCON_TXIRQ2MODE);
++	sdp_uart_tx_chars(to_sdp(port));
++}
++
++static void sdp_uart_stop_rx(struct uart_port *port)
++{
++	sdp_wr(port, SDP_UCON, sdp_rd(port, SDP_UCON) & ~SDP_UCON_RXIRQ2MODE);
++}
++
++static void sdp_uart_break_ctl(struct uart_port *port, int break_state)
++{
++	unsigned long flags;
++	u32 ucon;
++
++	uart_port_lock_irqsave(port, &flags);
++	ucon = sdp_rd(port, SDP_UCON);
++	if (break_state)
++		ucon |= SDP_UCON_SBREAK;
++	else
++		ucon &= ~SDP_UCON_SBREAK;
++	sdp_wr(port, SDP_UCON, ucon);
++	uart_port_unlock_irqrestore(port, flags);
++}
++
++static void sdp_uart_rx_chars(struct sdp_uart_port *sp)
++{
++	struct uart_port *port = &sp->port;
++	unsigned int max_count = port->fifosize;
++	bool need_rx_reset = false;
++	u32 ufstat, uerstat;
++	u8 ch, flag;
++
++	while (max_count--) {
++		ufstat = sdp_rd(port, SDP_UFSTAT);
++		if (!sdp_uart_rx_count(sp, ufstat))
++			break;
++
++		uerstat = sdp_rd(port, SDP_UERSTAT);
++		ch = readb_relaxed(port->membase + SDP_URXH);
++
++		if (port->ignore_status_mask & SDP_RXSTAT_DUMMY_READ)
++			continue;
++
++		flag = TTY_NORMAL;
++		port->icount.rx++;
++
++		if (unlikely(uerstat & SDP_UERSTAT_ANY)) {
++			if (uerstat & SDP_UERSTAT_BREAK) {
++				port->icount.brk++;
++				if (uart_handle_break(port))
++					continue;
++			}
++			if (uerstat & SDP_UERSTAT_PARITY)
++				port->icount.parity++;
++			if (uerstat & SDP_UERSTAT_FRAME)
++				port->icount.frame++;
++			if (uerstat & SDP_UERSTAT_OVERRUN) {
++				port->icount.overrun++;
++				need_rx_reset = true;
++			}
++
++			uerstat &= port->read_status_mask;
++			if (uerstat & SDP_UERSTAT_BREAK)
++				flag = TTY_BREAK;
++			else if (uerstat & SDP_UERSTAT_PARITY)
++				flag = TTY_PARITY;
++			else if (uerstat & (SDP_UERSTAT_FRAME | SDP_UERSTAT_OVERRUN))
++				flag = TTY_FRAME;
++		}
++
++		if (uart_prepare_sysrq_char(port, ch))
++			continue;
++
++		uart_insert_char(port, uerstat, SDP_UERSTAT_OVERRUN, ch, flag);
++	}
++
++	if (need_rx_reset)
++		sdp_wr(port, SDP_UFCON,
++		       sdp_rd(port, SDP_UFCON) | SDP_UFCON_RESETRX);
++}
++
++static irqreturn_t sdp_uart_tx_irq(int irq, void *dev_id)
++{
++	struct sdp_uart_port *sp = dev_id;
++	struct uart_port *port = &sp->port;
++	unsigned long flags;
++	u32 pend = sdp_rd(port, SDP_UTRSTAT);
++
++	if (!(pend & (SDP_UTRSTAT_TXI | SDP_UTRSTAT_ERRI)))
++		return IRQ_NONE;
++
++	if (pend & SDP_UTRSTAT_TXI) {
++		uart_port_lock_irqsave(port, &flags);
++		sdp_wr(port, SDP_UTRSTAT, SDP_UTRSTAT_TXI);
++		sdp_uart_tx_chars(sp);
++		uart_port_unlock_irqrestore(port, flags);
++	}
++	if (pend & SDP_UTRSTAT_ERRI)
++		sdp_wr(port, SDP_UTRSTAT, SDP_UTRSTAT_ERRI);
++
++	return IRQ_HANDLED;
++}
++
++static irqreturn_t sdp_uart_rx_irq(int irq, void *dev_id)
++{
++	struct sdp_uart_port *sp = dev_id;
++	struct uart_port *port = &sp->port;
++	u32 pend = sdp_rd(port, SDP_UTRSTAT);
++
++	if (!(pend & (SDP_UTRSTAT_RXI | SDP_UTRSTAT_ERRI)))
++		return IRQ_NONE;
++
++	uart_port_lock(port);
++	sdp_uart_rx_chars(sp);
++	/* acknowledge after draining, as the Samsung driver does */
++	sdp_wr(port, SDP_UTRSTAT, pend & (SDP_UTRSTAT_RXI | SDP_UTRSTAT_ERRI));
++	uart_unlock_and_check_sysrq(port);
++
++	tty_flip_buffer_push(&port->state->port);
++
++	return IRQ_HANDLED;
++}
++
++static int sdp_uart_startup(struct uart_port *port)
++{
++	struct sdp_uart_port *sp = to_sdp(port);
++	int ret;
++
++	/* drain the transmitter and clear stale interrupt causes */
++	readl_poll_timeout_atomic(port->membase + SDP_UTRSTAT, ret,
++				  ret & SDP_UTRSTAT_TXE, 1, 10000);
++	sdp_wr(port, SDP_UTRSTAT, SDP_UTRSTAT_IRQS);
++	sdp_wr(port, SDP_UCON, sdp_rd(port, SDP_UCON) | SDP_UCON_DEFAULT);
++
++	ret = request_irq(sp->tx_irq, sdp_uart_tx_irq, IRQF_SHARED,
++			  dev_name(port->dev), sp);
++	if (ret) {
++		dev_err(port->dev, "cannot request TX irq %d\n", sp->tx_irq);
++		return ret;
++	}
++
++	ret = request_irq(sp->rx_irq, sdp_uart_rx_irq, IRQF_SHARED,
++			  dev_name(port->dev), sp);
++	if (ret) {
++		dev_err(port->dev, "cannot request RX irq %d\n", sp->rx_irq);
++		free_irq(sp->tx_irq, sp);
++		return ret;
++	}
++
++	return 0;
++}
++
++static void sdp_uart_shutdown(struct uart_port *port)
++{
++	struct sdp_uart_port *sp = to_sdp(port);
++
++	free_irq(sp->tx_irq, sp);
++	free_irq(sp->rx_irq, sp);
++	sdp_wr(port, SDP_UTRSTAT, SDP_UTRSTAT_IRQS);
++}
++
++static void sdp_uart_set_termios(struct uart_port *port,
++				 struct ktermios *termios,
++				 const struct ktermios *old)
++{
++	unsigned int baud, quot;
++	unsigned long flags;
++	u32 ulcon;
++
++	/* no modem control lines */
++	termios->c_cflag &= ~(HUPCL | CMSPAR | CRTSCTS);
++	termios->c_cflag |= CLOCAL;
++
++	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk / 16);
++	/* Samsung: quot = (rate / (baud / 10 * 16) - 5) / 10, i.e. rounded */
++	quot = DIV_ROUND_CLOSEST(port->uartclk, 16 * baud);
++	if (quot)
++		quot--;
++
++	switch (termios->c_cflag & CSIZE) {
++	case CS5:
++		ulcon = SDP_ULCON_CS5;
++		break;
++	case CS6:
++		ulcon = SDP_ULCON_CS6;
++		break;
++	case CS7:
++		ulcon = SDP_ULCON_CS7;
++		break;
++	default:
++		ulcon = SDP_ULCON_CS8;
++		break;
++	}
++	if (termios->c_cflag & CSTOPB)
++		ulcon |= SDP_ULCON_STOPB;
++	if (termios->c_cflag & PARENB)
++		ulcon |= (termios->c_cflag & PARODD) ? SDP_ULCON_PODD :
++						       SDP_ULCON_PEVEN;
++	else
++		ulcon |= SDP_ULCON_PNONE;
++
++	uart_port_lock_irqsave(port, &flags);
++
++	sdp_wr(port, SDP_ULCON, ulcon);
++	sdp_wr(port, SDP_UBRDIV, quot);
++
++	uart_update_timeout(port, termios->c_cflag, baud);
++
++	port->read_status_mask = SDP_UERSTAT_OVERRUN;
++	if (termios->c_iflag & INPCK)
++		port->read_status_mask |= SDP_UERSTAT_FRAME | SDP_UERSTAT_PARITY;
++	if (termios->c_iflag & (IGNBRK | BRKINT | PARMRK))
++		port->read_status_mask |= SDP_UERSTAT_BREAK;
++
++	port->ignore_status_mask = 0;
++	if (termios->c_iflag & IGNPAR)
++		port->ignore_status_mask |= SDP_UERSTAT_OVERRUN;
++	if (termios->c_iflag & IGNBRK && termios->c_iflag & IGNPAR)
++		port->ignore_status_mask |= SDP_UERSTAT_FRAME;
++	if (!(termios->c_cflag & CREAD))
++		port->ignore_status_mask |= SDP_RXSTAT_DUMMY_READ;
++
++	uart_port_unlock_irqrestore(port, flags);
++}
++
++static const char *sdp_uart_type(struct uart_port *port)
++{
++	return port->type == PORT_S3C6400 ? "SDP" : NULL;
++}
++
++static void sdp_uart_release_port(struct uart_port *port)
++{
++}
++
++static int sdp_uart_request_port(struct uart_port *port)
++{
++	return 0;
++}
++
++static void sdp_uart_config_port(struct uart_port *port, int flags)
++{
++	/*
++	 * There is no dedicated PORT_ value for this UART; it is register
++	 * compatible with the S3C family, so report that type to userspace.
++	 */
++	if (flags & UART_CONFIG_TYPE)
++		port->type = PORT_S3C6400;
++}
++
++static int sdp_uart_verify_port(struct uart_port *port,
++				struct serial_struct *ser)
++{
++	if (ser->type != PORT_UNKNOWN && ser->type != PORT_S3C6400)
++		return -EINVAL;
++	return 0;
++}
++
++#ifdef CONFIG_CONSOLE_POLL
++static int sdp_uart_poll_get_char(struct uart_port *port)
++{
++	struct sdp_uart_port *sp = to_sdp(port);
++
++	if (!sdp_uart_rx_count(sp, sdp_rd(port, SDP_UFSTAT)))
++		return NO_POLL_CHAR;
++	return readb_relaxed(port->membase + SDP_URXH);
++}
++
++static void sdp_uart_poll_put_char(struct uart_port *port, unsigned char c)
++{
++	struct sdp_uart_port *sp = to_sdp(port);
++
++	while (sdp_uart_tx_full(sp))
++		cpu_relax();
++	writeb_relaxed(c, port->membase + SDP_UTXH);
++}
++#endif
++
++static const struct uart_ops sdp_uart_ops = {
++	.tx_empty	= sdp_uart_tx_empty,
++	.get_mctrl	= sdp_uart_get_mctrl,
++	.set_mctrl	= sdp_uart_set_mctrl,
++	.stop_tx	= sdp_uart_stop_tx,
++	.start_tx	= sdp_uart_start_tx,
++	.stop_rx	= sdp_uart_stop_rx,
++	.break_ctl	= sdp_uart_break_ctl,
++	.startup	= sdp_uart_startup,
++	.shutdown	= sdp_uart_shutdown,
++	.set_termios	= sdp_uart_set_termios,
++	.type		= sdp_uart_type,
++	.release_port	= sdp_uart_release_port,
++	.request_port	= sdp_uart_request_port,
++	.config_port	= sdp_uart_config_port,
++	.verify_port	= sdp_uart_verify_port,
++#ifdef CONFIG_CONSOLE_POLL
++	.poll_get_char	= sdp_uart_poll_get_char,
++	.poll_put_char	= sdp_uart_poll_put_char,
++#endif
++};
++
++#ifdef CONFIG_SERIAL_SDP_CONSOLE
++static void sdp_uart_console_putchar(struct uart_port *port, unsigned char ch)
++{
++	struct sdp_uart_port *sp = to_sdp(port);
++	unsigned int timeout = 100000;
++
++	while (sdp_uart_tx_full(sp) && --timeout)
++		cpu_relax();
++	writeb_relaxed(ch, port->membase + SDP_UTXH);
++}
++
++static void sdp_uart_console_write(struct console *co, const char *s,
++				   unsigned int count)
++{
++	struct sdp_uart_port *sp = sdp_uart_ports[co->index];
++	struct uart_port *port = &sp->port;
++	unsigned long flags;
++	bool locked = true;
++
++	if (oops_in_progress)
++		locked = uart_port_trylock_irqsave(port, &flags);
++	else
++		uart_port_lock_irqsave(port, &flags);
++
++	uart_console_write(port, s, count, sdp_uart_console_putchar);
++
++	if (locked)
++		uart_port_unlock_irqrestore(port, flags);
++}
++
++static void __init sdp_uart_get_options(struct uart_port *port, int *baud,
++					int *parity, int *bits)
++{
++	u32 ulcon = sdp_rd(port, SDP_ULCON);
++	u32 ubrdiv = sdp_rd(port, SDP_UBRDIV);
++
++	switch (ulcon & 0x3) {
++	case 0:
++		*bits = 5;
++		break;
++	case 1:
++		*bits = 6;
++		break;
++	case 2:
++		*bits = 7;
++		break;
++	default:
++		*bits = 8;
++		break;
++	}
++
++	switch ((ulcon >> 3) & 0x7) {
++	case 4:
++		*parity = 'o';
++		break;
++	case 5:
++		*parity = 'e';
++		break;
++	default:
++		*parity = 'n';
++		break;
++	}
++
++	*baud = port->uartclk / (16 * (ubrdiv + 1));
++}
++
++static int __init sdp_uart_console_setup(struct console *co, char *options)
++{
++	struct sdp_uart_port *sp;
++	int baud = SDP_UART_DEFAULT_BAUD, bits = 8, parity = 'n', flow = 'n';
++
++	if (co->index < 0 || co->index >= SDP_UART_NR)
++		co->index = 0;
++	sp = sdp_uart_ports[co->index];
++	if (!sp || !sp->port.membase)
++		return -ENODEV;
++
++	if (options)
++		uart_parse_options(options, &baud, &parity, &bits, &flow);
++	else
++		sdp_uart_get_options(&sp->port, &baud, &parity, &bits);
++
++	return uart_set_options(&sp->port, co, baud, parity, bits, flow);
++}
++
++static struct console sdp_uart_console = {
++	.name	= SDP_UART_DEV_NAME,
++	.write	= sdp_uart_console_write,
++	.device	= uart_console_device,
++	.setup	= sdp_uart_console_setup,
++	.flags	= CON_PRINTBUFFER,
++	.index	= -1,
++	.data	= &sdp_uart_driver,
++};
++#define SDP_UART_CONSOLE	(&sdp_uart_console)
++
++/*
++ * Early console. The boot loader leaves the UART configured, so only the
++ * FIFO layout has to be detected (UFCON bit 3 = enhanced 64 byte FIFO).
++ */
++static void sdp_uart_early_putc(struct uart_port *port, unsigned char c)
++{
++	u32 full = (readl_relaxed(port->membase + SDP_UFCON) & SDP_UFCON_ENHANCED) ?
++		   SDP_UFSTAT2_TXFIFO_FULL : SDP_UFSTAT_TXFIFO_FULL;
++	unsigned int timeout = 100000;
++
++	while ((readl_relaxed(port->membase + SDP_UFSTAT) & full) && --timeout)
++		cpu_relax();
++	writeb_relaxed(c, port->membase + SDP_UTXH);
++}
++
++static void sdp_uart_early_write(struct console *con, const char *s,
++				 unsigned int n)
++{
++	struct earlycon_device *dev = con->data;
++
++	uart_console_write(&dev->port, s, n, sdp_uart_early_putc);
++}
++
++static int __init sdp_uart_early_setup(struct earlycon_device *device,
++				       const char *opt)
++{
++	if (!device->port.membase)
++		return -ENODEV;
++	device->con->write = sdp_uart_early_write;
++	return 0;
++}
++OF_EARLYCON_DECLARE(sdp_uart, "samsung,sdp-uart2", sdp_uart_early_setup);
++#else
++#define SDP_UART_CONSOLE	NULL
++#endif /* CONFIG_SERIAL_SDP_CONSOLE */
++
++static struct uart_driver sdp_uart_driver = {
++	.owner		= THIS_MODULE,
++	.driver_name	= "sdp-uart",
++	.dev_name	= SDP_UART_DEV_NAME,
++	.major		= 0,
++	.minor		= 0,
++	.nr		= SDP_UART_NR,
++	.cons		= SDP_UART_CONSOLE,
++};
++
++/*
++ * Without a usable "apb_pclk" clock the input clock is reconstructed from the
++ * divisor the boot loader programmed for its console baud rate.
++ */
++static unsigned long sdp_uart_guess_uartclk(struct platform_device *pdev,
++					    struct uart_port *port)
++{
++	u32 boot_baud = SDP_UART_DEFAULT_BAUD;
++	u32 ubrdiv = sdp_rd(port, SDP_UBRDIV) & 0xffff;
++
++	of_property_read_u32(pdev->dev.of_node, "samsung,boot-baudrate",
++			     &boot_baud);
++	if (!ubrdiv)
++		return 0;
++	return (unsigned long)(ubrdiv + 1) * 16 * boot_baud;
++}
++
++static int sdp_uart_probe(struct platform_device *pdev)
++{
++	struct device_node *np = pdev->dev.of_node;
++	struct sdp_uart_port *sp;
++	struct uart_port *port;
++	struct resource *res;
++	int line, ret;
++
++	line = of_alias_get_id(np, "serial");
++	if (line < 0) {
++		for (line = 0; line < SDP_UART_NR; line++)
++			if (!sdp_uart_ports[line])
++				break;
++	}
++	if (line >= SDP_UART_NR || sdp_uart_ports[line])
++		return -EBUSY;
++
++	sp = devm_kzalloc(&pdev->dev, sizeof(*sp), GFP_KERNEL);
++	if (!sp)
++		return -ENOMEM;
++	port = &sp->port;
++
++	port->membase = devm_platform_get_and_ioremap_resource(pdev, 0, &res);
++	if (IS_ERR(port->membase))
++		return PTR_ERR(port->membase);
++	port->mapbase = res->start;
++
++	sp->tx_irq = platform_get_irq(pdev, 0);
++	if (sp->tx_irq < 0)
++		return sp->tx_irq;
++	sp->rx_irq = platform_get_irq(pdev, 1);
++	if (sp->rx_irq < 0)
++		return sp->rx_irq;
++
++	port->dev = &pdev->dev;
++	port->line = line;
++	port->iotype = UPIO_MEM32;
++	port->irq = sp->rx_irq;
++	port->ops = &sdp_uart_ops;
++	port->flags = UPF_BOOT_AUTOCONF;
++	port->has_sysrq = IS_ENABLED(CONFIG_SERIAL_SDP_CONSOLE);
++
++	sdp_uart_set_fifo_layout(sp, of_property_read_bool(np, "enhanced") ||
++				 of_property_read_bool(np, "samsung,enhanced-fifo"));
++
++	sp->clk = devm_clk_get_optional_enabled(&pdev->dev, "apb_pclk");
++	if (IS_ERR(sp->clk))
++		return dev_err_probe(&pdev->dev, PTR_ERR(sp->clk),
++				     "cannot get apb_pclk\n");
++	port->uartclk = sp->clk ? clk_get_rate(sp->clk) : 0;
++	if (!port->uartclk)
++		of_property_read_u32(np, "clock-frequency", &port->uartclk);
++	if (!port->uartclk) {
++		port->uartclk = sdp_uart_guess_uartclk(pdev, port);
++		dev_info(&pdev->dev, "uartclk %u Hz derived from boot divisor\n",
++			 port->uartclk);
++	}
++	if (!port->uartclk)
++		return dev_err_probe(&pdev->dev, -EINVAL, "unknown input clock\n");
++
++	/*
++	 * Keep the FIFO configuration of a port the boot loader (and maybe
++	 * earlycon) is already printing on; reset all other ports.
++	 */
++	if (!(sdp_rd(port, SDP_UFCON) & SDP_UFCON_FIFOMODE))
++		sdp_uart_reset_port(sp);
++	sdp_wr(port, SDP_UTRSTAT, SDP_UTRSTAT_IRQS);
++
++	sdp_uart_ports[line] = sp;
++	platform_set_drvdata(pdev, sp);
++
++	ret = uart_add_one_port(&sdp_uart_driver, port);
++	if (ret) {
++		sdp_uart_ports[line] = NULL;
++		return ret;
++	}
++	return 0;
++}
++
++static void sdp_uart_remove(struct platform_device *pdev)
++{
++	struct sdp_uart_port *sp = platform_get_drvdata(pdev);
++
++	uart_remove_one_port(&sdp_uart_driver, &sp->port);
++	sdp_uart_ports[sp->port.line] = NULL;
++}
++
++static const struct of_device_id sdp_uart_of_match[] = {
++	{ .compatible = "samsung,sdp-uart2" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, sdp_uart_of_match);
++
++static struct platform_driver sdp_uart_platform_driver = {
++	.probe		= sdp_uart_probe,
++	.remove_new	= sdp_uart_remove,
++	.driver		= {
++		.name		= "sdp-uart",
++		.of_match_table	= sdp_uart_of_match,
++		.suppress_bind_attrs = true,
++	},
++};
++
++static int __init sdp_uart_init(void)
++{
++	int ret;
++
++	ret = uart_register_driver(&sdp_uart_driver);
++	if (ret)
++		return ret;
++
++	ret = platform_driver_register(&sdp_uart_platform_driver);
++	if (ret)
++		uart_unregister_driver(&sdp_uart_driver);
++	return ret;
++}
++
++static void __exit sdp_uart_exit(void)
++{
++	platform_driver_unregister(&sdp_uart_platform_driver);
++	uart_unregister_driver(&sdp_uart_driver);
++}
++
++module_init(sdp_uart_init);
++module_exit(sdp_uart_exit);
++
++MODULE_DESCRIPTION("Samsung SDP DTV SoC UART driver");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

@@ -1,0 +1,12 @@
+# Symbols that must be =y in every Build 059 kernel configuration.
+# Checked by build.sh after the configuration step.
+CONFIG_ARCH_SDP
+CONFIG_SMP
+CONFIG_SERIAL_SDP
+CONFIG_SERIAL_SDP_CONSOLE
+CONFIG_SERIAL_EARLYCON
+CONFIG_BLK_DEV_INITRD
+CONFIG_DEVTMPFS
+CONFIG_ARM_GIC
+CONFIG_ARM_ARCH_TIMER
+CONFIG_ARM_PSCI_FW

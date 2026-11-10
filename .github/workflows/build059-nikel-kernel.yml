@@ -1,0 +1,88 @@
+name: Build059 Nike-L kernel (Linux 6.6.162, arm64 + arm32)
+
+# Builds the Build 059 base kernel for the Samsung Q60T (Nike-L SoC):
+# Linux 6.6.162 + porting/build059/kernel/patches, for arm64 and arm32,
+# in a small ("tiny") and a distribution-like ("full") configuration.
+#
+# A green run proves: the patches apply, the configuration contains every
+# required symbol, the new UART driver builds warning-free with W=1, and a
+# kernel image plus the Q60T device trees are produced.
+# It does NOT prove that anything boots on the television.
+
+on:
+  push:
+    paths:
+      - 'porting/build059/**'
+      - '.github/workflows/build059-nikel-kernel.yml'
+  pull_request:
+    paths:
+      - 'porting/build059/**'
+      - '.github/workflows/build059-nikel-kernel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LINUX_TAG: v6.6.162
+  # Commit the v6.6.162 stable tag points to; the clone is rejected otherwise.
+  LINUX_COMMIT: 5139929c698c273e07cb0635732f6a918a7b8e78
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests for Build 059 tools
+        run: python3 -m unittest discover -s porting/build059/tests -v
+
+  kernel:
+    needs: host-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, arm]
+        profile: [tiny, full]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang lld llvm flex bison bc libssl-dev libelf-dev make patch \
+            python3 cpio kmod
+
+      - name: Fetch pinned Linux 6.6.162
+        run: |
+          git clone --depth 1 --branch "$LINUX_TAG" \
+            https://github.com/gregkh/linux.git "$RUNNER_TEMP/linux"
+          actual="$(git -C "$RUNNER_TEMP/linux" rev-parse HEAD)"
+          echo "Linux commit: $actual"
+          test "$actual" = "$LINUX_COMMIT"
+
+      - name: Build kernel and device trees
+        env:
+          TOOLCHAIN: llvm
+          JOBS: 4
+        run: |
+          bash porting/build059/kernel/build.sh "$RUNNER_TEMP/linux" \
+            "${{ matrix.arch }}" "${{ matrix.profile }}" "$RUNNER_TEMP/out" \
+            2>&1 | tee "$RUNNER_TEMP/build.log"
+          test "${PIPESTATUS[0]}" = 0
+
+      - name: Collect log
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/out/artifacts-${{ matrix.arch }}-${{ matrix.profile }}"
+          cp "$RUNNER_TEMP/build.log" \
+            "$RUNNER_TEMP/out/artifacts-${{ matrix.arch }}-${{ matrix.profile }}/" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build059-${{ matrix.arch }}-${{ matrix.profile }}
+          path: ${{ runner.temp }}/out/artifacts-${{ matrix.arch }}-${{ matrix.profile }}
+          retention-days: 30
