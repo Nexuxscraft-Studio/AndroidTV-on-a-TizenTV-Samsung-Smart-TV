@@ -1,5 +1,6 @@
 """Tests for the read-only Build 055 Samsung GPU evidence audit."""
 
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -10,9 +11,12 @@ from q60t_build055_gpu_panfrost_evidence import branch_defines, inspect, REGISTE
 
 ROOT = Path(__file__).resolve().parents[1]
 MEDIA = ROOT / ".build050_vendor/srcarchives/tztv-media-nike.tgz"
+SNAPSHOT = ROOT / "reports/build055-panfrost-samsung-gpu-reference.json"
 
 
 class Build055PanfrostEvidenceTests(unittest.TestCase):
+    @unittest.skipUnless(MEDIA.is_file(),
+                         "Original Samsung media archive is intentionally absent in CI")
     def test_original_gpu_evidence_pins_vendor_nike_l_branch(self):
         report = inspect(MEDIA)
         gpu = report["samsung_source"]
@@ -24,8 +28,28 @@ class Build055PanfrostEvidenceTests(unittest.TestCase):
         self.assertEqual(set(gpu["nike_l_registers"]), set(REGISTER_NAMES))
         self.assertTrue(gpu["markers"]["vendor_gpu_clock_reset_writes"])
 
+    @unittest.skipUnless(MEDIA.is_file(),
+                         "Original Samsung media archive is intentionally absent in CI")
     def test_not_hardware_verification(self):
         report = inspect(MEDIA)
+        self.assertFalse(report["safe_to_flash"])
+        self.assertFalse(report["hardware_access_performed"])
+        self.assertFalse(report["tv_gpu_model_verified"])
+        self.assertFalse(report["module_binary_supplied"])
+        self.assertIsNone(report["target"]["gpu_id_read_from_this_tv"])
+
+    def test_committed_gpu_evidence_snapshot_without_vendor_archive(self):
+        """CI checks checked-in claims, not a fake regeneration of Samsung data."""
+        report = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+        self.assertEqual(report["status"], "SOURCE_REFERENCE_VALIDATED_BOARD_UNVERIFIED")
+        self.assertEqual(report["samsung_source"]["archive_sha256"],
+                         "40c2a25eba331b8b04d8d81baf76061493f15f228a74893c7f825f7a1da724b6")
+        self.assertEqual(report["upstream_references"]["model_marker"],
+                         "GPU_MODEL(g51, 0x7000)")
+        self.assertEqual(report["samsung_source"]["nike_l_registers"]["SDP_REG_GPU_CLK_MASK"],
+                         "0x00f5088c")
+        self.assertEqual(set(report["samsung_source"]["nike_l_registers"]),
+                         set(REGISTER_NAMES))
         self.assertFalse(report["safe_to_flash"])
         self.assertFalse(report["hardware_access_performed"])
         self.assertFalse(report["tv_gpu_model_verified"])
