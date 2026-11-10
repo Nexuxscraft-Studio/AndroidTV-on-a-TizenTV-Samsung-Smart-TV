@@ -1,0 +1,84 @@
+From fa1b08ac82f1fcf556b114b59d38e5e0c6be3a4a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 10 Nov 2026 22:05:03 +0100
+Subject: [PATCH 7/7] arm64: dts: sdp-nikel: describe USB 2.0 host controllers
+ (disabled)
+
+Three EHCI/OHCI pairs with the generic platform drivers, as already
+hinted by the "usb-ehci"/"usb-ohci" fallbacks in the firmware tree.
+VBUS switching (samsung,sdp-usben, GPIO) is not handled yet, so the
+nodes stay disabled. Port 3 can apparently be muxed to a UART
+(firmware: uart_sel_port, reg_chk_uart_sel = 0x9c0954).
+---
+ .../arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi | 55 +++++++++++++++++++
+ 1 file changed, 55 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+index 4d5e53cb3..08690cdd7 100644
+--- a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+@@ -153,6 +153,61 @@ mmc0: mmc@100000 {
+ 			status = "disabled";
+ 		};
+ 
++		/*
++		 * USB 2.0 host controllers. The firmware tree already lists the
++		 * generic "usb-ehci" fallback, so the standard ehci/ohci platform
++		 * drivers are used. VBUS power is switched by Samsung's
++		 * "samsung,sdp-usben" helper through a GPIO (needs the pinctrl/
++		 * GPIO driver, not ported yet); the boot loader may already have
++		 * enabled it. Port 0 (0x4c0000) is disabled in the firmware.
++		 */
++		ehci1: usb@480000 {
++			compatible = "samsung,sdp-ehci", "generic-ehci";
++			reg = <0x00480000 0x100>;
++			interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
++			status = "disabled";
++		};
++
++		ohci1: usb@488000 {
++			compatible = "samsung,sdp-ohci", "generic-ohci";
++			reg = <0x00488000 0x100>;
++			interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
++			status = "disabled";
++		};
++
++		ehci2: usb@490000 {
++			compatible = "samsung,sdp-ehci", "generic-ehci";
++			reg = <0x00490000 0x100>;
++			interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
++			status = "disabled";
++		};
++
++		ohci2: usb@498000 {
++			compatible = "samsung,sdp-ohci", "generic-ohci";
++			reg = <0x00498000 0x100>;
++			interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
++			status = "disabled";
++		};
++
++		ehci3: usb@4a0000 {
++			compatible = "samsung,sdp-ehci", "generic-ehci";
++			reg = <0x004a0000 0x100>;
++			interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
++			status = "disabled";
++		};
++
++		/*
++		 * Firmware: uart_sel_port = <1>, reg_chk_uart_sel = <0x9c0954>,
++		 * i.e. this USB port can apparently be switched to carry a UART
++		 * (selection register in the micom area at 0x9c0954).
++		 */
++		ohci3: usb@4a8000 {
++			compatible = "samsung,sdp-ohci", "generic-ohci";
++			reg = <0x004a8000 0x100>;
++			interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
++			status = "disabled";
++		};
++
+ 		/*
+ 		 * UART input clock: Samsung uses "apb_pclk" (COREPLL0 / 8).
+ 		 * It is not wired up yet on purpose: until the rate printed
+-- 
+2.43.0
+

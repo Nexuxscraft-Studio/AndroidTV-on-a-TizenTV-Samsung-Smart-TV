@@ -17,6 +17,7 @@ UART-Treiber und Konsole. Ziel beim ersten echten Start wäre eine Shell
 | `kernel/patches/0003-…dts…patch` | `sdp-nikel.dtsi` + Q60T-Boards für die Profile `nikel-1.5G` und `nikel-2G`; die arm32-Varianten binden die arm64-Dateien ein |
 | `kernel/patches/0004-clk…patch` | Neuer Treiber `drivers/clk/clk-sdp1804.c`: liest die 13 PLLs und leitet `arm_clk`, `apb_pclk`, `ddr2/3_clk`, `emmc_clk` ab – **nur lesend**, keine Gates, kein Umprogrammieren |
 | `kernel/patches/0005-…clock-controller…patch` | Clock-Controller `0xF50000` + 24-MHz-`fin_pll` im Device Tree |
+| `kernel/patches/0007-…USB…patch` | Drei EHCI/OHCI-Paare (Upstream `generic-ehci`/`generic-ohci`), **deaktiviert** bis VBUS-Schaltung (GPIO) portiert ist |
 | `kernel/patches/0006-…eMMC…patch` | eMMC-Knoten `mmc@100000` für den Upstream-Treiber `dw_mmc-exynos` (Variante exynos7), konservativ 52 MHz, **deaktiviert** |
 | `initramfs/q60t-diag-init.c` | Winziges Diagnose-`init` (nur Kernel-`nolibc`, keine C-Bibliothek), wird als initramfs **in jedes Image eingebettet** |
 | `kernel/configs/` | Konfigurations-Fragmente (`common`, `arm64`, `arm`) und Pflicht-Symbole |
@@ -112,6 +113,10 @@ sobald ein Bootweg existiert – möglichst viel Information liefert.
    bisher nur offline vor.
 2. **Serielle Konsole am TV**: Anschluss und Freischaltung (Bootargs
    `rs232=0`; im Firmware-DT gibt es Bootmodi mit Taste „S“ → `init=/bin/sh`).
+   Spur: Im Firmware-DT trägt der USB-Controller `ohci@4a8000` die Einträge
+   `uart_sel_port = <1>` und `reg_chk_uart_sel = <0x9c0954>` – dieser USB-Port
+   lässt sich offenbar auf eine UART umschalten (Service-Adapter?). Klären,
+   welcher physische USB-Anschluss das ist und wie die Umschaltung ausgelöst wird.
 3. **Clock-Treiber** erweitern: Gates und Software-Resets (`0x7xx`/`0x8xx`)
    als Reset-Controller, sobald die gelesenen PLL-Raten am Gerät bestätigt sind.
 4. **eMMC am Gerät testen**: Samsungs `sdp_mmc.c` trägt
