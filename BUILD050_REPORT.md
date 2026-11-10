@@ -173,6 +173,14 @@ Es wurde jedoch weder gegen Linux 6.6 kompiliert noch ein Gerät gestartet.
 Die weiterhin erforderlichen DRM-/GEM-Umbauten und die Testanleitung
 stehen in [`porting/build050/STAGE1_FIXES.md`](porting/build050/STAGE1_FIXES.md).
 
+**Build-051-Rückmeldung:** Ein erster externer ARM64-Kbuild-Test des
+Stage-1-Panels erreichte den C-Compiler. Das gemeldete Problem
+`invalid use of undefined type 'struct drm_device'` bei `drm->dev`
+führte zur Ergänzung von `<drm/drm_device.h>` im Patchgenerator
+und im aktuellen vollständigen Stage-1-Patch. Ein separater
+`0002`-Patch ergänzt nur diesen Header in bereits vorhandenen Stage-1-
+Quellkopien. **Ein erfolgreicher Neu-Build ist damit noch nicht belegt.**
+
 ## 7. Nächste Hardware-Nachweise – vor jedem echten Boot
 
 1. **Exaktes Board:** Über einen regulär verfügbaren, rein lesenden
