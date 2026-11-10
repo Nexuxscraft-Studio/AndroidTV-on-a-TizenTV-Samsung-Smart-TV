@@ -18,6 +18,8 @@ UART-Treiber und Konsole. Ziel beim ersten echten Start wäre eine Shell
 | `kernel/patches/0004-clk…patch` | Neuer Treiber `drivers/clk/clk-sdp1804.c`: liest die 13 PLLs und leitet `arm_clk`, `apb_pclk`, `ddr2/3_clk`, `emmc_clk` ab – **nur lesend**, keine Gates, kein Umprogrammieren |
 | `kernel/patches/0005-…clock-controller…patch` | Clock-Controller `0xF50000` + 24-MHz-`fin_pll` im Device Tree |
 | `kernel/patches/0007-…USB…patch` | Drei EHCI/OHCI-Paare (Upstream `generic-ehci`/`generic-ohci`), **deaktiviert** bis VBUS-Schaltung (GPIO) portiert ist |
+| `kernel/patches/0008-gpio…patch` | Neuer Treiber `drivers/gpio/gpio-sdp.c` (28 Bänke × 8 Pins, aus Samsungs `pinctrl-sdp.c`); Laden ändert keinen Pin |
+| `kernel/patches/0009-…GPIO…VBUS…patch` | GPIO-Controller `0xF52000` (aktiv) und USB-VBUS-Regler an GPIO 86 (deaktiviert) |
 | `kernel/patches/0006-…eMMC…patch` | eMMC-Knoten `mmc@100000` für den Upstream-Treiber `dw_mmc-exynos` (Variante exynos7), konservativ 52 MHz, **deaktiviert** |
 | `initramfs/q60t-diag-init.c` | Winziges Diagnose-`init` (nur Kernel-`nolibc`, keine C-Bibliothek), wird als initramfs **in jedes Image eingebettet** |
 | `kernel/configs/` | Konfigurations-Fragmente (`common`, `arm64`, `arm`) und Pflicht-Symbole |
@@ -56,6 +58,7 @@ gibt auf der seriellen Konsole sofort aus:
 - Kernelversion und Kommandozeile, CPUs, Speicher, `/proc/iomem`
 - `/proc/interrupts` (zeigt, ob UART-TX/RX-Interrupts kommen)
 - `clk_summary` (gelesene PLL-Raten, u. a. `apb_pclk`)
+- Zustand der GPIO-Pins (`/sys/kernel/debug/gpio`)
 - Wurzel des Device Trees und `model`
 - Kernel-Log-Zeilen zu SDP, UART-Takt, PSCI, GIC, Timer, MMC
 

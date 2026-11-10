@@ -1,7 +1,7 @@
 From 645255b94123945f62647f8f7c860915775bc9a0 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Tue, 10 Nov 2026 21:51:07 +0100
-Subject: [PATCH 6/7] arm64: dts: sdp-nikel: describe eMMC controller
+Subject: [PATCH 6/9] arm64: dts: sdp-nikel: describe eMMC controller
  (disabled)
 
 Samsung's SDP MMC host is a Synopsys DesignWare MMC with the register

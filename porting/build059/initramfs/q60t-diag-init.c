@@ -32,7 +32,7 @@
 #endif
 
 #define LINE_MAX_LEN	256
-#define VERSION		"build059-diag-1"
+#define VERSION		"build059-diag-2"
 
 /* reboot(2) magic values, as in <linux/reboot.h> */
 #define Q_RB_RESTART	0x01234567
@@ -171,6 +171,8 @@ static void diag(void)
 	cat_file("/proc/interrupts", 30);
 	section("clocks (debugfs)");
 	cat_file("/sys/kernel/debug/clk/clk_summary", 40);
+	section("gpio (debugfs)");
+	cat_file("/sys/kernel/debug/gpio", 40);
 	section("device tree /");
 	list_dir("/proc/device-tree");
 	section("model");

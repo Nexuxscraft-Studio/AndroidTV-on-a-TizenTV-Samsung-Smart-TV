@@ -1,7 +1,7 @@
 From fa1b08ac82f1fcf556b114b59d38e5e0c6be3a4a Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Tue, 10 Nov 2026 22:05:03 +0100
-Subject: [PATCH 7/7] arm64: dts: sdp-nikel: describe USB 2.0 host controllers
+Subject: [PATCH 7/9] arm64: dts: sdp-nikel: describe USB 2.0 host controllers
  (disabled)
 
 Three EHCI/OHCI pairs with the generic platform drivers, as already

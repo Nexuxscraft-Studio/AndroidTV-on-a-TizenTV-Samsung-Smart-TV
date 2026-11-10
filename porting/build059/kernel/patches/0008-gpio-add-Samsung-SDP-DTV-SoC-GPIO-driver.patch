@@ -1,0 +1,319 @@
+From 9d8674ed0f7b9892e7f2f2de14a8c471cecc6078 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 10 Nov 2026 22:07:02 +0100
+Subject: [PATCH 8/9] gpio: add Samsung SDP DTV SoC GPIO driver
+
+Banks of eight pins with a 4-bit mode field per pin, an output latch
+and an input level register, as described by Samsung's GPL driver
+drivers/pinctrl/pinctrl-sdp.c (linux-4.1.10-tizen5.5). Probing does not
+touch any pin; only consumers change pin modes.
+---
+ .../bindings/gpio/samsung,sdp-gpio.yaml       |  55 +++++
+ drivers/gpio/Kconfig                          |   9 +
+ drivers/gpio/Makefile                         |   1 +
+ drivers/gpio/gpio-sdp.c                       | 199 ++++++++++++++++++
+ 4 files changed, 264 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/gpio/samsung,sdp-gpio.yaml
+ create mode 100644 drivers/gpio/gpio-sdp.c
+
+diff --git a/Documentation/devicetree/bindings/gpio/samsung,sdp-gpio.yaml b/Documentation/devicetree/bindings/gpio/samsung,sdp-gpio.yaml
+new file mode 100644
+index 000000000..1e99506e1
+--- /dev/null
++++ b/Documentation/devicetree/bindings/gpio/samsung,sdp-gpio.yaml
+@@ -0,0 +1,55 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/gpio/samsung,sdp-gpio.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Samsung SDP digital TV SoC GPIO controller
++
++maintainers:
++  - Nexuxscraft-Studio Samsung-ATV-Lab
++
++description:
++  Banks of eight pins with three registers each (mode, output latch,
++  input level). Pin n of bank b has the GPIO number b * 8 + n.
++
++properties:
++  compatible:
++    const: samsung,sdp-gpio
++
++  reg:
++    maxItems: 1
++
++  samsung,start-offset:
++    $ref: /schemas/types.yaml#/definitions/uint32
++    description: Offset of the first bank inside the register window
++
++  samsung,nr-banks:
++    $ref: /schemas/types.yaml#/definitions/uint32
++    description: Number of 8-pin banks
++
++  gpio-controller: true
++
++  "#gpio-cells":
++    const: 2
++
++required:
++  - compatible
++  - reg
++  - samsung,start-offset
++  - samsung,nr-banks
++  - gpio-controller
++  - "#gpio-cells"
++
++additionalProperties: false
++
++examples:
++  - |
++    gpio-controller@f52000 {
++        compatible = "samsung,sdp-gpio";
++        reg = <0x00f52000 0x400>;
++        samsung,start-offset = <0x1c0>;
++        samsung,nr-banks = <28>;
++        gpio-controller;
++        #gpio-cells = <2>;
++    };
+diff --git a/drivers/gpio/Kconfig b/drivers/gpio/Kconfig
+index de051a085..644aee594 100644
+--- a/drivers/gpio/Kconfig
++++ b/drivers/gpio/Kconfig
+@@ -566,6 +566,15 @@ config GPIO_SAMA5D2_PIOBU
+ 	  The difference from regular GPIOs is that they
+ 	  maintain their value during backup/self-refresh.
+ 
++config GPIO_SDP
++	tristate "Samsung SDP DTV SoC GPIO"
++	depends on ARCH_SDP || COMPILE_TEST
++	depends on OF && HAS_IOMEM
++	default ARCH_SDP
++	help
++	  GPIO controller of Samsung SDP digital TV SoCs such as Nike-L
++	  (banks of 8 pins with a 4-bit mode field per pin).
++
+ config GPIO_SIFIVE
+ 	tristate "SiFive GPIO support"
+ 	depends on OF_GPIO
+diff --git a/drivers/gpio/Makefile b/drivers/gpio/Makefile
+index eb73b5d63..45d6ba584 100644
+--- a/drivers/gpio/Makefile
++++ b/drivers/gpio/Makefile
+@@ -141,6 +141,7 @@ obj-$(CONFIG_ARCH_SA1100)		+= gpio-sa1100.o
+ obj-$(CONFIG_GPIO_SAMA5D2_PIOBU)	+= gpio-sama5d2-piobu.o
+ obj-$(CONFIG_GPIO_SCH311X)		+= gpio-sch311x.o
+ obj-$(CONFIG_GPIO_SCH)			+= gpio-sch.o
++obj-$(CONFIG_GPIO_SDP)			+= gpio-sdp.o
+ obj-$(CONFIG_GPIO_SIFIVE)		+= gpio-sifive.o
+ obj-$(CONFIG_GPIO_SIM)			+= gpio-sim.o
+ obj-$(CONFIG_GPIO_SIOX)			+= gpio-siox.o
+diff --git a/drivers/gpio/gpio-sdp.c b/drivers/gpio/gpio-sdp.c
+new file mode 100644
+index 000000000..c14a4fa6b
+--- /dev/null
++++ b/drivers/gpio/gpio-sdp.c
+@@ -0,0 +1,199 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Samsung SDP (DTV SoC) GPIO controller
++ *
++ * Register layout from Samsung's GPL driver drivers/pinctrl/pinctrl-sdp.c
++ * (linux-4.1.10-tizen5.5, release 20_DTV_NikeL), Copyright (C) Samsung
++ * Electronics Co. Ltd.:
++ *
++ *  - banks of 8 pins, 3 registers per bank, stride 0xc, first bank at
++ *    "samsung,start-offset" (0x1c0 on Nike-L)
++ *  - +0x0 CON:    4 bits per pin, 0x2 = input, 0x3 = output,
++ *                 other values select a peripheral function
++ *  - +0x4 PWDATA: output latch
++ *  - +0x8 PRDATA: pin level
++ *
++ * Probing the driver does not touch any pin; only GPIO consumers do.
++ */
++
++#include <linux/gpio/driver.h>
++#include <linux/io.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/spinlock.h>
++
++#define SDP_GPIO_CON		0x0
++#define SDP_GPIO_PWDATA		0x4
++#define SDP_GPIO_PRDATA		0x8
++#define SDP_GPIO_BANK_STRIDE	0xc
++#define SDP_GPIO_PER_BANK	8
++
++#define SDP_GPIO_CON_MASK	0xf
++#define SDP_GPIO_CON_INPUT	0x2
++#define SDP_GPIO_CON_OUTPUT	0x3
++
++struct sdp_gpio {
++	struct gpio_chip	gc;
++	void __iomem		*base;
++	u32			start_offset;
++	raw_spinlock_t		lock;
++};
++
++static void __iomem *sdp_gpio_bank(struct sdp_gpio *sg, unsigned int offset)
++{
++	return sg->base + sg->start_offset +
++	       (offset / SDP_GPIO_PER_BANK) * SDP_GPIO_BANK_STRIDE;
++}
++
++static unsigned int sdp_gpio_con_shift(unsigned int offset)
++{
++	return (offset % SDP_GPIO_PER_BANK) * 4;
++}
++
++static u32 sdp_gpio_con(struct sdp_gpio *sg, unsigned int offset)
++{
++	u32 con = readl_relaxed(sdp_gpio_bank(sg, offset) + SDP_GPIO_CON);
++
++	return (con >> sdp_gpio_con_shift(offset)) & SDP_GPIO_CON_MASK;
++}
++
++static int sdp_gpio_get_direction(struct gpio_chip *gc, unsigned int offset)
++{
++	struct sdp_gpio *sg = gpiochip_get_data(gc);
++
++	/* pins in a peripheral function are reported as inputs */
++	return sdp_gpio_con(sg, offset) == SDP_GPIO_CON_OUTPUT ?
++	       GPIO_LINE_DIRECTION_OUT : GPIO_LINE_DIRECTION_IN;
++}
++
++static int sdp_gpio_get(struct gpio_chip *gc, unsigned int offset)
++{
++	struct sdp_gpio *sg = gpiochip_get_data(gc);
++	void __iomem *bank = sdp_gpio_bank(sg, offset);
++	unsigned int reg = sdp_gpio_con(sg, offset) == SDP_GPIO_CON_OUTPUT ?
++			   SDP_GPIO_PWDATA : SDP_GPIO_PRDATA;
++
++	return !!(readl_relaxed(bank + reg) & BIT(offset % SDP_GPIO_PER_BANK));
++}
++
++static void sdp_gpio_set_locked(struct sdp_gpio *sg, unsigned int offset,
++				int value)
++{
++	void __iomem *reg = sdp_gpio_bank(sg, offset) + SDP_GPIO_PWDATA;
++	u32 data = readl_relaxed(reg);
++
++	if (value)
++		data |= BIT(offset % SDP_GPIO_PER_BANK);
++	else
++		data &= ~BIT(offset % SDP_GPIO_PER_BANK);
++	writel_relaxed(data, reg);
++}
++
++static void sdp_gpio_set(struct gpio_chip *gc, unsigned int offset, int value)
++{
++	struct sdp_gpio *sg = gpiochip_get_data(gc);
++	unsigned long flags;
++
++	raw_spin_lock_irqsave(&sg->lock, flags);
++	sdp_gpio_set_locked(sg, offset, value);
++	raw_spin_unlock_irqrestore(&sg->lock, flags);
++}
++
++static void sdp_gpio_set_con_locked(struct sdp_gpio *sg, unsigned int offset,
++				    u32 mode)
++{
++	void __iomem *reg = sdp_gpio_bank(sg, offset) + SDP_GPIO_CON;
++	unsigned int shift = sdp_gpio_con_shift(offset);
++	u32 con = readl_relaxed(reg);
++
++	con &= ~(SDP_GPIO_CON_MASK << shift);
++	con |= mode << shift;
++	writel_relaxed(con, reg);
++}
++
++static int sdp_gpio_direction_input(struct gpio_chip *gc, unsigned int offset)
++{
++	struct sdp_gpio *sg = gpiochip_get_data(gc);
++	unsigned long flags;
++
++	raw_spin_lock_irqsave(&sg->lock, flags);
++	sdp_gpio_set_con_locked(sg, offset, SDP_GPIO_CON_INPUT);
++	raw_spin_unlock_irqrestore(&sg->lock, flags);
++	return 0;
++}
++
++static int sdp_gpio_direction_output(struct gpio_chip *gc, unsigned int offset,
++				     int value)
++{
++	struct sdp_gpio *sg = gpiochip_get_data(gc);
++	unsigned long flags;
++
++	/* set the latch first so the pin never glitches (Samsung order) */
++	raw_spin_lock_irqsave(&sg->lock, flags);
++	sdp_gpio_set_locked(sg, offset, value);
++	sdp_gpio_set_con_locked(sg, offset, SDP_GPIO_CON_OUTPUT);
++	raw_spin_unlock_irqrestore(&sg->lock, flags);
++	return 0;
++}
++
++static int sdp_gpio_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct sdp_gpio *sg;
++	u32 nr_banks;
++	int ret;
++
++	sg = devm_kzalloc(dev, sizeof(*sg), GFP_KERNEL);
++	if (!sg)
++		return -ENOMEM;
++
++	sg->base = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(sg->base))
++		return PTR_ERR(sg->base);
++
++	ret = of_property_read_u32(dev->of_node, "samsung,start-offset",
++				   &sg->start_offset);
++	if (ret)
++		return dev_err_probe(dev, ret, "missing samsung,start-offset\n");
++	ret = of_property_read_u32(dev->of_node, "samsung,nr-banks", &nr_banks);
++	if (ret || !nr_banks)
++		return dev_err_probe(dev, -EINVAL, "missing samsung,nr-banks\n");
++
++	if (sg->start_offset + nr_banks * SDP_GPIO_BANK_STRIDE >
++	    resource_size(platform_get_resource(pdev, IORESOURCE_MEM, 0)))
++		return dev_err_probe(dev, -EINVAL, "banks exceed register window\n");
++
++	raw_spin_lock_init(&sg->lock);
++
++	sg->gc.label = dev_name(dev);
++	sg->gc.parent = dev;
++	sg->gc.owner = THIS_MODULE;
++	sg->gc.base = -1;
++	sg->gc.ngpio = nr_banks * SDP_GPIO_PER_BANK;
++	sg->gc.get_direction = sdp_gpio_get_direction;
++	sg->gc.direction_input = sdp_gpio_direction_input;
++	sg->gc.direction_output = sdp_gpio_direction_output;
++	sg->gc.get = sdp_gpio_get;
++	sg->gc.set = sdp_gpio_set;
++
++	return devm_gpiochip_add_data(dev, &sg->gc, sg);
++}
++
++static const struct of_device_id sdp_gpio_of_match[] = {
++	{ .compatible = "samsung,sdp-gpio" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, sdp_gpio_of_match);
++
++static struct platform_driver sdp_gpio_driver = {
++	.probe	= sdp_gpio_probe,
++	.driver	= {
++		.name		= "sdp-gpio",
++		.of_match_table	= sdp_gpio_of_match,
++	},
++};
++module_platform_driver(sdp_gpio_driver);
++
++MODULE_DESCRIPTION("Samsung SDP DTV SoC GPIO driver");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

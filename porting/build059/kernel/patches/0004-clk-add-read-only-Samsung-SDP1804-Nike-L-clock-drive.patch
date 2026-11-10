@@ -1,7 +1,7 @@
 From 60316b85415bb74cc2d51a80b308d12b6701e4ba Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Tue, 10 Nov 2026 21:48:52 +0100
-Subject: [PATCH 4/7] clk: add read-only Samsung SDP1804 (Nike-L) clock driver
+Subject: [PATCH 4/9] clk: add read-only Samsung SDP1804 (Nike-L) clock driver
 
 Expose the PLLs of the Samsung SDP1804 "Nike-L" DTV SoC and the fixed
 dividers derived from them (arm_clk, apb_pclk, ddr2/3_clk, emmc_clk).
