@@ -138,6 +138,25 @@ Das ist eine **API- und Abhängigkeitsinventur**, **noch kein kompilierter
 Linux-6.6-Hardwaretreiber**. Der Original-Quellbestand bleibt lokal; in
 GitHub werden nur Hashes, Quellpfade und eigene Prüfauswertungen abgelegt.
 
+### Zweite Phase: Quellcode ↔ offizielle Linux-6.6-Header
+
+Die direkte Prüfung von `sdp_drm_drv.c`, `panel-sdp.c` sowie den beiden
+Samsung-Makefiles gegen die echten DRM-Header des Linux-Tags `v6.6`
+erfasst nun **27** migrationspflichtige Originalcode-Merkmale, davon
+**17 kritisch**. Dazu gehören entfernte `drm_driver`-GEM-Felder,
+geänderte `drm_panel`-Signaturen und ein veraltetes `vrefresh`-Feld.
+Die beiden Makefiles besitzen einen **optionalen ARM64-Buildzweig**, aber
+auch ausdrückliche ARM32-Mach-Include-Pfade. Weder eine erfolgreiche
+ARM64-Kompilierung noch ein ARM64-Geräteboot sind damit nachgewiesen.
+
+Der Original-Panelcode kennzeichnet seinen 1080p-Modus zudem ausdrücklich
+als **Dummy**; Auflösung, Timing, TCON- und Power-Werte sind **nicht**
+für den Q60T nutzbar. Das Script
+`q60t_build050_linux66_port_gaps.py` erzeugt den read-only-Bericht
+`reports/hardware_build050_linux66_port_gaps.json`; die konkrete
+Migrationsreihenfolge steht unter
+[`porting/build050/LINUX66_PORTING_MATRIX.md`](porting/build050/LINUX66_PORTING_MATRIX.md).
+
 ## 7. Nächste Hardware-Nachweise – vor jedem echten Boot
 
 1. **Exaktes Board:** Über einen regulär verfügbaren, rein lesenden
