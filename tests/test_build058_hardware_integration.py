@@ -202,6 +202,76 @@ class Build058RunnerModes(unittest.TestCase):
         self.assertIn("Class:[[:space:]]*ELF32", src)
 
 
+class Build058SdpDrmAbiInventory(unittest.TestCase):
+    """Synthetic archive only; never contains Samsung code."""
+
+    TOOL = DIR / "inventory-sdp-drm-abi.py"
+
+    def make_archive(self, tmp: Path) -> Path:
+        import io
+        files = {
+            "tztv-media-nike/sdp_drm_nike/sdp_drm_drv.h":
+                "#define DRM_SDP_VBLANK_DP 3\n"
+                "enum sdp_inst {\n  DRM_DPINST_MAIN = 0,\n  DRM_DPINST_SUB,\n};\n",
+            "tztv-media-nike/sdp_drm_nike/sdp_drm_drv.c":
+                "#include <drm/drm_tztv.h>\n#include \"sdp_drm_drv.h\"\n"
+                "/* DRM_SDP_IN_COMMENT_ONLY */\n"
+                "int f(void) { return g(DRM_DPINST_MAIN,\n   DRM_SDP_COLOR_HDR,\n 0)"
+                " + DRM_SDP_VBLANK_DP + DRM_IOCTL_SDP_QPI_GET_POST_CRC; }\n",
+            "tztv-media-nike/sdp_drm_nike/drm_gem_cma_helper.h": "struct x { int num_slots; };\n",
+        }
+        path = tmp / "synthetic.tgz"
+        with tarfile.open(path, "w:gz") as archive:
+            for name, text in files.items():
+                data = text.encode()
+                info = tarfile.TarInfo(name)
+                info.size = len(data)
+                archive.addfile(info, io.BytesIO(data))
+        return path
+
+    def run_tool(self, *args):
+        return subprocess.run(["python3", "-I", str(self.TOOL), *map(str, args)],
+                              capture_output=True, text=True)
+
+    def test_separates_defined_from_candidate_identifiers(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as name:
+            tmp = Path(name)
+            archive = self.make_archive(tmp)
+            out = tmp / "report.json"
+            proc = self.run_tool(archive, out, "--allow-unpinned")
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            report = json.loads(out.read_text())
+        undefined = report["identifiers_used_but_undefined"]
+        defined = report["identifiers_defined_in_archive"]
+        self.assertIn("DRM_SDP_VBLANK_DP", defined)
+        self.assertIn("DRM_DPINST_MAIN", defined)
+        self.assertIn("DRM_DPINST_SUB", defined)
+        # A call-argument continuation line is NOT an enum definition.
+        self.assertIn("DRM_SDP_COLOR_HDR", undefined)
+        self.assertIn("DRM_IOCTL_SDP_QPI_GET_POST_CRC", undefined)
+        self.assertNotIn("DRM_SDP_IN_COMMENT_ONLY", undefined)
+        self.assertEqual(report["files_including_drm_tztv_h"], ["sdp_drm_drv.c"])
+        self.assertEqual(report["samsung_local_cma_helper"], ["drm_gem_cma_helper.h"])
+        self.assertFalse(report["archive_sha256_pinned"])
+        self.assertNotIn("value", json.dumps(undefined))
+
+    def test_refuses_unpinned_archive_and_existing_output(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as name:
+            tmp = Path(name)
+            archive = self.make_archive(tmp)
+            proc = self.run_tool(archive, tmp / "r.json")
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("SHA256 mismatch", proc.stderr)
+            existing = tmp / "exists.json"
+            existing.write_text("{}")
+            proc = self.run_tool(archive, existing, "--allow-unpinned")
+            self.assertEqual(proc.returncode, 2)
+            self.assertEqual(existing.read_text(), "{}")
+
+
 class Build058CompileWorkflow(unittest.TestCase):
     WORKFLOW = ROOT / ".github/workflows/build058-arm32-compile.yml"
 
