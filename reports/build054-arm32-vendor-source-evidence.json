@@ -1,0 +1,28 @@
+{
+  "status": "ARM32_VENDOR_SOURCE_BASELINE_IDENTIFIED_NOT_TV_VERIFIED",
+  "safe_to_flash": false,
+  "build_executed": false,
+  "samsung_original_baseline": {
+    "kernel": "Linux 4.1.10-tizen5.5",
+    "config": "linux-4.1.10/arch/arm/configs/Nike.M-Tizen_release_defconfig",
+    "config_arch": "arm (32-bit)",
+    "config_cpu": "ARMv7 Cortex-A15",
+    "media_makefile_default_arch": "arm",
+    "media_makefile_has_optional_arm64": true,
+    "arm64_debug_config_same_arm32_markers": true,
+    "unavailable_external_vendor_headers": [
+      "linux-4.1.10/include/drm/drm_tztv.h",
+      "linux-4.1.10/include/linux/videodev2_tztv.h"
+    ],
+    "media_makefile_uses_external_kernel_interfaces": true
+  },
+  "q60t_hypothesis_unverified": {
+    "tv_model": "GQ50Q60TGUXZG",
+    "chip": "SDP19403",
+    "platform": "Nike-L",
+    "cpu": "Cortex-A72",
+    "gpu": "Mali-G31",
+    "hardware_confirmed_on_this_tv": false
+  },
+  "interpretation": "Successful ARM32 compilation would show compatibility with the published Nike.M ARMv7/Cortex-A15 source baseline; it would NOT identify the Q60T SoC, boot architecture or firmware ABI."
+}
