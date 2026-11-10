@@ -48,7 +48,7 @@ full_kernel_build="${BUILD058_FULL_KERNEL:-0}"
 [[ "$full_kernel_build" == 0 || "$full_kernel_build" == 1 ]] || {
   printf 'BUILD058_FULL_KERNEL must be 0 or 1\n' >&2; exit 2;
 }
-for tool in "${cross_prefix}gcc" "${cross_prefix}readelf" patch tar sha256sum make; do
+for tool in "${cross_prefix}gcc" "${cross_prefix}readelf" patch tar sha256sum make python3; do
   command -v "$tool" >/dev/null 2>&1 || {
     printf 'Missing required tool: %s\n' "$tool" >&2; exit 2;
   }
@@ -153,7 +153,7 @@ fi
 if ! record_step arm32_modules_prepare kernel_make -j"$jobs" modules_prepare; then exit 1; fi
 
 if [[ "$full_kernel_build" == 1 ]]; then
-  if ! record_step arm32_full_kernel_for_symvers kernel_make -j"$jobs" vmlinux; then
+  if ! record_step arm32_full_kernel_for_symvers kernel_make -j"$jobs" vmlinux modules; then
     note_step kernel_module_symvers BLOCKED_KERNEL_BUILD 1 "Full kernel failed; see arm32_full_kernel_for_symvers.log"
   fi
 fi
@@ -207,13 +207,18 @@ if record_step original_drm_extract tar -xzf "$vendor_tgz" -C "$drm_root"; then
      record_step samsung_drm_stage2 patch -d "$drm_root" --batch -p1 -i "$patch2"; then
     vendor_drm="$drm_root/tztv-media-nike/sdp_drm_nike"
     cp -- "$project_root/porting/build054/test-kbuild-arm32/Kbuild" "$vendor_drm/Kbuild"
-    # Real Samsung Linux 4.1.10 header recovered from its GPL source archive;
-    # local staging only, never copied into the caller's source tree.
-    mkdir -p -- "$vendor_drm/build058-legacy-include/trace"
-    cp -- "$script_dir/drm/legacy-include/trace/early.h" \
-      "$vendor_drm/build058-legacy-include/trace/early.h"
-    printf '\nccflags-y += -I$(src)/build058-legacy-include\n' >> "$vendor_drm/Kbuild"
-    note_step samsung_trace_early_header FOUND 0 "GPL Samsung Linux 4.1.10 source; staged"
+    # Remove only the optional early trace hook, in the STAGED driver.
+    # The tool asserts exactly one include and call, and writes a real diff.
+    if record_step samsung_drm_early_trace_port python3 \
+      "$script_dir/port-early-tracing.py" \
+      "$vendor_drm/sdp_drm_drv.c" \
+      "$output_dir/samsung-drm-early-tracing.patch"; then
+      note_step samsung_trace_early_header REMOVED 0 \
+        "Staged driver now uses pr_debug; patch in output directory"
+    else
+      note_step samsung_trace_early_header BLOCKED_SOURCE_MISMATCH 2 \
+        "Original source pattern differs; no ABI shim installed"
+    fi
     # drm_tztv.h is NOT in either pinned Samsung source bundle. Do not create
     # guessed ioctl numbers, data structures, or empty proprietary ABI stubs.
     note_step samsung_drm_tztv_header BLOCKED_MISSING_ABI 2 \
