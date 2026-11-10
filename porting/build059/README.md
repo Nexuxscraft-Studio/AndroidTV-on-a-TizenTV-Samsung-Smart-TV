@@ -18,6 +18,7 @@ UART-Treiber und Konsole. Ziel beim ersten echten Start wäre eine Shell
 | `kernel/patches/0004-clk…patch` | Neuer Treiber `drivers/clk/clk-sdp1804.c`: liest die 13 PLLs und leitet `arm_clk`, `apb_pclk`, `ddr2/3_clk`, `emmc_clk` ab – **nur lesend**, keine Gates, kein Umprogrammieren |
 | `kernel/patches/0005-…clock-controller…patch` | Clock-Controller `0xF50000` + 24-MHz-`fin_pll` im Device Tree |
 | `kernel/patches/0006-…eMMC…patch` | eMMC-Knoten `mmc@100000` für den Upstream-Treiber `dw_mmc-exynos` (Variante exynos7), konservativ 52 MHz, **deaktiviert** |
+| `initramfs/q60t-diag-init.c` | Winziges Diagnose-`init` (nur Kernel-`nolibc`, keine C-Bibliothek), wird als initramfs **in jedes Image eingebettet** |
 | `kernel/configs/` | Konfigurations-Fragmente (`common`, `arm64`, `arm`) und Pflicht-Symbole |
 | `kernel/build.sh` | Reproduzierbarer Build: Patches anwenden, konfigurieren, prüfen, bauen |
 | `tools/fdt2dts.py` | DTB → DTS ohne `dtc` (nur Standardbibliothek) |
@@ -44,6 +45,22 @@ UART-Treiber und Konsole. Ziel beim ersten echten Start wäre eine Shell
   Beim ersten Start beide Werte im Log vergleichen (`sdp1804-clk: apb_pclk …`
   und `uartclk … derived from boot divisor`); erst wenn sie passen, UART per
   `clocks = <&clock SDP1804_APB_PCLK>` anbinden.
+
+## Diagnose-init (eingebettet als `/init`)
+
+Startet der Kernel, braucht er weder eMMC noch Root-Dateisystem: das
+eingebettete `q60t-diag-init` hängt `/proc`, `/sys`, `/dev` und debugfs ein und
+gibt auf der seriellen Konsole sofort aus:
+
+- Kernelversion und Kommandozeile, CPUs, Speicher, `/proc/iomem`
+- `/proc/interrupts` (zeigt, ob UART-TX/RX-Interrupts kommen)
+- `clk_summary` (gelesene PLL-Raten, u. a. `apb_pclk`)
+- Wurzel des Device Trees und `model`
+- Kernel-Log-Zeilen zu SDP, UART-Takt, PSCI, GIC, Timer, MMC
+
+Danach gibt es eine Mini-Shell (`help`, `diag`, `cat`, `ls`, `write`, `dmesg`,
+`reboot`, `poweroff`). Das Programm schreibt nie auf einen Datenträger. Ohne
+eingebettetes init bauen: `DIAG_INITRAMFS=0`.
 
 ## Selbst bauen (z. B. auf dem Debian-VServer)
 

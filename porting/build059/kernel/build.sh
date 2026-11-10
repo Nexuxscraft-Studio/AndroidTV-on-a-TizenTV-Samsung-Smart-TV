@@ -8,6 +8,7 @@
 #   TOOLCHAIN=llvm (default) | gcc   (gcc uses CROSS_COMPILE, see below)
 #   CROSS_COMPILE                    (default aarch64-linux-gnu- / arm-linux-gnueabihf-)
 #   JOBS                             (default: nproc)
+#   DIAG_INITRAMFS=1 (default) | 0   embed initramfs/q60t-diag-init as /init
 #
 # The kernel tree must be a clean v6.6.162 checkout. The patches are applied
 # in place (once); use a dedicated tree for this. Nothing is installed,
@@ -24,6 +25,7 @@ ARCH_NAME="${2:?arm64|arm}"
 PROFILE="${3:?tiny|full}"
 OUT="${4:?output dir}"
 TOOLCHAIN="${TOOLCHAIN:-llvm}"
+DIAG_INITRAMFS="${DIAG_INITRAMFS:-1}"
 JOBS="${JOBS:-$(nproc)}"
 EXPECTED_VERSION="6.6.162"
 
@@ -94,6 +96,42 @@ for f in "${FRAGS[@]}"; do
   done < "$f"
 done
 [ "$missing" = 0 ] || die "configuration incomplete"
+
+# 2b. embedded diagnostic initramfs ------------------------------------------
+if [ "$DIAG_INITRAMFS" = 1 ]; then
+  IRD="$KOUT/diag-initramfs"
+  rm -rf "$IRD" && mkdir -p "$IRD"
+  make "${MAKEARGS[@]}" headers
+  cp -r "$KSRC/tools/include/nolibc" "$IRD/nolibc"
+  NOLIBC_CFLAGS=(-nostdlib -static -Os -fno-stack-protector -Wall -Wextra
+                 -isystem "$KOUT/usr/include" -include "$IRD/nolibc/nolibc.h")
+  if [ "$TOOLCHAIN" = llvm ]; then
+    # nolibc 6.6 uses GCC-only "%r0" operands in its ARM start code
+    sed -i 's/%r0/r0/g' "$IRD/nolibc/arch-arm.h"
+    if [ "$KARCH" = arm64 ]; then TGT=(--target=aarch64-linux-gnu)
+    else TGT=(--target=armv7a-linux-gnueabihf -march=armv7ve); fi
+    clang "${TGT[@]}" -nostdinc -isystem "$(clang -print-resource-dir)/include" \
+      -Wno-unknown-attributes -fuse-ld=lld "${NOLIBC_CFLAGS[@]}" \
+      -o "$IRD/init" "$HERE/../initramfs/q60t-diag-init.c"
+  else
+    "${CROSS_COMPILE:-$DEF_CROSS}gcc" "${NOLIBC_CFLAGS[@]}" \
+      -o "$IRD/init" "$HERE/../initramfs/q60t-diag-init.c"
+  fi
+  cat > "$IRD/initramfs.list" <<EOL
+dir /dev 0755 0 0
+nod /dev/console 0600 0 0 c 5 1
+dir /proc 0755 0 0
+dir /sys 0755 0 0
+file /init $IRD/init 0755 0 0
+EOL
+  "$KSRC/scripts/config" --file "$KOUT/.config" \
+    --set-str INITRAMFS_SOURCE "$IRD/initramfs.list" \
+    --enable DEBUG_FS
+  make "${MAKEARGS[@]}" olddefconfig
+  grep -q "^CONFIG_INITRAMFS_SOURCE=\"$IRD/initramfs.list\"" "$KOUT/.config" \
+    || die "initramfs not configured"
+  cp "$IRD/init" "$ART/q60t-diag-init"
+fi
 cp "$KOUT/.config" "$ART/config"
 
 # 3. the new drivers with extra warnings, as an error gate ---------------------
@@ -121,6 +159,7 @@ done
   echo "arch:      $ARCH_NAME ($KARCH)"
   echo "profile:   $PROFILE"
   echo "toolchain: $TOOLCHAIN"
+  echo "initramfs: $( [ "$DIAG_INITRAMFS" = 1 ] && echo "q60t-diag-init embedded as /init" || echo none)"
   echo "compiler:  $(sed -n 's/^CONFIG_CC_VERSION_TEXT=//p' "$KOUT/.config")"
   echo
   ls -l "$ART"
