@@ -95,8 +95,21 @@ note_step() {
 # only attempt the full .ko link when explicitly requested after a full build.
 build_external_objects() {
   local label="$1" staged="$2" source object name
-  for source in "$staged"/*.c; do
-    name="$(basename "${source%.c}")"
+  shift 2
+  local -a source_names=()
+  if [[ $# -gt 0 ]]; then
+    source_names=("$@")
+  else
+    for source in "$staged"/*.c; do
+      source_names+=("$(basename "${source%.c}")")
+    done
+  fi
+  for name in "${source_names[@]}"; do
+    source="$staged/$name.c"
+    if [[ ! -f "$source" ]]; then
+      note_step "${name}_elf" FAIL 1 "Staged source missing: $source"
+      continue
+    fi
     object="${source%.c}.o"
     record_step "${label}_${name}_compile" kernel_make -j"$jobs" M="$staged" "${name}.o" || true
     if check_arm_object "$object"; then
@@ -205,7 +218,8 @@ if record_step original_drm_extract tar -xzf "$vendor_tgz" -C "$drm_root"; then
     # guessed ioctl numbers, data structures, or empty proprietary ABI stubs.
     note_step samsung_drm_tztv_header BLOCKED_MISSING_ABI 2 \
       "drm/drm_tztv.h absent from published Samsung Linux/media archives"
-    build_external_objects samsung_drm_drv_gem_arm32 "$vendor_drm"
+    build_external_objects samsung_drm_drv_gem_arm32 "$vendor_drm" \
+      sdp_drm_drv sdp_drm_gem
   fi
 fi
 
