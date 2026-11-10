@@ -1,4 +1,36 @@
-# Build 058 — Integrationsbericht (initial)
+# Build 058 — Integrationsbericht (ARM32-Fix nach Testlauf)
+
+## 2026-11-10: Linux-6.6-ARM32-Fehlerkorrektur
+
+Gemeldete **Debian-Testergebnisse** (noch nicht in diesem Workspace
+unabhängig nachgebaut): Panfrost, GPU Clock/Reset, CPU Clock, DRM Utility
+und DRM DMA-Fence erzeugten ARM32-Objekte. Die gemeldeten `modpost`-Fehler
+werden nicht länger als Fehler der C-Objektkompilierung interpretiert.
+
+Neue Korrekturen:
+
+1. CPUFreq `verify` verwendet nun die Linux-6.6-Signatur
+   `struct cpufreq_policy_data *`; die Treiberkennung `sdp-nikel-off`
+   respektiert `CPUFREQ_NAME_LEN = 16` einschließlich Terminator.
+2. Der ARM32-Runner führt pro `.c`-Datei einen **einzelnen** kbuild `.o`-Test
+   aus und klassifiziert `modpost` separat; `BUILD058_FULL_KERNEL=1` führt
+   auf Wunsch zuerst einen vollständigen `vmlinux`-Build aus, dessen
+   `Module.symvers` für anschließende `.ko`-Tests benötigt wird.
+3. `trace/early.h` aus dem veröffentlichten Linux-4.1.10-Archiv ist in
+   einer diagnostischen Staging-Include-Directory enthalten. Die fehlende
+   Datei `drm/drm_tztv.h` konnte in **keinem** der zwei originalen
+   Samsung-Archive gefunden werden. Ihre echten DRM-UAPI-Definitionen
+   dürfen nicht durch geratenen Code ersetzt werden.
+4. Nike-L CPUFreq/DVFS und Thermal bleiben **fail-closed**. Kein OPP,
+   keine Spannung, keine Clock-, Reset-, TMU- oder DRM-Initialisierung
+   wird hier freigeschaltet.
+
+Verifikation in diesem Workspace: Bash-Syntax, Regressionstests und
+Release-Quelltext-Audit. **Ein erneuter ARM32-Compile-Lauf muss auf dem
+Debian-Testserver durchgeführt werden; hier fehlen GCC ARM32 und der
+komplette Linux-6.6.162-Baum.** `sdp_drm_drv.o` und `sdp_drm_gem.o` werden
+bis zur echten Samsung-ABI und weiteren API-Portierung voraussichtlich
+weiterhin scheitern. Der Report darf dafür keinen PASS vortäuschen.
 
 ## Delivered
 
