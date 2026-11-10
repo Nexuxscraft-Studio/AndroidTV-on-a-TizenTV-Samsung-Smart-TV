@@ -12,6 +12,7 @@
  * The register helper here only implements the low 32-bit masked RMW form.
  */
 #include <linux/bitops.h>
+#include <linux/bug.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/io.h>
