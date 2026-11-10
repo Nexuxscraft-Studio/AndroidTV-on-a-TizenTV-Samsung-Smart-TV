@@ -1,0 +1,148 @@
+{
+  "build": "058",
+  "focus": "CPU_DVFS_THERMAL",
+  "target_kernel": "6.6.162",
+  "status": "CPU_DVFS_THERMAL_AUDITED_OFFLINE_PROTOTYPES_BLOCKED",
+  "original_samsung_kernel_source_sha256": "31a92f0d20248abbe2976bd2da1ab95dde4fed3e010ddcdc1c07494c4fd867b0",
+  "original_files_examined": {
+    "nike": "drivers/cpufreq/sdp-nike-cpufreq.c",
+    "wrapper": "drivers/cpufreq/sdp-cpufreq.c",
+    "thermal": "drivers/soc/sdp/sdp_thermal.c",
+    "thermal_header": "include/soc/sdp/sdp_thermal.h",
+    "clock": "drivers/clk/clk-sdp.c",
+    "board": "arch/arm/mach-sdp/board-nike-dt.c",
+    "hwclock": "arch/arm/mach-sdp/sdp_hwclock.c"
+  },
+  "original_firmware_dtb_sha256": "9698e1aeca3f614bfb536dc73f8f02fc9acc8f34887070c333f47324c7b342e2",
+  "firmware_variants": [
+    {
+      "name": "nikel-2G",
+      "cpu_count": 4,
+      "cores": "cortex-a57",
+      "psci": "psci-0.2/smc",
+      "thermal_base": "0x00f520c0",
+      "chipid_base": "0x00180000",
+      "cpu_throttle_limits_khz": [
+        1000000,
+        700000,
+        100000
+      ],
+      "original_clock_compatible": "samsung,sdp1804-clock"
+    },
+    {
+      "name": "nikel-1.5G",
+      "cpu_count": 4,
+      "cores": "cortex-a57",
+      "psci": "psci-0.2/smc",
+      "thermal_base": "0x00f520c0",
+      "chipid_base": "0x00180000",
+      "cpu_throttle_limits_khz": [
+        1000000,
+        700000,
+        100000
+      ],
+      "original_clock_compatible": "samsung,sdp1804-clock"
+    }
+  ],
+  "nike_cpu_source": {
+    "nominal_table_khz": [
+      1700000,
+      1000000,
+      500000,
+      250000,
+      100000
+    ],
+    "divided_1ghz_levels_khz": [
+      null,
+      1000000,
+      500000,
+      250000,
+      125000
+    ],
+    "l0_adjusted_from_measured_clock": true,
+    "l4_table_divider_mismatch": true,
+    "asv_microvolts": [
+      [
+        1020000,
+        980000,
+        940000,
+        910000,
+        870000
+      ],
+      [
+        940000,
+        940000,
+        920000,
+        870000,
+        870000
+      ],
+      [
+        940000,
+        940000,
+        920000,
+        870000,
+        870000
+      ],
+      [
+        940000,
+        940000,
+        920000,
+        870000,
+        870000
+      ],
+      [
+        940000,
+        940000,
+        920000,
+        870000,
+        870000
+      ]
+    ],
+    "non_l0_to_non_l0_direct_switch_unimplemented": true,
+    "pll_pms_address": "0x00f5001c",
+    "pll_k_address_defined_but_not_used_by_get_speed": "0x00f50020",
+    "pmu_dvfs_ctrl_address": "0x00400008"
+  },
+  "nike_thermal_source": {
+    "fuse_zero_fallback": 46,
+    "calibration_celsius_model": "raw + 25 - fused_value_or_46",
+    "original_temperature_sanity_delta_c": 20,
+    "thermal_limits_confirmed_khz": true,
+    "legacy_apis_to_replace": [
+      "cpufreq_frequency_table_target",
+      "cpufreq_frequency_table_verify",
+      "custom_sdp_tmu_notifier",
+      "direct_cpu_hotplug",
+      "global_regulator_get_optional_CPU_PW",
+      "direct_ioremap",
+      "sdp_nike_set_clkdiv"
+    ]
+  },
+  "driver_option": {
+    "cpufreq_dt": "BLOCKED: no validated provider set_rate, OPPs or CPU regulator",
+    "dedicated_sdp_cpufreq": "API prototype exists but refuses all transitions"
+  },
+  "clock_variant_mismatch": "Nike-L source CLK_OF_DECLARE commented; firmware uses samsung,sdp1804-clock",
+  "api_prototypes": [
+    "Linux 6.6 clk_ops",
+    "Linux 6.6 cpufreq_driver.target_index",
+    "Linux 6.6 devm_thermal_of_zone_register"
+  ],
+  "model_host_test": "run-host-tests.sh (compile and execute separately)",
+  "arm32_kernel_build": "not_run_no_prepared_toolchain_in_artifact_workspace",
+  "arm64_kernel_build": "not_run",
+  "kernel_drivers_probe_blocked": true,
+  "device_tree_references_disabled": true,
+  "hardware_access_performed": false,
+  "safe_to_load_or_flash": false,
+  "open_questions": [
+    "Nike-M frequency/voltage tables may differ on Nike-L silicon",
+    "L4 100 MHz table disagrees with 125 MHz DVFS divider",
+    "L0 real frequency depends on real boot-time clock",
+    "Unimplemented direct transitions between non-L0 states",
+    "Unverified real PLL-K and CCF parent/clock provider ownership",
+    "Unverified CPU_PW regulator / five-bin ASV calibration",
+    "Thermal efuse, sensor init and trip calibration not validated",
+    "ARM64 boot of Samsung chain unverified; original kernel is ARM32"
+  ]
+}
