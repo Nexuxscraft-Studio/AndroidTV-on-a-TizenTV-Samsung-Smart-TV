@@ -55,6 +55,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build058/cpu/nikel-cpu-thermal-disabled.dts",
     "porting/build058/cpu/run-host-tests.sh",
     "porting/build058/integration/drm/Makefile",
+    "porting/build058/integration/drm/legacy-include/trace/early.h",
     "porting/build058/integration/drm/sdp_drm_fence.c",
     "porting/build058/integration/drm/sdp_drm_fence.h",
     "porting/build058/integration/drm/sdp_drm_util.c",
