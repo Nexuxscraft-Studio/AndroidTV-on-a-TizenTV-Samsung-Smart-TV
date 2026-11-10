@@ -1,10 +1,10 @@
 # Build 050 – Samsung-Hardware-Referenzprüfung
 
-**Host-only / read-only:** Dieses Verfahren liest ausschließlich bereits
-vorhandene JSON-Quell-/Firmware-Reports und optional das originale
-Samsung-OSS-ZIP zur SHA-256-Identitätsprüfung. Es schreibt **niemals**
-auf den Fernseher, führt keine heruntergeladenen Skripte aus und
-entpackt keine Vendor-Binärdateien.
+**Host-only / read-only:** Die beiden Build-050-Werkzeuge prüfen getrennt
+historische Firmware-/Quellreports sowie ausgewählte unveränderte Textdateien
+aus den Samsung-OSS-Tarballs. Sie schreiben **niemals** auf den Fernseher,
+führen keine heruntergeladenen Skripte aus und installieren keine
+Vendor-Binärdateien.
 
 Vom Root des Projekt-Repositories aus:
 
@@ -24,12 +24,46 @@ python3 q60t_build050_hardware_evidence.py \
 
 Hash des bereits inventarisierten **äußeren** 743-MB-OSS-ZIPs:
 `3e38ad1baf54be8ed91c1c18b2c3137692c28e01ca894db9690f632a1fbd3bad`.
-Ein abweichender Hash wird abgelehnt; es wird kein Quellcode aus der
-ZIP ausgeführt oder entpackt. Für eine echte Linux-6.6-Treiberportierung
-brauchen wir danach den vollständigen Samsung-Treiberquellbaum.
+Ein abweichender Hash wird abgelehnt; das erste Werkzeug führt keinerlei
+Code aus der ZIP aus.
+
+## Direkte Codeprüfung aus dem jetzt verfügbaren Originalarchiv
+
+Die vollständige äußere ZIP wurde erfolgreich geprüft. Die darin liegende
+innere ZIP hat SHA-256
+`ceebe20245945571ff30f9584bc62e4c7fed138f320a55d8e876f3abd05ee20a`.
+Aus der inneren ZIP benötigt die zusätzliche Codeprüfung drei getrennt
+bereitgestellte Original-Tarballs; die Quellarchive selbst werden **nicht**
+in das Git-Repository eingecheckt.
+
+| Archiv | SHA-256 |
+| --- | --- |
+| `linux-4.1.10-tizen5.5.tgz` | `31a92f0d20248abbe2976bd2da1ab95dde4fed3e010ddcdc1c07494c4fd867b0` |
+| `tztv-media-nike.tgz` | `40c2a25eba331b8b04d8d81baf76061493f15f228a74893c7f825f7a1da724b6` |
+| `tztv-bootmode.tgz` | `7feb006983b35431df9408aef4ea176c7204578d7ba0e1b898dd10e364e58516` |
+
+Ausführung auf einem separaten Analysehost mit vorhandenen TGZs:
+
+```bash
+python3 q60t_build050_vendor_code_audit.py \
+  --kernel-tgz /pfad/linux-4.1.10-tizen5.5.tgz \
+  --media-tgz /pfad/tztv-media-nike.tgz \
+  --bootmode-tgz /pfad/tztv-bootmode.tgz \
+  --output /pfad/zum/neuen-build050-quellreport.json
+```
+
+Der Bericht muss an einem **noch nicht bestehenden** Zielpfad angelegt
+werden (Überschreiben ist bewusst gesperrt). Das Skript verwendet nur
+`tarfile.extractfile` auf fest benannte, begrenzte Textdateien, niemals
+`extractall`, und führt keinen Vendor-Code aus.
+
+**Achtung:** Die originale `Nike.M`-Defconfig hat Binder, SELinux und ION
+deaktiviert, anders als die zuvor modifizierte Build-015-Testkonfiguration.
+Das ist kein Laufzeitbefund für Nike-L.
 
 ```bash
 python3 -m unittest tests/test_build050_hardware_evidence.py -v
+python3 -m unittest tests/test_build050_vendor_code_audit.py -v
 python3 -m unittest discover -s tests -q
 python3 q60t_release_audit.py .
 ```
