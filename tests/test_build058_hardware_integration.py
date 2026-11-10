@@ -125,5 +125,97 @@ class Build058Integration(unittest.TestCase):
             self.assertIn("return dev_err_probe(", file.read_text())
 
 
+class Build058RunnerModes(unittest.TestCase):
+    """Runner argument/toolchain guards, executed against a fake kernel tree.
+
+    These tests never compile anything; they prove the runner refuses bad
+    input *before* creating an output directory.
+    """
+
+    RUNNER = DIR / "run-arm32-compile-only.sh"
+
+    def setUp(self):
+        import tempfile
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        kernel = self.tmp / "linux"
+        (kernel / "drivers/gpu/drm/panfrost").mkdir(parents=True)
+        (kernel / "drivers/gpu/drm/panfrost/Kconfig").write_text("# fake\n")
+        (kernel / "Makefile").write_text("kernelversion:\n\t@echo 6.6.162\n")
+        self.kernel = kernel
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def run_runner(self, vendor, out, **env_overrides):
+        import os
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("CROSS_COMPILE", "BUILD058_TOOLCHAIN", "LLVM")}
+        env.update(env_overrides)
+        return subprocess.run(["bash", str(self.RUNNER), str(self.kernel), vendor, str(out)],
+                              capture_output=True, text=True, env=env)
+
+    def test_rejects_unknown_toolchain_without_output(self):
+        out = self.tmp / "out"
+        proc = self.run_runner("--no-vendor-drm", out, BUILD058_TOOLCHAIN="msvc")
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("BUILD058_TOOLCHAIN must be gcc or llvm", proc.stderr)
+        self.assertFalse(out.exists())
+
+    def test_missing_gcc_cross_compiler_is_refused(self):
+        out = self.tmp / "out"
+        proc = self.run_runner("--no-vendor-drm", out, BUILD058_TOOLCHAIN="gcc",
+                               CROSS_COMPILE="q60t-nonexistent-")
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("Missing required tool: q60t-nonexistent-gcc", proc.stderr)
+        self.assertFalse(out.exists())
+
+    def test_vendor_archive_still_pinned(self):
+        bogus = self.tmp / "tztv-media-nike.tgz"
+        bogus.write_bytes(b"not the Samsung archive")
+        out = self.tmp / "out"
+        proc = self.run_runner(str(bogus), out)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("SHA256 mismatch", proc.stderr)
+        self.assertFalse(out.exists())
+
+    def test_refuses_existing_output(self):
+        out = self.tmp / "out"
+        out.mkdir()
+        proc = self.run_runner("--no-vendor-drm", out)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("Refusing to overwrite", proc.stderr)
+
+    def test_no_vendor_mode_never_claims_samsung_drm(self):
+        src = self.RUNNER.read_text()
+        self.assertIn("SKIPPED_NO_VENDOR_ARCHIVE", src)
+        self.assertIn("REPO_OBJECTS_ONLY", src)
+        self.assertIn("Samsung DRM Core/GEM was NOT attempted", src)
+        # Vendor objects remain required whenever the archive is supplied.
+        self.assertIn('required_objects+=(sdp_drm_drv_elf sdp_drm_gem_elf)', src)
+
+    def test_llvm_environment_is_not_inherited(self):
+        src = self.RUNNER.read_text()
+        # Kbuild enables LLVM for any non-empty value, including LLVM=0.
+        self.assertIn("env -u LLVM -u LLVM_IAS make", src)
+        self.assertIn("make_toolchain=(LLVM=1)", src)
+        self.assertIn("Class:[[:space:]]*ELF32", src)
+
+
+class Build058CompileWorkflow(unittest.TestCase):
+    WORKFLOW = ROOT / ".github/workflows/build058-arm32-compile.yml"
+
+    def test_workflow_pins_kernel_and_skips_vendor(self):
+        text = self.WORKFLOW.read_text()
+        self.assertIn("LINUX_TAG: v6.6.162", text)
+        self.assertIn("LINUX_COMMIT: 5139929c698c273e07cb0635732f6a918a7b8e78", text)
+        self.assertIn('test "$actual" = "$LINUX_COMMIT"', text)
+        self.assertIn("--no-vendor-drm", text)
+        self.assertIn("toolchain: [gcc, llvm]", text)
+        self.assertIn("contents: read", text)
+        for forbidden in ("insmod", "modprobe", "tztv-media-nike.tgz", "secrets."):
+            self.assertNotIn(forbidden, text)
+
+
 if __name__ == "__main__":
     unittest.main()
