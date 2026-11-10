@@ -96,8 +96,9 @@ done
 [ "$missing" = 0 ] || die "configuration incomplete"
 cp "$KOUT/.config" "$ART/config"
 
-# 3. the new driver with extra warnings, as an error gate ----------------------
-make "${MAKEARGS[@]}" W=1 KCFLAGS=-Werror drivers/tty/serial/sdp_uart.o
+# 3. the new drivers with extra warnings, as an error gate ---------------------
+make "${MAKEARGS[@]}" W=1 KCFLAGS=-Werror \
+  drivers/tty/serial/sdp_uart.o drivers/clk/clk-sdp1804.o
 
 # 4. kernel image and device trees ---------------------------------------------
 make "${MAKEARGS[@]}" $IMAGES dtbs

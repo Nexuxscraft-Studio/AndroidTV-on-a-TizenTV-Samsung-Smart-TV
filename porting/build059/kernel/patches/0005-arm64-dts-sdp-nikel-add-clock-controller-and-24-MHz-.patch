@@ -1,0 +1,72 @@
+From e204fc8a5d9cdcbc14d9850b7f6c397645e108d5 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 10 Nov 2026 21:48:52 +0100
+Subject: [PATCH 5/5] arm64: dts: sdp-nikel: add clock controller and 24 MHz
+ input clock
+
+The UART is deliberately not connected to apb_pclk yet; the rate shown
+by the clock driver first has to be checked on real hardware.
+---
+ .../arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi | 32 ++++++++++++++++---
+ 1 file changed, 27 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+index 5f8c3f9c6..8ddc6ccb2 100644
+--- a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+@@ -10,6 +10,7 @@
+  * The same file is used for arm64 and (via include-prefixes) arm32 builds.
+  */
+ 
++#include <dt-bindings/clock/samsung,sdp1804-clk.h>
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
+ #include <dt-bindings/interrupt-controller/irq.h>
+ 
+@@ -80,6 +81,14 @@ timer {
+ 		always-on;
+ 	};
+ 
++	/* "fixed-rate-clocks/fin" in the firmware tree */
++	fin_pll: clock-24000000 {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <24000000>;
++		clock-output-names = "fin_pll";
++	};
++
+ 	pmu {
+ 		compatible = "arm,cortex-a57-pmu";
+ 		interrupts = <GIC_SPI 220 IRQ_TYPE_LEVEL_HIGH>,
+@@ -104,11 +113,24 @@ gic: interrupt-controller@431000 {
+ 		};
+ 
+ 		/*
+-		 * UART input clock: Samsung uses "apb_pclk" from the
+-		 * samsung,sdp1804-clock controller, which has no Linux 6.6
+-		 * driver yet. Without a clock the sdp_uart driver derives the
+-		 * input clock from the divisor left by the boot loader
+-		 * (samsung,boot-baudrate, default 115200).
++		 * Read-only: exposes the PLL rates set by the boot loader.
++		 * The firmware tree uses child nodes with "sdp,clock"; this
++		 * tree uses a single provider with indices instead.
++		 */
++		clock: clock-controller@f50000 {
++			compatible = "samsung,sdp1804-clock";
++			reg = <0x00f50000 0x3000>;
++			clocks = <&fin_pll>;
++			#clock-cells = <1>;
++		};
++
++		/*
++		 * UART input clock: Samsung uses "apb_pclk" (COREPLL0 / 8).
++		 * It is not wired up yet on purpose: until the rate printed
++		 * by the clock driver has been compared on real hardware with
++		 * the rate the sdp_uart driver derives from the boot loader
++		 * divisor (samsung,boot-baudrate, default 115200), the
++		 * derived value is the safer choice for the console.
+ 		 * Interrupt index 0 is TX, index 1 is RX (Samsung driver).
+ 		 */
+ 		uart0: serial@190a00 {
+-- 
+2.43.0
+

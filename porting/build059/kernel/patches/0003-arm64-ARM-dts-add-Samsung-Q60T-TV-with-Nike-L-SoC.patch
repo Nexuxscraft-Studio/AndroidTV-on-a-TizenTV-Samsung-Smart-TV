@@ -1,7 +1,7 @@
 From 8c12d8ef5f9c58486c2ed9e8e233b28c0c0f19ee Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Tue, 10 Nov 2026 21:31:38 +0100
-Subject: [PATCH 3/3] arm64, ARM: dts: add Samsung Q60T TV with Nike-L SoC
+Subject: [PATCH 3/5] arm64, ARM: dts: add Samsung Q60T TV with Nike-L SoC
 
 Minimal device trees for the Samsung Q60T television (Nike-L SoC) in
 the two memory profiles found in firmware T-NKLDEUC 2743.0: CPUs, PSCI,

@@ -15,6 +15,8 @@ UART-Treiber und Konsole. Ziel beim ersten echten Start wäre eine Shell
 | `kernel/patches/0001-…uart…patch` | Neuer Treiber `drivers/tty/serial/sdp_uart.c` für `samsung,sdp-uart2` mit Konsole (`ttySDP0`) und `earlycon`, plus DT-Binding |
 | `kernel/patches/0002-…ARCH_SDP…patch` | Plattform `ARCH_SDP` für arm64 und arm32 (nur Device Tree, CPUs über PSCI) |
 | `kernel/patches/0003-…dts…patch` | `sdp-nikel.dtsi` + Q60T-Boards für die Profile `nikel-1.5G` und `nikel-2G`; die arm32-Varianten binden die arm64-Dateien ein |
+| `kernel/patches/0004-clk…patch` | Neuer Treiber `drivers/clk/clk-sdp1804.c`: liest die 13 PLLs und leitet `arm_clk`, `apb_pclk`, `ddr2/3_clk`, `emmc_clk` ab – **nur lesend**, keine Gates, kein Umprogrammieren |
+| `kernel/patches/0005-…clock-controller…patch` | Clock-Controller `0xF50000` + 24-MHz-`fin_pll` im Device Tree |
 | `kernel/configs/` | Konfigurations-Fragmente (`common`, `arm64`, `arm`) und Pflicht-Symbole |
 | `kernel/build.sh` | Reproduzierbarer Build: Patches anwenden, konfigurieren, prüfen, bauen |
 | `tools/fdt2dts.py` | DTB → DTS ohne `dtc` (nur Standardbibliothek) |
@@ -33,10 +35,14 @@ UART-Treiber und Konsole. Ziel beim ersten echten Start wäre eine Shell
   - Interruptursachen in `UTRSTAT` werden per Schreiben einer 1 quittiert
   - „enhanced“-Ports haben 64 Byte FIFO mit anderem `UFSTAT`-Layout
   - Konsole ist `serial@190a00` (bei Samsung `ttyS0`, hier `ttySDP0`)
-- **Takt:** Für `samsung,sdp1804-clock` gibt es noch keinen 6.6-Treiber. Der
-  UART-Treiber rekonstruiert seinen Eingangstakt aus dem vom Bootloader
-  gesetzten Teiler (`UBRDIV`) und 115200 Baud. So funktioniert die Konsole,
-  bevor der Clock-Treiber portiert ist.
+- **Takt:** `clk-sdp1804.c` übernimmt aus Samsungs `clk-sdp.c` die
+  PLL-Offsets, die Formel `f = (fin·m + (fin·k)>>16) / (p·2^s)` und die
+  festen Teiler (`apb_pclk = COREPLL0/8`, `emmc_clk = COREPLL2/2`). Die UART
+  ist absichtlich **noch nicht** an `apb_pclk` gehängt: Sie rekonstruiert ihren
+  Eingangstakt aus dem vom Bootloader gesetzten Teiler (`UBRDIV`, 115200 Baud).
+  Beim ersten Start beide Werte im Log vergleichen (`sdp1804-clk: apb_pclk …`
+  und `uartclk … derived from boot divisor`); erst wenn sie passen, UART per
+  `clocks = <&clock SDP1804_APB_PCLK>` anbinden.
 
 ## Selbst bauen (z. B. auf dem Debian-VServer)
 
@@ -73,9 +79,14 @@ verwenden. Ergebnis je Lauf in `~/b059-out/artifacts-<arch>-<profil>/`:
    bisher nur offline vor.
 2. **Serielle Konsole am TV**: Anschluss und Freischaltung (Bootargs
    `rs232=0`; im Firmware-DT gibt es Bootmodi mit Taste „S“ → `init=/bin/sh`).
-3. **Clock-Treiber** `samsung,sdp1804-clock` (Samsung `clk-sdp.c`, 94 KB) →
-   echte `apb_pclk`/`emmc_clk`.
-4. **eMMC** (`sdp_mmc.c`, 187 KB), danach Pinctrl, USB (EHCI/OHCI), Ethernet.
+3. **Clock-Treiber** erweitern: Gates und Software-Resets (`0x7xx`/`0x8xx`)
+   als Reset-Controller, sobald die gelesenen PLL-Raten am Gerät bestätigt sind.
+4. **eMMC**: Samsungs `sdp_mmc.c` trägt `MODULE_LICENSE("Proprietary")` und
+   wird deshalb **nicht** portiert. Die Kommentare darin (IP-Version 2.41a,
+   IDMAC, Card Threshold Control) zeigen, dass es ein **Synopsys
+   DesignWare-MMC** ist → Upstream-Treiber `dw_mmc` + kleine Plattform-
+   Anpassung (Sample-/Drive-Phasen-Register `0x1000a8`/`0x100110` aus dem
+   Firmware-DT). Danach Pinctrl, USB (EHCI/OHCI), Ethernet.
 5. Display/GPU: Fortsetzung der Arbeiten aus Build 050–058 auf dieser Basis.
 
 ## Grenzen

@@ -78,7 +78,7 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 3)
+        self.assertEqual(len(names), 5)
         self.assertTrue(names[0].startswith("0001-serial"))
 
     def test_memory_matches_firmware_profiles(self):
