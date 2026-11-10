@@ -43,7 +43,11 @@ fi
 
 cross_prefix="${CROSS_COMPILE:-arm-linux-gnueabi-}"
 jobs="${JOBS:-2}"
+full_kernel_build="${BUILD058_FULL_KERNEL:-0}"
 [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { printf 'JOBS must be a positive integer\n' >&2; exit 2; }
+[[ "$full_kernel_build" == 0 || "$full_kernel_build" == 1 ]] || {
+  printf 'BUILD058_FULL_KERNEL must be 0 or 1\n' >&2; exit 2;
+}
 for tool in "${cross_prefix}gcc" "${cross_prefix}readelf" patch tar sha256sum make; do
   command -v "$tool" >/dev/null 2>&1 || {
     printf 'Missing required tool: %s\n' "$tool" >&2; exit 2;
@@ -54,8 +58,8 @@ mkdir -- "$output_dir"
 mkdir -- "$output_dir/logs" "$output_dir/kernel-obj" "$output_dir/staging"
 summary="$output_dir/RESULTS.tsv"
 printf 'step\tresult\texit_code\tlog\n' > "$summary"
-printf 'Linux=%s\nARCH=arm\nCROSS_COMPILE=%s\nSamsung-TGZ-SHA256=%s\n' \
-  "$kernel_ver" "$cross_prefix" "$actual_vendor_sha" > "$output_dir/inputs.txt"
+printf 'Linux=%s\nARCH=arm\nCROSS_COMPILE=%s\nSamsung-TGZ-SHA256=%s\nFULL_KERNEL_BUILD=%s\n' \
+  "$kernel_ver" "$cross_prefix" "$actual_vendor_sha" "$full_kernel_build" > "$output_dir/inputs.txt"
 
 record_step() {
   local step="$1"; shift
@@ -82,6 +86,40 @@ check_arm_object() {
   "${cross_prefix}readelf" -h -- "$object" | grep -Eq 'Machine:[[:space:]]*ARM([[:space:]]|$)'
 }
 
+note_step() {
+  printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" >> "$summary"
+}
+
+# A modules_prepare tree has headers but *not* the exported symbol table needed
+# to complete external modules' modpost. Compile individual .o targets first;
+# only attempt the full .ko link when explicitly requested after a full build.
+build_external_objects() {
+  local label="$1" staged="$2" source object name
+  for source in "$staged"/*.c; do
+    name="$(basename "${source%.c}")"
+    object="${source%.c}.o"
+    record_step "${label}_${name}_compile" kernel_make -j"$jobs" M="$staged" "${name}.o" || true
+    if check_arm_object "$object"; then
+      note_step "${name}_elf" PASS 0 "ARM 32-bit ELF: $object"
+      # Preserve legacy result keys used by previous Build 058 reports.
+      note_step "${name}.o" PASS 0 "ARM 32-bit ELF: $object"
+    else
+      note_step "${name}_elf" FAIL 1 "Object missing/invalid: $object"
+      note_step "${name}.o" FAIL 1 "Object missing/invalid: $object"
+    fi
+  done
+
+  if [[ "$full_kernel_build" == 1 ]]; then
+    if [[ -s "$output_dir/kernel-obj/Module.symvers" ]]; then
+      record_step "${label}_modpost" kernel_make -j"$jobs" M="$staged" modules || true
+    else
+      note_step "${label}_modpost" BLOCKED_NO_SYMVERS 2 "$output_dir/kernel-obj/Module.symvers"
+    fi
+  else
+    note_step "${label}_modpost" SKIPPED_OBJECT_ONLY 0 "Set BUILD058_FULL_KERNEL=1 for .ko testing"
+  fi
+}
+
 printf 'Build058 Linux 6.6.162 ARM32 offline compilation; TV access forbidden.\n'
 
 if ! record_step arm32_defconfig kernel_make multi_v7_defconfig; then exit 1; fi
@@ -100,6 +138,17 @@ if ! grep -qx 'CONFIG_DRM_PANFROST=m' "$kernel_config"; then
   exit 2
 fi
 if ! record_step arm32_modules_prepare kernel_make -j"$jobs" modules_prepare; then exit 1; fi
+
+if [[ "$full_kernel_build" == 1 ]]; then
+  if ! record_step arm32_full_kernel_for_symvers kernel_make -j"$jobs" vmlinux; then
+    note_step kernel_module_symvers BLOCKED_KERNEL_BUILD 1 "Full kernel failed; see arm32_full_kernel_for_symvers.log"
+  fi
+fi
+if [[ -s "$output_dir/kernel-obj/Module.symvers" ]]; then
+  note_step kernel_module_symvers PRESENT 0 "$output_dir/kernel-obj/Module.symvers"
+else
+  note_step kernel_module_symvers MISSING 0 "modules_prepare does not generate Module.symvers"
+fi
 
 # In-tree Panfrost driver. The composite object includes all source objects
 # defined in drivers/gpu/drm/panfrost/Makefile; no dummy replacement.
@@ -123,15 +172,7 @@ for component in gpu cpu; do
     cp -- "$project_root/porting/build058/cpu/kernel/Makefile" "$staged/Makefile"
     cp -- "$project_root"/porting/build058/cpu/kernel/*.c "$staged/"
   fi
-  record_step "${component}_prototype_arm32" kernel_make -j"$jobs" M="$staged" modules || true
-  for source in "$staged"/*.c; do
-    object="${source%.c}.o"
-    if check_arm_object "$object"; then
-      printf '%s\tPASS\t0\tARM 32-bit ELF\n' "$(basename "$object")" >> "$summary"
-    else
-      printf '%s\tFAIL\t1\tobject not generated\n' "$(basename "$object")" >> "$summary"
-    fi
-  done
+  build_external_objects "${component}_prototype_arm32" "$staged"
 done
 
 # Build the modernized functions derived from real Samsung sdp_drm_util.c.
@@ -139,14 +180,7 @@ modern="$output_dir/staging/drm-utility-linux66"
 mkdir -- "$modern"
 cp -- "$script_dir"/drm/Makefile "$script_dir"/drm/*.c \
   "$script_dir"/drm/*.h "$modern/"
-record_step sdp_drm_helpers_arm32 kernel_make -j"$jobs" M="$modern" modules || true
-for name in sdp_drm_util sdp_drm_fence; do
-  if check_arm_object "$modern/$name.o"; then
-    printf '%s\tPASS\t0\tARM 32-bit ELF\n' "${name}_elf" >> "$summary"
-  else
-    printf '%s\tFAIL\t1\tobject not generated\n' "${name}_elf" >> "$summary"
-  fi
-done
+build_external_objects sdp_drm_helpers_arm32 "$modern"
 
 # Attempt Samsung's ORIGINAL drm_drv/gem with existing Build053+054 patches.
 # Expected proprietary-header/API failures must be kept as evidence, NOT
@@ -160,14 +194,18 @@ if record_step original_drm_extract tar -xzf "$vendor_tgz" -C "$drm_root"; then
      record_step samsung_drm_stage2 patch -d "$drm_root" --batch -p1 -i "$patch2"; then
     vendor_drm="$drm_root/tztv-media-nike/sdp_drm_nike"
     cp -- "$project_root/porting/build054/test-kbuild-arm32/Kbuild" "$vendor_drm/Kbuild"
-    record_step samsung_drm_drv_gem_arm32 kernel_make -j"$jobs" M="$vendor_drm" modules || true
-    for name in sdp_drm_drv sdp_drm_gem; do
-      if check_arm_object "$vendor_drm/$name.o"; then
-        printf '%s\tPASS\t0\tARM 32-bit ELF\n' "${name}_elf" >> "$summary"
-      else
-        printf '%s\tFAIL\t1\tobject not generated; see Samsung DRM log\n' "${name}_elf" >> "$summary"
-      fi
-    done
+    # Real Samsung Linux 4.1.10 header recovered from its GPL source archive;
+    # local staging only, never copied into the caller's source tree.
+    mkdir -p -- "$vendor_drm/build058-legacy-include/trace"
+    cp -- "$script_dir/drm/legacy-include/trace/early.h" \
+      "$vendor_drm/build058-legacy-include/trace/early.h"
+    printf '\nccflags-y += -I$(src)/build058-legacy-include\n' >> "$vendor_drm/Kbuild"
+    note_step samsung_trace_early_header FOUND 0 "GPL Samsung Linux 4.1.10 source; staged"
+    # drm_tztv.h is NOT in either pinned Samsung source bundle. Do not create
+    # guessed ioctl numbers, data structures, or empty proprietary ABI stubs.
+    note_step samsung_drm_tztv_header BLOCKED_MISSING_ABI 2 \
+      "drm/drm_tztv.h absent from published Samsung Linux/media archives"
+    build_external_objects samsung_drm_drv_gem_arm32 "$vendor_drm"
   fi
 fi
 
