@@ -1,0 +1,168 @@
+{
+  "type": "q60t_build055_panfrost_vendor_gpu_reference",
+  "build": "055",
+  "status": "SOURCE_REFERENCE_VALIDATED_BOARD_UNVERIFIED",
+  "safe_to_flash": false,
+  "hardware_access_performed": false,
+  "module_binary_supplied": false,
+  "kernel_module_loaded": false,
+  "kernel_66_gpu_driver_compiled": false,
+  "tv_gpu_model_verified": false,
+  "target": {
+    "tv_model": "GQ50Q60TGUXZG",
+    "user_reported_gpu": "Mali-G51 Bifrost r11p0",
+    "gpu_id_from_upstream_linux_6_6_reference": "0x7000",
+    "gpu_id_read_from_this_tv": null,
+    "chip_working_hypothesis": "SDP19403 / Nike-L"
+  },
+  "upstream_references": {
+    "kernel_tag": "torvalds/linux v6.6",
+    "model_file": "drivers/gpu/drm/panfrost/panfrost_gpu.c",
+    "model_marker": "GPU_MODEL(g51, 0x7000)",
+    "driver_file": "drivers/gpu/drm/panfrost/panfrost_drv.c",
+    "of_compatible": "arm,mali-bifrost",
+    "dt_binding": "Documentation/devicetree/bindings/gpu/arm,mali-bifrost.yaml",
+    "mesa_docs": "https://docs.mesa3d.org/drivers/panfrost.html"
+  },
+  "samsung_source": {
+    "archive_sha256": "40c2a25eba331b8b04d8d81baf76061493f15f228a74893c7f825f7a1da724b6",
+    "source_members": {
+      "platform": {
+        "member": "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/platform/sdp/mali_kbase_platform_sdp.c",
+        "sha256": "5b1f5a748854b4ce48dfd13ed7d2f2ef779001bb781765cf719c3b4bdeeb621d"
+      },
+      "registers": {
+        "member": "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/platform/sdp/mali_kbase_config_platform.h",
+        "sha256": "021b5cf2ca2c87bda2c1a3c8938319deb487d0ba600d1585dfd93ea0ec7ed0b6"
+      },
+      "probe": {
+        "member": "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/mali_kbase_core_linux.c",
+        "sha256": "89b90beb0a2495388d634ad7f04a6eda260afdc7961c126a7e27eb699125d7f6"
+      },
+      "memory": {
+        "member": "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/mali_kbase_mem_linux.c",
+        "sha256": "4aca6876a9f7632ba68f75db313465e5339a1854a6d36019f50124d01f0ac04f"
+      }
+    },
+    "nike_m_registers": {
+      "SDP_REG_GPU_CLK_MASK": "0x00f50898",
+      "SDP_REG_GPU_BUSIF_SW_RESET": "0x00f50938",
+      "SDP_REG_GPU_CORE_SW_RESET": "0x00f50804",
+      "SDP_REG_GPU_POWER_REQ_IDLE": "0x00f50a38",
+      "SDP_REG_GPU_POWER_IDLE": "0x00f50a3c"
+    },
+    "nike_l_registers": {
+      "SDP_REG_GPU_CLK_MASK": "0x00f5088c",
+      "SDP_REG_GPU_BUSIF_SW_RESET": "0x00f507f8",
+      "SDP_REG_GPU_CORE_SW_RESET": "0x00f507f8",
+      "SDP_REG_GPU_POWER_REQ_IDLE": "0x00f50a10",
+      "SDP_REG_GPU_POWER_IDLE": "0x00f50a14"
+    },
+    "note": "These are Samsung CLK/RESET/IDLE control addresses from old source; NOT a verified GPU MMIO base, IRQ map, or proven Q60T board configuration.",
+    "markers": {
+      "vendor_gpu_power_control": [
+        470,
+        496
+      ],
+      "vendor_gpu_clock_reset_writes": [
+        37,
+        195,
+        196,
+        197,
+        200,
+        201,
+        202,
+        205,
+        206,
+        207,
+        208,
+        273,
+        275,
+        278,
+        280,
+        282,
+        284,
+        285,
+        476,
+        483
+      ],
+      "vendor_of_legacy_midgard_compatible": [
+        4557
+      ],
+      "vendor_of_legacy_malit6xx_compatible": [
+        4556
+      ],
+      "vendor_dma_buf_use": [
+        813,
+        814,
+        817,
+        818,
+        821,
+        825,
+        884,
+        898,
+        900,
+        2133,
+        2137,
+        2138
+      ],
+      "vendor_gpu_memory_management": [
+        26,
+        49,
+        56,
+        73,
+        80,
+        201,
+        202,
+        211,
+        213,
+        301,
+        309,
+        313,
+        328,
+        341,
+        347,
+        351,
+        352,
+        361,
+        401,
+        405
+      ]
+    }
+  },
+  "requirements_for_board_port": [
+    {
+      "name": "GPU ID read from Q60T or trusted firmware",
+      "status": "missing"
+    },
+    {
+      "name": "GPU core MMIO reg base and size",
+      "status": "missing"
+    },
+    {
+      "name": "job, mmu and gpu interrupts",
+      "status": "missing"
+    },
+    {
+      "name": "clock, reset and power domain integration",
+      "status": "vendor clues, unverified"
+    },
+    {
+      "name": "regulator, devfreq and thermal integration",
+      "status": "vendor clues, unverified"
+    },
+    {
+      "name": "IOMMU, DMA addressing and memory coherence",
+      "status": "vendor clues, unverified"
+    },
+    {
+      "name": "device tree validated for actual Q60T variant",
+      "status": "missing"
+    },
+    {
+      "name": "firmware/secure world GPU dependencies",
+      "status": "unknown"
+    }
+  ],
+  "implementation_policy": "Prefer upstream Panfrost DRM and Mesa; use Samsung kbase only as a read-only hardware/initialization reference. Do not transplant legacy kbase memory ABI or write register constants without board verification."
+}
