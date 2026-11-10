@@ -26,11 +26,28 @@ Displayfunktion bereit. Insbesondere wird weder `sdp_drm_drv.c` noch
 ## Auf dem Linux-6.6-Testserver kompilieren
 
 Nur den neuen Ordner `porting/build052/contract/` in ein **neues**
-Arbeitsverzeichnis übertragen. Im neuen Contract-Ordner ausführen:
+Arbeitsverzeichnis übertragen. Auch das Kernel-Objektverzeichnis wird
+für Build 052 getrennt vorbereitet, damit selbst der Kbuild-Zwischenstand
+von Build 051 erhalten bleibt:
+
+```bash
+mkdir -p /opt/samsung-atv-lab/build052-arm64-obj
+cp -n /opt/samsung-atv-lab/build051-arm64-obj/.config \
+  /opt/samsung-atv-lab/build052-arm64-obj/.config
+
+make -C /opt/samsung-atv-lab/linux-6.6.162 \
+  O=/opt/samsung-atv-lab/build052-arm64-obj \
+  ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
+make -C /opt/samsung-atv-lab/linux-6.6.162 \
+  O=/opt/samsung-atv-lab/build052-arm64-obj \
+  ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules_prepare
+```
+
+Danach im neuen Contract-Ordner ausführen:
 
 ```bash
 make -C /opt/samsung-atv-lab/linux-6.6.162 \
-  O=/opt/samsung-atv-lab/build051-arm64-obj \
+  O=/opt/samsung-atv-lab/build052-arm64-obj \
   ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
   M="$PWD" nover_sdp_linux66_contract.o
 
