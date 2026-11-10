@@ -61,9 +61,29 @@ werden (Überschreiben ist bewusst gesperrt). Das Skript verwendet nur
 deaktiviert, anders als die zuvor modifizierte Build-015-Testkonfiguration.
 Das ist kein Laufzeitbefund für Nike-L.
 
+## Linux-6.6-API-Gap-Prüfung
+
+Die nächste Stufe gleicht vier originalgetreue Quelltext-/Makefile-Dateien
+mit ausgewählten DRM- und Panel-Schnittstellen des offiziellen Linux-6.6-
+Kernelbaums ab. Ohne Kompiler und ohne Hardwarezugriff:
+
+```bash
+python3 q60t_build050_linux66_port_gaps.py \
+  --kernel-tgz /pfad/linux-4.1.10-tizen5.5.tgz \
+  --media-tgz /pfad/tztv-media-nike.tgz \
+  --output /pfad/zum/neuen-linux66-gap-bericht.json
+```
+
+Ergebnis: `reports/hardware_build050_linux66_port_gaps.json`.
+Die ausführliche Migrationsmatrix steht unter
+[`LINUX66_PORTING_MATRIX.md`](LINUX66_PORTING_MATRIX.md).
+Dieser Bericht ist ein **Compiler-Vorbereitungsinventar**, kein
+nachgewiesener Treiberbuild.
+
 ```bash
 python3 -m unittest tests/test_build050_hardware_evidence.py -v
 python3 -m unittest tests/test_build050_vendor_code_audit.py -v
+python3 -m unittest tests/test_build050_linux66_port_gaps.py -v
 python3 -m unittest discover -s tests -q
 python3 q60t_release_audit.py .
 ```
