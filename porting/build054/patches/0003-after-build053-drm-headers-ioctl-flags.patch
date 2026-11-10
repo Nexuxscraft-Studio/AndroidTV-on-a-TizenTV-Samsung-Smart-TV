@@ -1,0 +1,117 @@
+--- a/tztv-media-nike/sdp_drm_nike/sdp_drm_drv.c
++++ b/tztv-media-nike/sdp_drm_nike/sdp_drm_drv.c
+@@ -54,48 +54,49 @@
+ static LIST_HEAD(module_list);
+ 
+ /* Build 053: GEM VM functions must move to per-object operations. */
++/* Build 054: DRM_UNLOCKED is a legacy no-op; keep original DRM_AUTH bits. */
+ static struct drm_ioctl_desc sdp_drm_ioctls[] = {
+-	DRM_IOCTL_DEF_DRV(SDP_GEM_CREATE,sdp_drm_gem_create_ioctl,(DRM_UNLOCKED /*| DRM_AUTH*/)),
+-	DRM_IOCTL_DEF_DRV(SDP_GEM_CREATE_HWMEM,sdp_drm_gem_hw_create_ioctl,(DRM_UNLOCKED /*| DRM_AUTH*/)),
+-	DRM_IOCTL_DEF_DRV(SDP_GEM_GET,sdp_drm_gem_get_ioctl, DRM_UNLOCKED),
++	DRM_IOCTL_DEF_DRV(SDP_GEM_CREATE,sdp_drm_gem_create_ioctl,(0 /*| DRM_AUTH*/)),
++	DRM_IOCTL_DEF_DRV(SDP_GEM_CREATE_HWMEM,sdp_drm_gem_hw_create_ioctl,(0 /*| DRM_AUTH*/)),
++	DRM_IOCTL_DEF_DRV(SDP_GEM_GET,sdp_drm_gem_get_ioctl, 0),
+ 	#ifdef ENABLE_GFX_NAME_SHARING
+-	DRM_IOCTL_DEF_DRV(SDP_GET_DISPLAYED_BUF,sdp_drm_get_displayed_buf_ioctl,(DRM_UNLOCKED /*| DRM_AUTH*/)),
+-	DRM_IOCTL_DEF_DRV(SDP_GET_DISPLAYED_DATA,sdp_drm_get_displayed_data_ioctl,(DRM_UNLOCKED /*| DRM_AUTH*/)),
++	DRM_IOCTL_DEF_DRV(SDP_GET_DISPLAYED_BUF,sdp_drm_get_displayed_buf_ioctl,(0 /*| DRM_AUTH*/)),
++	DRM_IOCTL_DEF_DRV(SDP_GET_DISPLAYED_DATA,sdp_drm_get_displayed_data_ioctl,(0 /*| DRM_AUTH*/)),
+ 	#endif
+ 	/* Special Operation */
+-	DRM_IOCTL_DEF_DRV(SDP_SET_DP_SOURCE,sdp_drm_crtc_set_res_ioctl,(DRM_UNLOCKED /*| DRM_AUTH*/)),
+-	DRM_IOCTL_DEF_DRV(SDP_SET_ONOFF,sdp_drm_crtc_set_onoff_ioctl,(DRM_UNLOCKED /*| DRM_AUTH*/)), 
+-	DRM_IOCTL_DEF_DRV(SDP_SET_RESUME_DATA,sdp_drm_crtc_set_resume_dat_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_OUTPUT_SEND_DATA,sdp_drm_crtc_send_out_dat_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_GET_STATUS,sdp_drm_crtc_get_stat_ioctl,(DRM_UNLOCKED /*| DRM_AUTH*/)),
+-	DRM_IOCTL_DEF_DRV(SDP_VIDEO_WALL_FRAME_DELAY,sdp_drm_crtc_video_wall_frame_delay,(DRM_UNLOCKED /*| DRM_AUTH*/)),
+-	DRM_IOCTL_DEF_DRV(SDP_SET_SHOP_MODE, sdp_drm_crtc_set_shop_mode, (DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_SET_GEOMETRY_LIGHT, sdp_drm_crtc_set_geometry_light, (DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_SET_ZERO_ALPHA_MODE, sdp_drm_crtc_set_zero_alpha, (DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_SET_BOX_ALPHA, sdp_drm_crtc_set_box_alpha, (DRM_UNLOCKED /*| DRM_AUTH*/)),
++	DRM_IOCTL_DEF_DRV(SDP_SET_DP_SOURCE,sdp_drm_crtc_set_res_ioctl,(0 /*| DRM_AUTH*/)),
++	DRM_IOCTL_DEF_DRV(SDP_SET_ONOFF,sdp_drm_crtc_set_onoff_ioctl,(0 /*| DRM_AUTH*/)), 
++	DRM_IOCTL_DEF_DRV(SDP_SET_RESUME_DATA,sdp_drm_crtc_set_resume_dat_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_OUTPUT_SEND_DATA,sdp_drm_crtc_send_out_dat_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_GET_STATUS,sdp_drm_crtc_get_stat_ioctl,(0 /*| DRM_AUTH*/)),
++	DRM_IOCTL_DEF_DRV(SDP_VIDEO_WALL_FRAME_DELAY,sdp_drm_crtc_video_wall_frame_delay,(0 /*| DRM_AUTH*/)),
++	DRM_IOCTL_DEF_DRV(SDP_SET_SHOP_MODE, sdp_drm_crtc_set_shop_mode, (0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_SET_GEOMETRY_LIGHT, sdp_drm_crtc_set_geometry_light, (0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_SET_ZERO_ALPHA_MODE, sdp_drm_crtc_set_zero_alpha, (0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_SET_BOX_ALPHA, sdp_drm_crtc_set_box_alpha, (0 /*| DRM_AUTH*/)),
+ 	/* GA Operation */
+-	DRM_IOCTL_DEF_DRV(SDP_GA_EXEC,sdp_drm_ga_exec_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_GEM_CACHE_OP,sdp_drm_gem_cache_op_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_GA_EXEC,sdp_drm_ga_exec_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_GEM_CACHE_OP,sdp_drm_gem_cache_op_ioctl,(0 | DRM_AUTH)),
+ 
+ 	/* GEM BUFFER SYNC */
+-	DRM_IOCTL_DEF_DRV(SDP_GEM_CPU_PREP,sdp_gem_object_cpu_prep_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_GEM_CPU_FINI,sdp_gem_object_cpu_fini_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_GEM_CPU_PREP,sdp_gem_object_cpu_prep_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_GEM_CPU_FINI,sdp_gem_object_cpu_fini_ioctl,(0 | DRM_AUTH)),
+ 
+ 	/* qpi function */
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_DST_CRC,sdp_drm_crtc_qpi_get_dst_crc_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_OUT_CRC,sdp_drm_crtc_qpi_get_out_crc_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_SET_INPUT_TEST_PATTERN,sdp_drm_crtc_qpi_set_input_testpattern_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_SET_INCAPT_CLOCK_SEL,sdp_drm_crtc_qpi_set_incapt_clock_sel_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_SET_READY_GET_OUT_CRC,sdp_drm_crtc_qpi_ready_getting_out_crc_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_SET_GP_SYNCONOFF,sdp_drm_crtc_qpi_set_gp_sync_on_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_INPUT_CRC,sdp_drm_crtc_qpi_get_input_crc_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_POST_CRC,sdp_drm_crtc_qpi_get_post_crc_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_FUNC,sdp_drm_crtc_qpi_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_GFX_CRC_PF_TEST, sdp_drm_crtc_qpi_gfx_crc_pf_test_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_GFX_CRC, sdp_drm_crtc_qpi_get_gfx_crc_ioctl,(DRM_UNLOCKED | DRM_AUTH)),
+-	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_OSD_CRC, sdp_drm_crtc_qpi_get_osd_crc_ioctl,(DRM_UNLOCKED | DRM_AUTH)),	
++	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_DST_CRC,sdp_drm_crtc_qpi_get_dst_crc_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_OUT_CRC,sdp_drm_crtc_qpi_get_out_crc_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_SET_INPUT_TEST_PATTERN,sdp_drm_crtc_qpi_set_input_testpattern_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_SET_INCAPT_CLOCK_SEL,sdp_drm_crtc_qpi_set_incapt_clock_sel_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_SET_READY_GET_OUT_CRC,sdp_drm_crtc_qpi_ready_getting_out_crc_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_SET_GP_SYNCONOFF,sdp_drm_crtc_qpi_set_gp_sync_on_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_INPUT_CRC,sdp_drm_crtc_qpi_get_input_crc_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_POST_CRC,sdp_drm_crtc_qpi_get_post_crc_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_FUNC,sdp_drm_crtc_qpi_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_GFX_CRC_PF_TEST, sdp_drm_crtc_qpi_gfx_crc_pf_test_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_GFX_CRC, sdp_drm_crtc_qpi_get_gfx_crc_ioctl,(0 | DRM_AUTH)),
++	DRM_IOCTL_DEF_DRV(SDP_QPI_GET_OSD_CRC, sdp_drm_crtc_qpi_get_osd_crc_ioctl,(0 | DRM_AUTH)),	
+ #ifdef NIKEM_VX1_BYPASS_WORKAROUND
+-	DRM_IOCTL_DEF_DRV(SDP_GET_VX1BYPASS_MODE, sdp_drm_crtc_update_vx1bypass_mode_ioctl,(DRM_UNLOCKED)),
++	DRM_IOCTL_DEF_DRV(SDP_GET_VX1BYPASS_MODE, sdp_drm_crtc_update_vx1bypass_mode_ioctl,(0)),
+ #endif	
+ };
+ 
+--- a/tztv-media-nike/sdp_drm_nike/sdp_drm_drv.h
++++ b/tztv-media-nike/sdp_drm_nike/sdp_drm_drv.h
+@@ -9,7 +9,14 @@
+ #ifndef __SDP_DRM_DRV_H__
+ #define __SDP_DRM_DRV_H__
+ 
+-#include <drm/drmP.h>
++/* Build 054: explicit core declarations instead of removed drmP.h. */
++#include <drm/drm_device.h>
++#include <drm/drm_file.h>
++#include <drm/drm_crtc.h>
++#include <drm/drm_gem.h>
++#include <drm/drm_modes.h>
++#include <drm/drm_prime.h>
++#include <drm/drm_vblank.h>
+ #include <drm/drm_tztv.h>
+ #include "sdp_drm_util.h"
+ #include "drm_crtc_helper.h"
+--- a/tztv-media-nike/sdp_drm_nike/sdp_drm_gem.h
++++ b/tztv-media-nike/sdp_drm_nike/sdp_drm_gem.h
+@@ -9,7 +9,11 @@
+ #ifndef __SDP_DRM_GEM_H__
+ #define __SDP_DRM_GEM_H__
+ 
+-#include <drm/drmP.h>
++/* Build 054: explicit GEM and VM declarations for diagnostics. */
++#include <drm/drm_device.h>
++#include <drm/drm_file.h>
++#include <drm/drm_gem.h>
++#include <linux/mm.h>
+ #include <linux/reservation.h>
+ #ifdef CONFIG_SMEM
+ #include <soc/sdp/smem.h>
