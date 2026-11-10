@@ -1,7 +1,7 @@
 # Build 050 – Samsung Nike-L Hardware-Forensik (read-only)
 
 **Ziel:** Samsung Q60T `GQ50Q60TGUXZG` (50 Zoll), gemeldete Firmware `2743.0`.  
-**Untersuchungsbasis:** bereits extrahierte Berichte der **Samsung-55-Zoll-Referenzfirmware** `T-NKLDEUC 2743.0` und des Nike-L-OSS-Pakets `20_DTV_NikeL.zip`.  
+**Untersuchungsbasis:** bereits extrahierte Berichte der **Samsung-55-Zoll-Referenzfirmware** `T-NKLDEUC 2743.0` **und jetzt direkt gelesene Original-C-Quellen** aus dem vom Projekt bereitgestellten Nike-L-OSS-Paket `20_DTV_NikeL.zip`.  
 **Branch:** `feature/build050-samsung-hardware-forensics` (aus Build 025).  
 **Bewertung:** `REFERENCE_IDENTIFIED_LIVE_TV_UNVERIFIED`. **Kein Zugriff auf den realen Fernseher, kein Flash und kein Geräteboot.**
 
@@ -66,16 +66,23 @@ Ein früherer **Nike.M**-Konfigurationsversuch auf Linux 4.1.10
 
 | Konfiguration | Gemeldeter Nike.M-Teststand | Bedeutung |
 | --- | --- | --- |
-| `CONFIG_ANDROID_BINDER_IPC` | `y` | Binder-Quellbasis vorhanden, **keine** Android-14-ABI-Validierung |
-| `CONFIG_SECURITY_SELINUX` | `y` | SELinux-Kernelbasis, **keine** Android-Policy-Validierung |
-| `CONFIG_ION` | `y` | Legacy-Allocator, **keine** moderne Gralloc/DMA-BUF-Integration |
+| `CONFIG_ANDROID_BINDER_IPC` | `y` | Im **veränderten Teststand** aktiviert; **nicht** im unveränderten Nike.M-Release-Defconfig |
+| `CONFIG_SECURITY_SELINUX` | `y` | Im **veränderten Teststand** aktiviert; **nicht** im unveränderten Nike.M-Release-Defconfig |
+| `CONFIG_ION` | `y` | Im **veränderten Teststand** aktiviert; **nicht** im unveränderten Nike.M-Release-Defconfig |
 | `CONFIG_CGROUPS` | `y` | Cgroup-Unterbau in Testkonfiguration |
 | `CONFIG_SECCOMP_FILTER` | `y` | Seccomp-Unterbau in Testkonfiguration |
 | `CONFIG_BPF_SYSCALL` | `n` | Kein entsprechender BPF-Syscall im Teststand |
 
-**Nicht mit dem echten Nike-L-Firmware-Kernel verwechseln:** Eine
-exakte `Nike.L`-Release-Defconfig wurde bislang nicht nachgewiesen.
-Diese Kconfig-Werte sind daher **keine** Live-Aussage zum Q60T.
+**Wichtige Korrektur durch direkte Prüfung des Originalquellcodes:**
+Das tatsächlich im Archiv liegende **unveränderte**
+`arch/arm/configs/Nike.M-Tizen_release_defconfig` hat
+`CONFIG_ANDROID_BINDER_IPC=n`, `CONFIG_SECURITY_SELINUX=n`,
+`CONFIG_ION=n`, `CONFIG_SECURITY_SMACK=y`, `CONFIG_BPF_SYSCALL=n`,
+`CONFIG_CGROUPS=y`, `CONFIG_SECCOMP_FILTER=y` und `CONFIG_ARM=y`.
+Die obenstehenden `y`-Werte von Build 015 waren somit eine **aufgelöste/
+modifizierte Laborkonfiguration**, keine Samsung-Werkseinstellung.
+Eine exakte `Nike.L`-Release-Defconfig wurde weiterhin **nicht** nachgewiesen;
+keiner dieser Werte ist eine Live-Aussage zum 50-Zoll-TV.
 
 Für den separaten **Linux-6.6-/LineageOS-21-Laborzweig** sind zu
 prüfen: Binder-/hwbinder-/vndbinder-Geräte und Protokoll, Android-
@@ -95,19 +102,43 @@ Es schreibt ein neues strukturiertes Ergebnis
 - **Überprüft:** Zwei DTBs, vier Cortex-A57-Knoten je DTB, Referenz-
   Peripherie, ARM32-`uImage` samt CRC, Security-Artefaktinventur,
   ursprüngliche Quellreferenzen und acht gesperrte Recovery-Gates.
-- **Nicht direkt neu gelesen:** das **743-MB-Originalarchiv** und der
-  darin enthaltene vollständige Linux-Quellbaum; beide liegen in
-  dieser Entwicklungsumgebung nicht vor. Bei späterer lokaler
-  Bereitstellung kann `--original-oss-archive` die bekannte SHA-256
-  read-only verifizieren; anschließend ist eine echte Code-/API-
-  Portierungsprüfung separat notwendig.
+- **Jetzt unabhängig direkt gelesen:** Die über
+  `https://noverhost.de/20_DTV_NikeL.zip` bereitgestellten 743.308.262 Byte
+  wurden auf SHA-256 `3e38ad1baf54be8ed91c1c18b2c3137692c28e01ca894db9690f632a1fbd3bad`
+  geprüft. Die enthaltene zweite `20_DTV_NikeL.zip` entspricht
+  `ceebe20245945571ff30f9584bc62e4c7fed138f320a55d8e876f3abd05ee20a`.
+  Die drei relevanten `*.tgz` wurden daraus isoliert; **13 Originaldateien**
+  sind ohne Codeausführung und ohne Vendor-Installation geprüft worden.
 - **Nicht überprüft:** tatsächlicher 50-Zoll-SoC, CPU-MIDR/GPU-ID,
   Bootloader-Signaturdurchsetzung, Linux-6.6-Samsung-Treiber und
   Hardware-Recovery.
 
 Ausführung und Testvorgaben: [`porting/build050/README.md`](porting/build050/README.md).
 
-## 6. Nächste Hardware-Nachweise – vor jedem echten Boot
+## 6. Befunde aus dem direkt gelesenen Original-C-Quellcode
+
+Das neue Werkzeug `q60t_build050_vendor_code_audit.py` prüft die SHA-256
+aller drei Quellarchive und protokolliert pro Datei deren Inhaltshash und
+die Zeilennummern wörtlicher Merkmale. Das reproduzierbare Ergebnis steht in
+`reports/hardware_build050_direct_source.json`, mit dem ausdrücklichen Status
+`SOURCE_CODE_CONFIRMED_TV_UNVERIFIED` und `safe_to_flash: false`.
+
+| Originaldatei | Tatsächlicher Befund | Portierungsfolge für Linux 6.6 |
+| --- | --- | --- |
+| `arch/arm/mach-sdp/board-nike-dt.c` | `samsung,sdp-nikel` **und** `samsung,sdp-nikem`, `DT_MACHINE_START`, ARM32-Sekundär-CPU-Einstieg (`u32 entry`) | Alte ARM32-Machine-/SMP-Logik nicht 1:1 nach ARM64 übertragbar; kein bestätigter Samsung-AArch64-Boot |
+| `sdp_drm_nike/sdp_drm_drv.c` | `drm_platform_init`, `drm_driver.load/.unload`, `drm_put_dev` | Veraltete DRM-Registrierung und Lebenszyklus-Callbacks müssen an aktuelle DRM-/Component-APIs angepasst werden |
+| `sdp_gpu_nike/.../mali_kbase_core_linux.c` | Mali-Midgard-`kbase` mit DDK-/Userspace-Versionsaustausch | Treiber/HAL/Userspace-Versionen und DMA/IOMMU APIs müssen zusammenpassen; keine konkrete GPU-ID nachgewiesen |
+| `.../platform/sdp/mali_kbase_platform_sdp.c` | Samsung-spezifische Clock-/Resetsteuerung und DVFS; Tabelle `MuseM_DVFS_table` | Keine fremden DVFS-Takte als Nike-L-Fakten übernehmen; echte Register, Clocks und Reset-Topologie fehlen |
+| `sdp_frc_nike/nikel/sdp_frc_drv.c` | Samsung-TCON-/FRC-Abhängigkeiten | Reiner Mali/Panfrost-Port würde nicht automatisch ein TV-Bild ausgeben |
+| `sdp_hdmi_nike/sdp_hdmi_main.c` | HDMI- und HDCP-Bezüge im Quellcode | Belegt **weder** funktionierenden HDMI-Android-Pfad **noch** gültige HDCP-Schlüssel |
+| `arch/arm64/boot/dts/sdp/sdp1600.dtsi` | ARM64-A57-Device-Tree für **`samsung,sdp1600`** | **Nicht** mit einem Nike-L-ARM64-Device-Tree verwechseln |
+| `tztv-bootmode/tztv-bootmode.c` | Tizen-Bootmodus-/Frühwarn-Status | Kein Beleg für unabhängiges Recovery oder tolerierten Fremdkernel |
+
+Das ist eine **API- und Abhängigkeitsinventur**, **noch kein kompilierter
+Linux-6.6-Hardwaretreiber**. Der Original-Quellbestand bleibt lokal; in
+GitHub werden nur Hashes, Quellpfade und eigene Prüfauswertungen abgelegt.
+
+## 7. Nächste Hardware-Nachweise – vor jedem echten Boot
 
 1. **Exaktes Board:** Über einen regulär verfügbaren, rein lesenden
    Tizen-Zugang Board-/SoC-/CPU-MIDR, GPU-ID, RAM und aktives DTB
