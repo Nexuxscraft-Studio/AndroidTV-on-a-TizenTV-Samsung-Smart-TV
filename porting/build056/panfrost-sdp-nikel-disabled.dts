@@ -1,0 +1,27 @@
+/*
+ * Build 056: OFFLINE COMPILE-ONLY REFERENCE -- NEVER FLASH OR BOOT.
+ * This is NOT the Samsung Q60T's complete device tree and cannot initialize GPU.
+ * Observed MMIO and raw interrupts are taken from the original Nike-L DTB.
+ * Clock, reset, regulator, and power domain links remain deliberately absent.
+ * The original firmware uses "arm,mali-midgard" (not "arm,mali-bifrost").
+ */
+/dts-v1/;
+
+/ {
+    model = "Build 056 offline Samsung Mali-G51 GPU reference (NOT A REAL BOARD)";
+    compatible = "nover,offline-unbootable-gpu-reference";
+    #address-cells = <1>;
+    #size-cells = <1>;
+
+    gpu@500000 {
+        compatible = "arm,mali-bifrost";
+        reg = <0x00500000 0x00004000>;
+
+        /* Original GIC interrupt specifiers; trigger flags 0 are UNVERIFIED. */
+        interrupts = <0 0x72 0>, <0 0x71 0>, <0 0x70 0>;
+        interrupt-names = "job", "mmu", "gpu";
+
+        /* Missing: interrupt-parent, clocks, power-domains, resets, supply. */
+        status = "disabled";
+    };
+};
