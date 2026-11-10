@@ -23,6 +23,14 @@ Das ist **nicht** der Samsung-Treiber und stellt keine GPU- oder
 Displayfunktion bereit. Insbesondere wird weder `sdp_drm_drv.c` noch
 `sdp_drm_gem.c` in diesem Test kompiliert.
 
+### Nachtrag: fehlende Header aus dem ersten Build-052-Compilerfeedback
+
+Der Contract bindet neben `drm_device.h`, `drm_drv.h` und `drm_gem.h`
+nun auch explizit `drm_file.h` und `drm_ioctl.h` ein. Diese Definitionen
+werden für die GEM-Dateioperationen benötigt. Ob damit alle vom Testserver
+gemeldeten Fehler verschwinden, muss der nächste **echte** ARM64-
+Kompilierversuch zeigen; die lokalen Python-Tests ersetzen ihn nicht.
+
 ## Auf dem Linux-6.6-Testserver kompilieren
 
 Nur den neuen Ordner `porting/build052/contract/` in ein **neues**
