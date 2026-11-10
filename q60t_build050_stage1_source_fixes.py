@@ -35,8 +35,9 @@ def migrate_panel(source):
     edits = [
         ("#include <drm/drmP.h>",
          "#include <linux/fb.h>\n#include <linux/slab.h>\n"
-         "#include <drm/drm_connector.h>\n#include <drm/drm_modes.h>",
-         "remove drmP legacy header"),
+         "#include <drm/drm_connector.h>\n#include <drm/drm_device.h>\n"
+         "#include <drm/drm_modes.h>",
+         "remove drmP legacy header and include the complete DRM device definition"),
         ("\t.vrefresh = 60,\n", "", "remove obsolete drm_display_mode.vrefresh"),
         ("static int sdp_panel_get_modes(struct drm_panel *panel)",
          "static int sdp_panel_get_modes(struct drm_panel *panel,\n"
