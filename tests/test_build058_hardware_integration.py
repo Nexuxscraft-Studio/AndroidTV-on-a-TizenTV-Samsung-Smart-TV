@@ -61,6 +61,7 @@ class Build058Integration(unittest.TestCase):
         self.assertIn("BUILD058_FULL_KERNEL", src)
         self.assertIn("arm32_full_kernel_for_symvers", src)
         self.assertIn("samsung_drm_tztv_header", src)
+        self.assertIn("sdp_drm_drv sdp_drm_gem", src)
 
     def test_cpufreq_6_6_api_and_name_size(self):
         src = (ROOT / "porting/build058/cpu/kernel/sdp_nikel_cpufreq.c").read_text()
