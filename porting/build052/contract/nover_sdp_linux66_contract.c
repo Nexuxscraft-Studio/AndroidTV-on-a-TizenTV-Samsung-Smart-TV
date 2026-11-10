@@ -30,7 +30,16 @@ static const struct drm_gem_object_funcs nover_sdp52_gem_ops = {
 	.free = nover_sdp52_gem_free,
 };
 
-static struct drm_gem_object *
+/*
+ * Driver-private GEM constructor, for a future dumb_create/ioctl path.
+ *
+ * Deliberately NOT wired to drm_driver.gem_create_object: in Linux 6.6 that
+ * hook is only an allocator for the GEM shmem/DMA helpers. They container_of()
+ * the result to their own (larger) object type and call drm_gem_object_init()
+ * themselves afterwards, so this constructor would be initialized twice and
+ * the bare struct drm_gem_object would be overrun.
+ */
+static __maybe_unused struct drm_gem_object *
 nover_sdp52_gem_create(struct drm_device *drm, size_t size)
 {
 	struct drm_gem_object *object;
@@ -54,7 +63,6 @@ DEFINE_DRM_GEM_FOPS(nover_sdp52_file_ops);
 
 static const struct drm_driver nover_sdp52_driver = {
 	.driver_features = DRIVER_GEM,
-	.gem_create_object = nover_sdp52_gem_create,
 	.fops = &nover_sdp52_file_ops,
 	.name = "nover-sdp52-contract",
 	.desc = "Samsung Nike-L Linux 6.6 API compile contract only",

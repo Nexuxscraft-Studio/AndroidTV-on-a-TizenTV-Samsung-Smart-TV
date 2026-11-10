@@ -11,7 +11,11 @@ Panels belegt**, nicht das fertige oder lauffähige Modul.
 Build 051 bleibt unverändert. Build 052 enthält in `contract/` einen
 separaten, bewusst nicht ladbaren Linux-6.6-Kompilierungstest für:
 
-- `struct drm_driver` mit `DRIVER_GEM`, `.gem_create_object` und GEM-FOPS;
+- `struct drm_driver` mit `DRIVER_GEM` und GEM-FOPS;
+- treibereigener GEM-Konstruktor (`kzalloc` → `funcs` → `drm_gem_object_init()`),
+  **nicht** als `.gem_create_object` eingehängt: Dieser Hook ist in 6.6 nur der
+  Allokator der shmem-/DMA-Helper, die danach selbst initialisieren
+  (sonst Doppel-Init und Überlauf per `container_of()`);
 - `struct drm_gem_object_funcs.free` statt `drm_driver.gem_free_object`;
 - `drm_gem_object_init()` / `drm_gem_object_release()`;
 - `drm_dev_alloc()` → `drm_dev_register()` → `drm_dev_unregister()` →

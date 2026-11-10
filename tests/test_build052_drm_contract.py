@@ -44,10 +44,13 @@ class TestBuild052DRMContract(unittest.TestCase):
             "drm_gem_object_init(drm, object, size)",
             "drm_gem_object_release(object)",
             "object->funcs = &nover_sdp52_gem_ops;",
-            ".gem_create_object = nover_sdp52_gem_create,",
             "DEFINE_DRM_GEM_FOPS(nover_sdp52_file_ops)",
         ):
             self.assertIn(required, self.source)
+        # 6.6: .gem_create_object is a shmem/DMA-helper allocator hook only; the
+        # helper calls drm_gem_object_init() itself, so it must not be this ctor.
+        self.assertNotIn(".gem_create_object =", self.source)
+        self.assertIn("static __maybe_unused struct drm_gem_object *", self.source)
         for obsolete in ("drmP.h", ".gem_free_object", ".gem_vm_ops", ".gem_prime_vmap"):
             self.assertNotIn(obsolete, self.source)
 

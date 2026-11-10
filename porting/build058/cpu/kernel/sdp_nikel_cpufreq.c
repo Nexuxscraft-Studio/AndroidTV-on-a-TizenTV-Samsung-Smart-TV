@@ -65,11 +65,11 @@ static int nikel_cpufreq_probe(struct platform_device *pdev)
 	return cpufreq_register_driver(&nikel_cpu_freq_driver);
 }
 
-static int nikel_cpufreq_remove(struct platform_device *pdev)
+/* Linux 6.6: the int-returning .remove is deprecated; use .remove_new. */
+static void nikel_cpufreq_remove(struct platform_device *pdev)
 {
 	(void)pdev;
 	cpufreq_unregister_driver(&nikel_cpu_freq_driver);
-	return 0;
 }
 
 static const struct of_device_id nikel_cpufreq_of_match[] = {
@@ -80,7 +80,7 @@ MODULE_DEVICE_TABLE(of, nikel_cpufreq_of_match);
 
 static struct platform_driver nikel_cpufreq_platform_driver = {
 	.probe = nikel_cpufreq_probe,
-	.remove = nikel_cpufreq_remove,
+	.remove_new = nikel_cpufreq_remove,
 	.driver = {
 		.name = "sdp-nikel-cpufreq-offline",
 		.of_match_table = nikel_cpufreq_of_match,
