@@ -1,0 +1,141 @@
+--- a/linux-4.1.10/drivers/gpu/drm/panel/panel-sdp.c
++++ b/linux-4.1.10/drivers/gpu/drm/panel/panel-sdp.c
+@@ -11,7 +11,10 @@
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
+ #include <linux/backlight.h>
+-#include <drm/drmP.h>
++#include <linux/fb.h>
++#include <linux/slab.h>
++#include <drm/drm_connector.h>
++#include <drm/drm_modes.h>
+ #include <drm/drm_panel.h>
+ 
+ struct sdp_panel_desc {
+@@ -44,7 +47,6 @@
+ 	.vsync_start = 1080,
+ 	.vsync_end = 1080,
+ 	.vtotal = 1080,
+-	.vrefresh = 60,
+ };
+ 
+ static const struct sdp_panel_desc sdp_panel_desc = {
+@@ -95,11 +97,11 @@
+ 	return 0;
+ }
+ 
+-static int sdp_panel_get_modes(struct drm_panel *panel)
++static int sdp_panel_get_modes(struct drm_panel *panel,
++			       struct drm_connector *connector)
+ {
+ 	struct sdp_panel_data *p = to_sdp_panel_data(panel);
+-	struct drm_connector *connector = p->base.connector;
+-	struct drm_device *drm = p->base.drm;
++	struct drm_device *drm = connector->dev;
+ 	struct drm_display_mode *mode;
+ 	unsigned int i, num = 0;
+ 
+@@ -109,7 +111,7 @@
+ 		mode = drm_mode_duplicate(drm, m);
+ 		if (!mode) {
+ 			dev_err(drm->dev, "failed to add mode %ux%u@%u\n",
+-				m->hdisplay, m->vdisplay, m->vrefresh);
++				m->hdisplay, m->vdisplay, drm_mode_vrefresh(m));
+ 			continue;
+ 		}
+ 
+@@ -138,7 +140,6 @@
+ 	struct device_node *backlight;
+ #endif
+ 	struct sdp_panel_data *panel;
+-	int ret;
+ 
+ 	if (!node) {
+ 		dev_err(&pdev->dev, "device tree node not found\n");
+@@ -164,40 +165,32 @@
+ 			panel->enabled = true;
+ 	}
+ #endif
+-	drm_panel_init(&panel->base);
+-	panel->base.dev = &pdev->dev;
+-	panel->base.funcs = &sdp_panel_funcs;
+-
+-	ret = drm_panel_add(&panel->base);
+-	if (ret < 0)
+-		goto err;
++	drm_panel_init(&panel->base, &pdev->dev, &sdp_panel_funcs,
++		       DRM_MODE_CONNECTOR_Unknown);
++
++	drm_panel_add(&panel->base);
+ 
+ 	platform_set_drvdata(pdev, panel);
+ 
+ 	return 0;
+ 
+-err:
++}
++
++static int sdp_panel_remove(struct platform_device *pdev)
++{
++	struct sdp_panel_data *panel = platform_get_drvdata(pdev);
++
++	drm_panel_remove(&panel->base);
++
+ 	if (panel->backlight)
+ 		put_device(&panel->backlight->dev);
+ 
+-	return ret;
+-}
+-
+-static int sdp_panel_remove(struct platform_device *pdev)
+-{
+-	struct sdp_panel_data *panel = platform_get_drvdata(pdev);
+-
+-	drm_panel_detach(&panel->base);
+-	drm_panel_remove(&panel->base);
+-
+-	if (panel->backlight)
+-		put_device(&panel->backlight->dev);
+-
+ 	return 0;
+ }
+ 
+ static const struct of_device_id sdp_panel_dt_match[] = {
+-	{ .compatible = "samsung,sdp1202-panel", },
++	/* Build 050: intentionally DOES NOT bind to the real Samsung DTB. */
++	{ .compatible = "nover,compile-only-sdp-panel", },
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, sdp_panel_dt_match);
+--- a/tztv-media-nike/sdp_drm_nike/sdp_drm_drv.c
++++ b/tztv-media-nike/sdp_drm_nike/sdp_drm_drv.c
+@@ -177,7 +177,7 @@
+ #endif
+ 	if ((priv->num_encoders == 0) || (priv->num_connectors == 0)) {
+ 		dev_err(dev->dev, "no encoders/connectors found\n");
+-		/* return -ENXIO; */
++		return -ENXIO; /* Build 050: fail closed without display outputs. */
+ 	}
+ 
+ 	dev->mode_config.min_width = 0;
+@@ -348,18 +348,14 @@
+ 	spin_unlock_irqrestore(&dev->event_lock, flags);
+ }
+ 
+-static void sdp_drm_lastclose(struct drm_device *dev)
+-{
+-	struct sdp_drm_private *priv = dev->dev_private;
+-	drm_fbdev_cma_restore_mode(priv->fbdev);
+-}
++/* Build 050: obsolete fbdev CMA lastclose callback removed.
++ * A verified modern fbdev client setup is still required. */
+ 
+ static struct drm_driver sdp_drm_driver = {
+ 	.driver_features		= DRIVER_HAVE_IRQ | DRIVER_MODESET | DRIVER_GEM | DRIVER_PRIME,
+ 	.load			= sdp_drm_load,
+ 	.unload			= sdp_drm_unload,
+ 	.preclose		= sdp_drm_preclose,
+-	.lastclose		= sdp_drm_lastclose,
+ 	.set_busid		= drm_platform_set_busid,
+ 	.get_vblank_counter	= drm_vblank_count,
+ 	.enable_vblank		= sdp_drm_crtc_enable_vblank,
