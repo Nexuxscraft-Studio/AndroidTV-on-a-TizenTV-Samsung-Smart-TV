@@ -2,7 +2,8 @@ name: Build059 Nike-L kernel (Linux 6.6.162, arm64 + arm32)
 
 # Builds the Build 059 base kernel for the Samsung Q60T (Nike-L SoC):
 # Linux 6.6.162 + porting/build059/kernel/patches, for arm64 and arm32,
-# in a small ("tiny") and a distribution-like ("full") configuration.
+# in a small ("tiny"), a distribution-like ("full") and an Android 15
+# ("android", + AOSP android-base.config, with coverage report) configuration.
 #
 # A green run proves: the patches apply, the configuration contains every
 # required symbol, the new UART driver builds warning-free with W=1, and a
@@ -44,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: [arm64, arm]
-        profile: [tiny, full]
+        profile: [tiny, full, android]
     steps:
       - uses: actions/checkout@v4
 
@@ -62,6 +63,25 @@ jobs:
           actual="$(git -C "$RUNNER_TEMP/linux" rev-parse HEAD)"
           echo "Linux commit: $actual"
           test "$actual" = "$LINUX_COMMIT"
+
+      # Official Android 15 (V) kernel config requirements for 6.6, fetched
+      # from AOSP at build time. The digest is printed for traceability.
+      - name: Fetch AOSP android-6.6 android-base.config
+        if: matrix.profile == 'android'
+        run: |
+          out="$RUNNER_TEMP/android-base.config"
+          for p in v/android-6.6 android-6.6; do
+            url="https://android.googlesource.com/kernel/configs/+/refs/heads/main/$p/android-base.config?format=TEXT"
+            if curl -fsSL "$url" | base64 -d > "$out" 2>/dev/null && grep -q '^CONFIG_' "$out"; then
+              echo "source: $url"
+              break
+            fi
+            rm -f "$out"
+          done
+          test -s "$out"
+          sha256sum "$out"
+          wc -l "$out"
+          echo "ANDROID_BASE_CONFIG=$out" >> "$GITHUB_ENV"
 
       - name: Build kernel and device trees
         env:

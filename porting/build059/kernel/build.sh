@@ -2,13 +2,15 @@
 # Build 059: build the Nike-L base kernel (Linux 6.6.162 + patches/).
 #
 # Usage:
-#   build.sh <linux-6.6.162-tree> <arm64|arm> <tiny|full> <output-dir>
+#   build.sh <linux-6.6.162-tree> <arm64|arm> <tiny|full|android> <output-dir>
 #
 # Environment:
 #   TOOLCHAIN=llvm (default) | gcc   (gcc uses CROSS_COMPILE, see below)
 #   CROSS_COMPILE                    (default aarch64-linux-gnu- / arm-linux-gnueabihf-)
 #   JOBS                             (default: nproc)
 #   DIAG_INITRAMFS=1 (default) | 0   embed initramfs/q60t-diag-init as /init
+#   ANDROID_BASE_CONFIG              path to AOSP android-6.6/android-base.config
+#                                    (required for the android profile)
 #
 # The kernel tree must be a clean v6.6.162 checkout. The patches are applied
 # in place (once); use a dedicated tree for this. Nothing is installed,
@@ -16,7 +18,9 @@
 #
 # Profiles:
 #   tiny  allnoconfig + configs/nikel-*.config  (small, serial console only)
-#   full  defconfig / multi_v7_defconfig + configs/nikel-*.config
+#   full     defconfig / multi_v7_defconfig + configs/nikel-*.config
+#   android  like full, plus AOSP android-base.config; writes a coverage
+#            report (android-coverage.txt) of the Android requirements
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,7 +43,10 @@ case "$ARCH_NAME" in
          DEF_CROSS=arm-linux-gnueabihf- ;;
   *) die "unknown arch '$ARCH_NAME'" ;;
 esac
-case "$PROFILE" in tiny|full) ;; *) die "unknown profile '$PROFILE'" ;; esac
+case "$PROFILE" in tiny|full|android) ;; *) die "unknown profile '$PROFILE'" ;; esac
+if [ "$PROFILE" = android ]; then
+  [ -f "${ANDROID_BASE_CONFIG:-}" ] || die "android profile needs ANDROID_BASE_CONFIG"
+fi
 
 [ -f "$KSRC/Makefile" ] || die "$KSRC is not a kernel tree"
 version="$(make -s -C "$KSRC" kernelversion)"
@@ -70,13 +77,15 @@ fi
 
 # 2. configuration -------------------------------------------------------------
 FRAGS=("$HERE/configs/nikel-common.config" "$HERE/configs/nikel-$ARCH_NAME.config")
+MERGE_EXTRA=()
+[ "$PROFILE" = android ] && MERGE_EXTRA=("$ANDROID_BASE_CONFIG")
 if [ "$PROFILE" = tiny ]; then
   cat "${FRAGS[@]}" > "$KOUT/allno.config"
   make "${MAKEARGS[@]}" KCONFIG_ALLCONFIG="$KOUT/allno.config" allnoconfig
 else
   make "${MAKEARGS[@]}" "$BASE_DEFCONFIG"
   (cd "$KOUT" && "$KSRC/scripts/kconfig/merge_config.sh" -m -O "$KOUT" \
-      "$KOUT/.config" "${FRAGS[@]}")
+      "$KOUT/.config" "${MERGE_EXTRA[@]}" "${FRAGS[@]}")
   make "${MAKEARGS[@]}" olddefconfig
 fi
 
@@ -96,6 +105,29 @@ for f in "${FRAGS[@]}"; do
   done < "$f"
 done
 [ "$missing" = 0 ] || die "configuration incomplete"
+
+# Android requirement coverage (informational, never fails the build)
+if [ "$PROFILE" = android ]; then
+  python3 - "$ANDROID_BASE_CONFIG" "$KOUT/.config" > "$ART/android-coverage.txt" <<'PY'
+import re, sys
+want, have = {}, {}
+for line in open(sys.argv[1]):
+    m = re.match(r"(CONFIG_\w+)=(.*)", line.strip())
+    n = re.match(r"# (CONFIG_\w+) is not set", line.strip())
+    if m: want[m.group(1)] = m.group(2)
+    elif n: want[n.group(1)] = "n"
+for line in open(sys.argv[2]):
+    m = re.match(r"(CONFIG_\w+)=(.*)", line.strip())
+    n = re.match(r"# (CONFIG_\w+) is not set", line.strip())
+    if m: have[m.group(1)] = m.group(2)
+    elif n: have[n.group(1)] = "n"
+bad = [(k, v, have.get(k, "n")) for k, v in sorted(want.items()) if have.get(k, "n") != v]
+print("Android android-base.config coverage: %d/%d satisfied" % (len(want) - len(bad), len(want)))
+for k, v, h in bad:
+    print("  %-45s want %-10s have %s" % (k, v, h))
+PY
+  head -1 "$ART/android-coverage.txt"
+fi
 
 # 2b. embedded diagnostic initramfs ------------------------------------------
 if [ "$DIAG_INITRAMFS" = 1 ]; then

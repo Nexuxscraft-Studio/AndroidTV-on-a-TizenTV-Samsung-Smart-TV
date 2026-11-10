@@ -26,7 +26,7 @@ UART-Treiber und Konsole. Ziel beim ersten echten Start wäre eine Shell
 | `kernel/build.sh` | Reproduzierbarer Build: Patches anwenden, konfigurieren, prüfen, bauen |
 | `tools/fdt2dts.py` | DTB → DTS ohne `dtc` (nur Standardbibliothek) |
 | `tests/` | Host-Tests (u. a. Speicherbänke gegen `porting/profiles/*.json`) |
-| `../../.github/workflows/build059-nikel-kernel.yml` | CI: 4 Builds (arm64/arm × tiny/full) mit Artefakten |
+| `../../.github/workflows/build059-nikel-kernel.yml` | CI: 6 Builds (arm64/arm × tiny/full/android) mit Artefakten |
 
 ## Was aus welcher Quelle stammt
 
@@ -74,6 +74,11 @@ git clone --depth 1 --branch v6.6.162 https://github.com/gregkh/linux.git ~/linu
 bash porting/build059/kernel/build.sh ~/linux-6.6.162-b059 arm64 tiny ~/b059-out
 bash porting/build059/kernel/build.sh ~/linux-6.6.162-b059 arm   tiny ~/b059-out
 ```
+
+Profil `android`: zusätzlich die offiziellen Android-15-Kernelanforderungen
+(AOSP `kernel/configs`, `android-6.6/android-base.config`) einmischen –
+`ANDROID_BASE_CONFIG=/pfad/android-base.config` setzen. Das Ergebnis enthält
+`android-coverage.txt`: wie viele Anforderungen erfüllt sind und welche nicht.
 
 Der Kernelbaum wird beim ersten Lauf gepatcht – dafür einen eigenen Baum
 verwenden. Ergebnis je Lauf in `~/b059-out/artifacts-<arch>-<profil>/`:
