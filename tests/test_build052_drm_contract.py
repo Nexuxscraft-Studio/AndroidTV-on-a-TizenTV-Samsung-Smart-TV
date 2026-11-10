@@ -21,6 +21,8 @@ class TestBuild052DRMContract(unittest.TestCase):
         self.assertEqual((CONTRACT_DIR / "Makefile").read_text().strip().splitlines()[-1],
                          "obj-m += nover_sdp_linux66_contract.o")
         self.assertIn('M="$PWD" nover_sdp_linux66_contract.o', self.readme)
+        self.assertIn("O=/opt/samsung-atv-lab/build052-arm64-obj", self.readme)
+        self.assertIn("modules_prepare", self.readme)
         self.assertTrue(BUILD051_PATCH.is_file())
         self.assertIn("#include <drm/drm_device.h>", BUILD051_PATCH.read_text())
 
