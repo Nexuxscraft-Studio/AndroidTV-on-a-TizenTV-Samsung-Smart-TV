@@ -157,6 +157,22 @@ für den Q60T nutzbar. Das Script
 Migrationsreihenfolge steht unter
 [`porting/build050/LINUX66_PORTING_MATRIX.md`](porting/build050/LINUX66_PORTING_MATRIX.md).
 
+### Dritte Phase: erste echte, hardwaregesperrte Quellcodefixes
+
+`q60t_build050_stage1_source_fixes.py` erstellt einen **Unified-Diff**
+auf Basis der hashverifizierten Samsung-Quelldateien. Der erste Patch
+`porting/build050/patches/0001-nike-linux66-stage1-compile-only.patch`
+modernisiert ausgewählte Panel-APIs für Linux 6.6, entfernt einen
+veralteten fbdev-CMA-Callback und lässt den DRM-Treiber ohne
+Encoder/Connector ausdrücklich fehlschlagen. Er verhindert eine
+unbeabsichtigte Samsung-Panelbindung, indem nur die testinterne Kennung
+`nover,compile-only-sdp-panel` verwendet wird.
+
+Ein **Patch-Trockenlauf gegen die beiden Originaldateien ist gelungen**.
+Es wurde jedoch weder gegen Linux 6.6 kompiliert noch ein Gerät gestartet.
+Die weiterhin erforderlichen DRM-/GEM-Umbauten und die Testanleitung
+stehen in [`porting/build050/STAGE1_FIXES.md`](porting/build050/STAGE1_FIXES.md).
+
 ## 7. Nächste Hardware-Nachweise – vor jedem echten Boot
 
 1. **Exaktes Board:** Über einen regulär verfügbaren, rein lesenden
