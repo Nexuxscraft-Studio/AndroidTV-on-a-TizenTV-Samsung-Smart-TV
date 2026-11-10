@@ -16,12 +16,56 @@ import sys
 
 ALLOWED_SUFFIXES = {".py", ".md", ".json", ".mk", ".yml", ".yaml", ".patch"}
 ALLOWED_SPECIAL = {".gitignore"}
-# Deliberate, isolated C-only lab sources. Do not generally whitelist .c:
-# a broad extension rule could accidentally ship proprietary vendor sources.
-ALLOWED_C_PROBES = {"porting/probes/binder_uapi_arm32.c", "q60t_binder_init.c",
-                    "q60t_android_probe_init.c", "q60t_ion_probe_init.c",
-                    "q60t_bionic_hello.c", "q60t_bionic_init.c",
-                    "q60t_arm64_probe_init.c"}
+
+# Deliberate, isolated source probes. Do not globally allow .c or .h:
+# broad extension rules could accidentally ship non-redistributable firmware.
+ALLOWED_C_PROBES = {
+    "porting/probes/binder_uapi_arm32.c",
+    "q60t_binder_init.c",
+    "q60t_android_probe_init.c",
+    "q60t_ion_probe_init.c",
+    "q60t_bionic_hello.c",
+    "q60t_bionic_init.c",
+    "q60t_arm64_probe_init.c",
+}
+
+# Manually reviewed, source-only Linux porting artifacts. This is an exact
+# path allowlist, not a directory or extension wildcard. New executable,
+# binary, board firmware and unreviewed vendor files stay blocked.
+ALLOWED_PORTING_SOURCES = {
+    "porting/build052/contract/Makefile",
+    "porting/build052/contract/nover_sdp_linux66_contract.c",
+    "porting/build053/test-kbuild/Kbuild",
+    "porting/build054/arm32-probe/Kbuild",
+    "porting/build054/arm32-probe/nover_arm32_probe.c",
+    "porting/build054/scripts/run-arm32-probe.sh",
+    "porting/build054/scripts/run-arm32-vendor-diagnostic.sh",
+    "porting/build054/test-kbuild-arm32/Kbuild",
+    "porting/build055/inspect-sdp-gpu-ko.sh",
+    "porting/build056/panfrost-sdp-nikel-disabled.dts",
+    "porting/build058/build-arm32-offline.sh",
+    "porting/build058/cpu/build-arm32-offline.sh",
+    "porting/build058/cpu/kernel/Makefile",
+    "porting/build058/cpu/kernel/sdp_nikel_cpu_clk.c",
+    "porting/build058/cpu/kernel/sdp_nikel_cpufreq.c",
+    "porting/build058/cpu/kernel/sdp_nikel_thermal.c",
+    "porting/build058/cpu/model/nike_cpu_model.c",
+    "porting/build058/cpu/model/nike_cpu_model.h",
+    "porting/build058/cpu/model/test_nike_cpu_model.c",
+    "porting/build058/cpu/nikel-cpu-thermal-disabled.dts",
+    "porting/build058/cpu/run-host-tests.sh",
+    "porting/build058/integration/drm/Makefile",
+    "porting/build058/integration/drm/sdp_drm_fence.c",
+    "porting/build058/integration/drm/sdp_drm_fence.h",
+    "porting/build058/integration/drm/sdp_drm_util.c",
+    "porting/build058/integration/drm/sdp_drm_util.h",
+    "porting/build058/integration/run-arm32-compile-only.sh",
+    "porting/build058/kernel/Makefile",
+    "porting/build058/kernel/sdp_nikel_gpu_clkrst.c",
+    "porting/build058/sdp-nikel-gpu-clkrst-disabled.dts",
+}
+
+ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES
 IGNORED_DIRECTORIES = {"__pycache__", ".git"}
 MAX_FILE_BYTES = 2 * 1024 * 1024
 MAX_TOTAL_BYTES = 8 * 1024 * 1024
@@ -42,7 +86,6 @@ def audit(root: Path) -> dict:
     total_bytes = 0
     for directory, dirs, files in os.walk(root, followlinks=False):
         base = Path(directory)
-        # These are generated local caches, never source artifacts.
         dirs[:] = sorted(d for d in dirs if d not in IGNORED_DIRECTORIES)
         for directory_name in dirs:
             if (base / directory_name).is_symlink():
@@ -54,7 +97,8 @@ def audit(root: Path) -> dict:
                 problems.append(f"Symlink file: {relative}")
                 continue
             if (path.suffix not in ALLOWED_SUFFIXES and
-                    filename not in ALLOWED_SPECIAL and relative not in ALLOWED_C_PROBES):
+                    filename not in ALLOWED_SPECIAL and
+                    relative not in ALLOWED_EXPLICIT_SOURCES):
                 problems.append(f"Disallowed file type: {relative}")
                 continue
             size = path.stat().st_size
