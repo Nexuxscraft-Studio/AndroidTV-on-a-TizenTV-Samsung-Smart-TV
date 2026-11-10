@@ -1,5 +1,13 @@
 # Build 058 — Linux 6.6 Samsung Nike-L GPU Clock/Reset Prototype
 
+> **Integration update:** the separate
+> [`integration/`](integration/README.md) component now includes a reproducible
+> Linux **6.6.162 ARM32** Panfrost compile target, two Samsung-derived DRM
+> C source migrations (`sdp_drm_util.c` and `sdp_drm_fence.c`), diagnostic
+> vendor DRM builds, and compilation of the disabled GPU/CPU/thermal
+> prototypes. These tools are compile-only, not proof of a working GPU or TV.
+> The CPU-specific design remains under [`cpu/`](cpu/README.md).
+
 **Status: `PROTOTYPE_FAIL_CLOSED_OFFLINE`.**
 
 Build 058 takes Build 057's SHA256-pinned Samsung GPU power-control evidence
