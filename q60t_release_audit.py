@@ -64,6 +64,12 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build058/kernel/Makefile",
     "porting/build058/kernel/sdp_nikel_gpu_clkrst.c",
     "porting/build058/sdp-nikel-gpu-clkrst-disabled.dts",
+    # Build 059: kernel build script and Kconfig fragments (text only)
+    "porting/build059/kernel/build.sh",
+    "porting/build059/kernel/configs/nikel-arm.config",
+    "porting/build059/kernel/configs/nikel-arm64.config",
+    "porting/build059/kernel/configs/nikel-common.config",
+    "porting/build059/kernel/configs/required-symbols.txt",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES
