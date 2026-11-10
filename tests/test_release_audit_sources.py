@@ -28,6 +28,11 @@ class SourceOnlyAllowlistTests(unittest.TestCase):
             if not file.is_file():
                 continue
             relative = file.relative_to(ROOT).as_posix()
+            # Same rule as audit(): interpreter caches created by running the
+            # in-tree helper tests (e.g. test-early-tracing.py) are not sources.
+            if release_audit.IGNORED_DIRECTORIES.intersection(
+                    file.relative_to(ROOT).parts):
+                continue
             if file.suffix in release_audit.ALLOWED_SUFFIXES:
                 continue
             self.assertIn(relative, release_audit.ALLOWED_EXPLICIT_SOURCES)

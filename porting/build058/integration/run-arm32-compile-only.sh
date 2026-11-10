@@ -4,7 +4,11 @@
 set -euo pipefail
 
 usage() {
-  printf 'Usage: %s <linux-6.6.162-source> <original-tztv-media-nike.tgz> <NEW-output-dir>\n' "$0" >&2
+  printf 'Usage: %s <linux-6.6.162-source> <original-tztv-media-nike.tgz|--no-vendor-drm> <NEW-output-dir>\n' "$0" >&2
+  printf '  --no-vendor-drm: compile only repository-owned sources and Panfrost;\n' >&2
+  printf '                   original Samsung DRM Core/GEM is recorded as NOT attempted.\n' >&2
+  printf 'Environment: CROSS_COMPILE (GCC prefix), BUILD058_TOOLCHAIN=gcc|llvm,\n' >&2
+  printf '             JOBS=<n>, BUILD058_FULL_KERNEL=0|1\n' >&2
   exit 2
 }
 [[ $# == 3 ]] || usage
@@ -12,13 +16,23 @@ usage() {
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_root="$(cd -- "$script_dir/../../.." && pwd -P)"
 kernel_src="$(realpath -e -- "$1")"
-vendor_tgz="$(realpath -e -- "$2")"
 output_arg="$3"
 
 [[ -f "$kernel_src/Makefile" && -f "$kernel_src/drivers/gpu/drm/panfrost/Kconfig" ]] || {
   printf 'Refusing: Linux 6.6 source tree with Panfrost not found.\n' >&2; exit 2;
 }
-[[ -f "$vendor_tgz" && "$vendor_tgz" == *.tgz ]] || usage
+
+# The vendor archive is mandatory for the Samsung DRM Core/GEM evidence run.
+# --no-vendor-drm exists for environments (for example GitHub CI) that must
+# not hold the Samsung archive; it never reports the vendor DRM as compiled.
+if [[ "$2" == --no-vendor-drm ]]; then
+  vendor_mode=skip
+  vendor_tgz=""
+else
+  vendor_mode=archive
+  vendor_tgz="$(realpath -e -- "$2")"
+  [[ -f "$vendor_tgz" && "$vendor_tgz" == *.tgz ]] || usage
+fi
 
 if [[ -e "$output_arg" ]]; then
   printf 'Refusing to overwrite existing output directory: %s\n' "$output_arg" >&2
@@ -29,10 +43,14 @@ output_dir="$output_parent/$(basename -- "$output_arg")"
 [[ "$output_dir" != "$kernel_src" && "$output_dir" != "$project_root" ]] || usage
 
 expected_vendor_sha="40c2a25eba331b8b04d8d81baf76061493f15f228a74893c7f825f7a1da724b6"
-actual_vendor_sha="$(sha256sum -- "$vendor_tgz" | cut -d ' ' -f1)"
-if [[ "$actual_vendor_sha" != "$expected_vendor_sha" ]]; then
-  printf 'Refusing unpinned Samsung vendor archive (SHA256 mismatch).\n' >&2
-  exit 2
+if [[ "$vendor_mode" == archive ]]; then
+  actual_vendor_sha="$(sha256sum -- "$vendor_tgz" | cut -d ' ' -f1)"
+  if [[ "$actual_vendor_sha" != "$expected_vendor_sha" ]]; then
+    printf 'Refusing unpinned Samsung vendor archive (SHA256 mismatch).\n' >&2
+    exit 2
+  fi
+else
+  actual_vendor_sha="NOT_USED(--no-vendor-drm)"
 fi
 
 kernel_ver="$(make -s -C "$kernel_src" kernelversion)"
@@ -42,24 +60,48 @@ if [[ "$kernel_ver" != 6.6.162 ]]; then
 fi
 
 cross_prefix="${CROSS_COMPILE:-arm-linux-gnueabi-}"
+toolchain="${BUILD058_TOOLCHAIN:-gcc}"
 jobs="${JOBS:-2}"
 full_kernel_build="${BUILD058_FULL_KERNEL:-0}"
 [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { printf 'JOBS must be a positive integer\n' >&2; exit 2; }
 [[ "$full_kernel_build" == 0 || "$full_kernel_build" == 1 ]] || {
   printf 'BUILD058_FULL_KERNEL must be 0 or 1\n' >&2; exit 2;
 }
-for tool in "${cross_prefix}gcc" "${cross_prefix}readelf" patch tar sha256sum make python3; do
+# GCC remains the reference toolchain of the Debian lab. LLVM is an
+# independent second compiler, not a replacement for the GCC result.
+# Kbuild treats ANY non-empty LLVM variable (even LLVM=0) as "use LLVM", so
+# the runner never inherits LLVM from the caller's environment.
+case "$toolchain" in
+  gcc)
+    readelf_tool="${cross_prefix}readelf"
+    compiler_tool="${cross_prefix}gcc"
+    toolchain_tools=("$compiler_tool" "$readelf_tool")
+    make_toolchain=(CROSS_COMPILE="$cross_prefix")
+    ;;
+  llvm)
+    readelf_tool=llvm-readelf
+    compiler_tool=clang
+    toolchain_tools=(clang ld.lld llvm-ar llvm-nm llvm-objcopy llvm-objdump llvm-readelf llvm-strip)
+    make_toolchain=(LLVM=1)
+    ;;
+  *)
+    printf 'BUILD058_TOOLCHAIN must be gcc or llvm\n' >&2; exit 2 ;;
+esac
+for tool in "${toolchain_tools[@]}" patch tar sha256sum make python3 flex bison bc; do
   command -v "$tool" >/dev/null 2>&1 || {
     printf 'Missing required tool: %s\n' "$tool" >&2; exit 2;
   }
 done
+compiler_version="$("$compiler_tool" --version | head -n 1)"
 
 mkdir -- "$output_dir"
 mkdir -- "$output_dir/logs" "$output_dir/kernel-obj" "$output_dir/staging"
 summary="$output_dir/RESULTS.tsv"
 printf 'step\tresult\texit_code\tlog\n' > "$summary"
-printf 'Linux=%s\nARCH=arm\nCROSS_COMPILE=%s\nSamsung-TGZ-SHA256=%s\nFULL_KERNEL_BUILD=%s\n' \
-  "$kernel_ver" "$cross_prefix" "$actual_vendor_sha" "$full_kernel_build" > "$output_dir/inputs.txt"
+printf 'Linux=%s\nARCH=arm\nTOOLCHAIN=%s\nCOMPILER=%s\nCROSS_COMPILE=%s\nSamsung-TGZ-SHA256=%s\nVENDOR_DRM=%s\nFULL_KERNEL_BUILD=%s\n' \
+  "$kernel_ver" "$toolchain" "$compiler_version" \
+  "$([[ "$toolchain" == gcc ]] && printf '%s' "$cross_prefix" || printf 'unused(LLVM=1)')" \
+  "$actual_vendor_sha" "$vendor_mode" "$full_kernel_build" > "$output_dir/inputs.txt"
 
 record_step() {
   local step="$1"; shift
@@ -76,14 +118,18 @@ record_step() {
 }
 
 kernel_make() {
-  make -C "$kernel_src" O="$output_dir/kernel-obj" ARCH=arm \
-    CROSS_COMPILE="$cross_prefix" "$@"
+  env -u LLVM -u LLVM_IAS make -C "$kernel_src" O="$output_dir/kernel-obj" ARCH=arm \
+    "${make_toolchain[@]}" "$@"
 }
 
 check_arm_object() {
-  local object="$1"
+  local object="$1" header
   [[ -s "$object" ]] || return 1
-  "${cross_prefix}readelf" -h -- "$object" | grep -Eq 'Machine:[[:space:]]*ARM([[:space:]]|$)'
+  # Object paths are absolute (never start with '-'); llvm-readelf rejects '--'.
+  [[ "$object" == /* ]] || return 1
+  header="$("$readelf_tool" -h "$object")" || return 1
+  grep -Eq 'Class:[[:space:]]*ELF32([[:space:]]|$)' <<<"$header" &&
+    grep -Eq 'Machine:[[:space:]]*ARM([[:space:]]|$)' <<<"$header"
 }
 
 note_step() {
@@ -200,7 +246,12 @@ build_external_objects sdp_drm_helpers_arm32 "$modern"
 # hidden by invented compatibility stubs or an empty replacement module.
 drm_root="$output_dir/staging/drm-samsung-ports"
 mkdir -- "$drm_root"
-if record_step original_drm_extract tar -xzf "$vendor_tgz" -C "$drm_root"; then
+if [[ "$vendor_mode" == skip ]]; then
+  note_step original_drm_extract SKIPPED_NO_VENDOR_ARCHIVE 0 \
+    "--no-vendor-drm: Samsung Core/GEM not attempted, NOT compiled"
+  note_step samsung_drm_tztv_header BLOCKED_MISSING_ABI 2 \
+    "drm/drm_tztv.h absent from published Samsung Linux/media archives"
+elif record_step original_drm_extract tar -xzf "$vendor_tgz" -C "$drm_root"; then
   patch1="$project_root/porting/build053/patches/0001-original-sdp-drm-gem-linux66-partial.patch"
   patch2="$project_root/porting/build054/patches/0003-after-build053-drm-headers-ioctl-flags.patch"
   if record_step samsung_drm_stage1 patch -d "$drm_root" --batch -p1 -i "$patch1" && \
@@ -239,8 +290,10 @@ required_objects=(
   sdp_drm_util_elf sdp_drm_fence_elf
   sdp_nikel_gpu_clkrst.o sdp_nikel_cpu_clk.o
   sdp_nikel_cpufreq.o sdp_nikel_thermal.o
-  sdp_drm_drv_elf sdp_drm_gem_elf
 )
+if [[ "$vendor_mode" == archive ]]; then
+  required_objects+=(sdp_drm_drv_elf sdp_drm_gem_elf)
+fi
 missing=0
 for object in "${required_objects[@]}"; do
   if ! awk -F '\t' -v key="$object" \
@@ -252,5 +305,12 @@ done
 if [[ "$missing" != 0 ]]; then
   printf 'PARTIAL / FAILED: not all required ARM32 source objects compiled.\n' >&2
   exit 1
+fi
+if [[ "$vendor_mode" == skip ]]; then
+  note_step integration_scope REPO_OBJECTS_ONLY 0 \
+    "Samsung DRM Core/GEM NOT attempted; not a full Build 058 integration result"
+  printf 'REPO_OBJECTS_COMPILED: repository-owned ARM32 objects and Panfrost exist.\n'
+  printf 'Samsung DRM Core/GEM was NOT attempted (--no-vendor-drm). Hardware still unverified.\n'
+  exit 0
 fi
 printf 'OBJECTS_COMPILED: all required ARM32 objects exist (hardware still unverified).\n'

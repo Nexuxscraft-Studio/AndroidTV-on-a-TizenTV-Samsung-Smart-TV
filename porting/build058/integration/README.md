@@ -51,6 +51,34 @@ large Samsung DRM files is **not yet established**.
 If the server has `arm-linux-gnueabihf-gcc` instead, invoke with
 `CROSS_COMPILE=arm-linux-gnueabihf-`. Set `JOBS=2` on a small VM to avoid OOM.
 
+### Toolchain and scope options (added after run002)
+
+| Option | Values | Meaning |
+|---|---|---|
+| `BUILD058_TOOLCHAIN` | `gcc` (default), `llvm` | `gcc` uses `${CROSS_COMPILE}gcc`/`readelf` (reference for the Debian lab). `llvm` passes `LLVM=1` (clang, ld.lld, llvm-readelf) as an independent second compiler. A caller's `LLVM`/`LLVM_IAS` environment is never inherited: Kbuild treats any non-empty `LLVM`, even `LLVM=0`, as enabled. |
+| 2nd argument `--no-vendor-drm` | instead of the `.tgz` path | Builds only repository-owned sources and Panfrost. Records `original_drm_extract = SKIPPED_NO_VENDOR_ARCHIVE` and `integration_scope = REPO_OBJECTS_ONLY`; exits 0 only if those objects exist. It is **never** a Samsung DRM result. |
+
+`inputs.txt` now records `TOOLCHAIN`, the exact compiler version line and
+`VENDOR_DRM`. Object checks require **ELF32 and Machine ARM**. Preflight also
+requires `flex`, `bison` and `bc` (needed by Kbuild).
+
+GitHub CI (`.github/workflows/build058-arm32-compile.yml`) runs the
+`--no-vendor-drm` mode with GCC (`arm-linux-gnueabihf-`) and LLVM against Linux
+6.6.162, pinned to commit `5139929c698c273e07cb0635732f6a918a7b8e78`
+(`gregkh/linux`, tag `v6.6.162`). A manual `workflow_dispatch` can add the full
+kernel/modpost build.
+
+Further analysis in this directory:
+
+- [`DRM_GEM_LINUX66_MAP.md`](DRM_GEM_LINUX66_MAP.md): which Samsung GEM/PRIME
+  callbacks Build 053 dropped, which `drm_driver` fields are
+  `CONFIG_DRM_LEGACY`-only in 6.6.162, and Samsung's own extended CMA helper.
+- [`PANFROST_CLKRST_LINUX66.md`](PANFROST_CLKRST_LINUX66.md): Panfrost 6.6.162
+  clock/reset/IRQ requirements and the sequencing conflict with the prototype.
+- `inventory-sdp-drm-abi.py`: read-only inventory of the pinned Samsung archive
+  that separates identifiers defined somewhere in the archive from the
+  candidates for the missing `drm/drm_tztv.h`.
+
 ## Why the two DRM build paths?
 
 - `integration/drm/sdp_drm_util.c` and `.h` are an annotated, GPL-2.0-only
