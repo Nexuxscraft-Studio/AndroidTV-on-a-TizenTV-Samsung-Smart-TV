@@ -1,0 +1,293 @@
+--- a/tztv-media-nike/sdp_drm_nike/sdp_drm_drv.c
++++ b/tztv-media-nike/sdp_drm_nike/sdp_drm_drv.c
+@@ -14,6 +14,11 @@
+ #include <linux/atomic.h>
+ 
+ #include <trace/early.h>
++#include <drm/drm_device.h>
++#include <drm/drm_drv.h>
++#include <drm/drm_file.h>
++#include <drm/drm_gem.h>
++#include <drm/drm_ioctl.h>
+ #include <drm/drm_tztv.h>
+ #include "sdp_drm_drv.h"
+ #include "sdp_drm_capture_drv.h"
+@@ -48,11 +53,7 @@
+ 
+ static LIST_HEAD(module_list);
+ 
+-static const struct vm_operations_struct sdp_drm_gem_vm_ops = {
+-	.fault = sdp_drm_gem_vm_fault,
+-	.open = drm_gem_vm_open,
+-	.close = drm_gem_vm_close,
+-};
++/* Build 053: GEM VM functions must move to per-object operations. */
+ static struct drm_ioctl_desc sdp_drm_ioctls[] = {
+ 	DRM_IOCTL_DEF_DRV(SDP_GEM_CREATE,sdp_drm_gem_create_ioctl,(DRM_UNLOCKED /*| DRM_AUTH*/)),
+ 	DRM_IOCTL_DEF_DRV(SDP_GEM_CREATE_HWMEM,sdp_drm_gem_hw_create_ioctl,(DRM_UNLOCKED /*| DRM_AUTH*/)),
+@@ -352,34 +353,21 @@
+  * A verified modern fbdev client setup is still required. */
+ 
+ static struct drm_driver sdp_drm_driver = {
+-	.driver_features		= DRIVER_HAVE_IRQ | DRIVER_MODESET | DRIVER_GEM | DRIVER_PRIME,
+-	.load			= sdp_drm_load,
+-	.unload			= sdp_drm_unload,
++	.driver_features		= DRIVER_HAVE_IRQ | DRIVER_MODESET | DRIVER_GEM,
+ 	.preclose		= sdp_drm_preclose,
+-	.set_busid		= drm_platform_set_busid,
+ 	.get_vblank_counter	= drm_vblank_count,
+ 	.enable_vblank		= sdp_drm_crtc_enable_vblank,
+ 	.disable_vblank		= sdp_drm_crtc_disable_vblank,
+ #ifdef CONFIG_DEBUG_FS
+ 	.debugfs_init		= sdp_drm_debugfs_init,
+-	.debugfs_cleanup	= sdp_drm_debugfs_cleanup,
+ #endif
+ 	/* Gem specifics */
+-	.gem_free_object	= sdp_drm_gem_free_object,
+-	.gem_vm_ops		= &sdp_drm_gem_vm_ops,
+ 	.dumb_create		= drm_gem_cma_dumb_create,
+ 	.dumb_map_offset	= drm_gem_cma_dumb_map_offset,
+-	.dumb_destroy		= drm_gem_dumb_destroy,
+ 	.prime_handle_to_fd	= sdp_drm_gem_prime_handle_to_fd,
+ 	.prime_fd_to_handle	= drm_gem_prime_fd_to_handle,
+-	.gem_open_object		= sdp_drm_gem_open_object,
+-	.gem_prime_export	= sdp_dmabuf_prime_export,
+ 	.gem_prime_import	= sdp_dmabuf_prime_import,
+-	.gem_prime_get_sg_table	= sdp_drm_gem_prime_get_sg_table,
+ 	.gem_prime_import_sg_table	= sdp_drm_gem_prime_import_sg_table,
+-	.gem_prime_vmap		= sdp_drm_gem_prime_vmap,
+-	.gem_prime_vunmap	= sdp_drm_gem_prime_vunmap,
+-	.gem_prime_mmap		= sdp_drm_gem_prime_mmap,
+ 	.ioctls			= sdp_drm_ioctls,
+ 	.num_ioctls		= ARRAY_SIZE(sdp_drm_ioctls),
+ 	.fops			= &sdp_drm_driver_fops,
+@@ -392,43 +380,51 @@
+ 
+ static int sdp_drm_platform_probe(struct platform_device *pdev)
+ {
+-	int ret = 0;
+-
+-	END_SYSTEM_OVERHEAD_CHECK;
+-	pdev->dev.coherent_dma_mask = DMA_BIT_MASK(64);
+-#ifdef CONFIG_SMEM
+-	smem_drm_init(pdev);
+-#endif
+-	ret = drm_platform_init(&sdp_drm_driver, pdev);
+-	if( ret != 0 ) {
+-		dev_err(&pdev->dev
+-			,"\n!!drm_platform_init failed(0x%d) \n\n",ret);
+-		return ret;
+-	}
+-
+-	/* make node for capture */
++	struct drm_device *drm;
++	int ret;
++
++	/* Build 053: registration sequence only; module init is disabled. */
++	drm = drm_dev_alloc(&sdp_drm_driver, &pdev->dev);
++	if (IS_ERR(drm))
++		return PTR_ERR(drm);
++
++	platform_set_drvdata(pdev, drm);
++	ret = sdp_drm_load(drm, 0);
++	if (ret)
++		goto err_put;
++
++	ret = drm_dev_register(drm, 0);
++	if (ret)
++		goto err_unload;
++
+ 	ret = sdp_drm_capture_init();
+-	if( ret != 0 ) {
+-		dev_err(&pdev->dev
+-			,"\n!!sdp_drm_capture_init failed(0x%d) \n\n",ret);
+-		goto err_probe;
+-	}
+-
++	if (ret)
++		goto err_unregister;
+ 	return 0;
+-err_probe :
+-	
+-	drm_put_dev(platform_get_drvdata(pdev));
++
++err_unregister:
++	drm_dev_unregister(drm);
++err_unload:
++	sdp_drm_unload(drm);
++err_put:
++	platform_set_drvdata(pdev, NULL);
++	drm_dev_put(drm);
+ 	return ret;
+ }
+ 
+ static const struct of_device_id sdp_drm_dt_match[] = {
+-	{ .compatible = "samsung,sdp-drm" },
++	{ .compatible = "nover,compile-only-sdp-drm" },
+ 	{},
+ };
+ 
+ static int sdp_drm_platform_remove(struct platform_device *pdev)
+ {
+-	drm_put_dev(platform_get_drvdata(pdev));
++	struct drm_device *drm = platform_get_drvdata(pdev);
++
++	drm_dev_unregister(drm);
++	sdp_drm_unload(drm);
++	platform_set_drvdata(pdev, NULL);
++	drm_dev_put(drm);
+ 	return 0;
+ }
+ 
+@@ -453,6 +449,10 @@
+ 	char msg[MSG_SIZE];
+ 
+ 	int ret = 0;
++
++	/* Build 053: hard stop before any Samsung hardware init. */
++	return -ENODEV;
++
+ 	system_overhead = 0;
+ 
+ 	ret = gfxp_init();
+--- a/tztv-media-nike/sdp_drm_nike/sdp_drm_gem.c
++++ b/tztv-media-nike/sdp_drm_nike/sdp_drm_gem.c
+@@ -6,7 +6,10 @@
+  * published by the Free Software Foundation.
+  */
+ 
+-#include <drm/drmP.h>
++#include <drm/drm_device.h>
++#include <drm/drm_file.h>
++#include <drm/drm_gem.h>
++#include <drm/drm_prime.h>
+ #include <drm/drm_tztv.h>
+ 
+ #include "drm_gem_cma_helper.h"
+@@ -143,7 +146,7 @@
+ 		pr_info("|NULL|");
+ 	    else{
+ 		size = item->slot_size;
+-		pr_info("  %d    0x%x     %p    %d|    ", item->name, (uint32_t)item->paddr, item->gem_obj, atomic_read(&item->gem_obj->refcount.refcount));
++		pr_info("  %d    0x%x     %p    %u|    ", item->name, (uint32_t)item->paddr, item->gem_obj, kref_read(&item->gem_obj->refcount));
+ 	    }
+ 	}
+ 	pr_info("  [size->%08x]| \n", size);
+@@ -278,7 +281,7 @@
+ 	return obj;
+ fput:
+ 	/* Object_init mangles the global counters - readjust them. */
+-	fput(obj->filp);
++	drm_gem_object_release(obj);
+ free:	
+ 	if(obj)
+ 	{	
+@@ -389,7 +392,7 @@
+ 		if (obj->name <= 0)
+ 			return -EINVAL;
+ 		
+-		pr_info("[%s][%d] name [%d] Ref[%d] Handle [%d]\n",__FUNCTION__, __LINE__, obj->name, atomic_read(&obj->refcount.refcount), obj->handle_count);
++		pr_info("[%s][%d] name [%d] Ref[%u] Handle [%d]\n",__FUNCTION__, __LINE__, obj->name, kref_read(&obj->refcount), obj->handle_count);
+ 	}
+ 
+ 	return ret;
+@@ -493,12 +496,12 @@
+ 	}
+ 
+ 	obj = item->gem_obj;
+-	drm_gem_object_reference(obj);
++	drm_gem_object_get(obj);
+ 	
+ 	ret = sdp_drm_gem_handle_create(file_priv, obj, args_handle);
+ 	if (ret < 0) {
+ 		pr_err("[%s][%d] sdp_drm_gem_handle_create error[%d][%d] \n",__FUNCTION__,__LINE__, obj->name, (uint32_t)obj->size);
+-		drm_gem_object_unreference(obj);
++		drm_gem_object_put(obj);
+ 		return ret;
+ 	}
+ 	
+@@ -582,10 +585,10 @@
+ 	item->num_slots = cma_obj->num_slots;
+ 	item->slot_size = cma_obj->num_slots * obj->size;
+ 
+-	pr_info("\e[40m[%s][%d] Alloc Ref %d handle %d slot 0x%x size %d obj 0x%p\e[0m\n",
++	pr_info("\e[40m[%s][%d] Alloc Ref %u handle %d slot 0x%x size %d obj 0x%p\e[0m\n",
+ 		__FUNCTION__,
+ 		__LINE__,
+-		atomic_read(&obj->refcount.refcount),
++		kref_read(&obj->refcount),
+ 		obj->handle_count,
+ 		(uint32_t)item->paddr,
+ 		(uint32_t)item->size,
+@@ -957,7 +960,7 @@
+ 		return ret;
+ 
+ 	/* drop reference from allocate - handle holds it now */
+-	drm_gem_object_unreference_unlocked(obj);
++	drm_gem_object_put(obj);
+ 
+ 	return 0;
+ }
+@@ -1466,7 +1469,7 @@
+ 			if vr scenario want using buffers like OSDP/GP( do not destroy surface, just going background), yuv also need to increase 1 reference count 
+ 			comment by jjoo (2019.08)*/
+ 			if((type == SDP_DRM_GEM_ALLOC_TYPE_OSDP)||(type == SDP_DRM_GEM_ALLOC_TYPE_GP)||(type == SDP_DRM_GEM_ALLOC_TYPE_TP)||(type == SDP_DRM_GEM_ALLOC_TYPE_CURSOR))
+-				drm_gem_object_reference(&cma_obj->base);
++				drm_gem_object_get(&cma_obj->base);
+ 			
+ 			mutex_unlock(&gfx_hwmem_status[type].item_lock);		
+ 		}
+@@ -2055,7 +2058,7 @@
+ 		return -EINVAL;
+ 	}
+ 	mutex_lock(&dev->struct_mutex);
+-	obj = drm_gem_object_lookup(dev, file, args->handle);
++	obj = drm_gem_object_lookup(file, args->handle);
+ 	mutex_unlock(&dev->struct_mutex);
+ 	if (!obj) {
+ 		err = -ENOENT;
+@@ -2149,7 +2152,7 @@
+ exit_unlock:
+ 	ww_mutex_unlock(&gem_priv->resv.lock);
+ exit_unref:
+-	drm_gem_object_unreference_unlocked(obj);
++	drm_gem_object_put(obj);
+ exit:
+ 	return err;
+ }
+@@ -2172,7 +2175,7 @@
+ 		return -EINVAL;
+ 	}
+ 	mutex_lock(&dev->struct_mutex);
+-	obj = drm_gem_object_lookup(dev, file, args->handle);
++	obj = drm_gem_object_lookup(file, args->handle);
+ 	if (!obj) {
+ 		err = -ENOENT;
+ 		goto exit_unlock;
+@@ -2195,7 +2198,7 @@
+ 
+ 
+ exit_unref:
+-	drm_gem_object_unreference_unlocked(obj);
++	drm_gem_object_put(obj);
+ exit_unlock:
+ 	mutex_unlock(&dev->struct_mutex);
+ 
+@@ -2211,7 +2214,7 @@
+ 
+ 	mutex_lock(&dev->struct_mutex);
+ 
+-	obj = drm_gem_object_lookup(dev, file_priv, args->handle);
++	obj = drm_gem_object_lookup(file_priv, args->handle);
+ 	if (!obj) {
+ 		SDP_DRM_ERROR("failed to lookup gem object.\n");
+ 		mutex_unlock(&dev->struct_mutex);
+@@ -2236,7 +2239,7 @@
+ 		}
+ 	}
+ 
+-	drm_gem_object_unreference(obj);
++	drm_gem_object_put(obj);
+ 	mutex_unlock(&dev->struct_mutex);
+ 	return 0;
+ }
