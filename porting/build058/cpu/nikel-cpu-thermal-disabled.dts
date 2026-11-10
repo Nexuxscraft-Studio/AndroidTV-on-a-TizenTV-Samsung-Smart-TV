@@ -1,0 +1,38 @@
+/dts-v1/;
+
+/*
+ * Synthetic Build 058 CPU/TMU reference only. NOT a full Nike-L board DT,
+ * NOT a DT overlay for the TV, NOT an OPP table, NOT bootable or flashable.
+ * The CPU clock region OVERLAPS the existing samsung,sdp1804-clock mapping.
+ * A future kernel must have one coordinated clock-controller owner.
+ */
+/ {
+	compatible = "nover,nikel-cpu-thermal-compile-reference";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	cpu_clock_ref: cpu-clock@f50000 {
+		compatible = "nover,nikel-cpu-clock-offline";
+		reg = <0x00f50000 0x1000 0x00400000 0x1000>;
+		reg-names = "clock", "pmu";
+		#clock-cells = <1>;
+		status = "disabled";
+	};
+
+	cpu-dvfs-reference {
+		compatible = "nover,nikel-cpufreq-offline";
+		status = "disabled";
+	};
+
+	tmu_ref: thermal@f520c0 {
+		compatible = "nover,nikel-thermal-offline";
+		reg = <0x00f520c0 0x30 0x00180000 0x30>;
+		reg-names = "tmu", "chipid";
+		#thermal-sensor-cells = <1>;
+		status = "disabled";
+	};
+
+	/* No operating-points-v2, cpu-supply, thermal-sensors or cooling-maps:
+	 * those require hardware-validated clock, regulators and temp thresholds.
+	 */
+};
