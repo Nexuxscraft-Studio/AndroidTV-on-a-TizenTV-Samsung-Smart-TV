@@ -1,0 +1,14 @@
+# Build 053: first compiler diagnostics of original Samsung DRM/GEM C files.
+# Copy this file as Kbuild into a *new* extracted Samsung sdp_drm_nike tree.
+# This avoids the old Makefile's Linux-4.1 paths and -mcpu=cortex-a15.
+# This does not build a complete loadable Samsung driver.
+
+obj-m += sdp_drm_drv.o
+obj-m += sdp_drm_gem.o
+
+ccflags-y += -I$(src)
+ccflags-y += -I$(src)/dp/nikel
+ccflags-y += -I$(src)/gfx/nikel
+ccflags-y += -I$(src)/../sdp_sys_nike/bus
+ccflags-y += -I$(src)/../sdp_codec_nike
+ccflags-y += -I$(src)/../sdp_socite_nike
