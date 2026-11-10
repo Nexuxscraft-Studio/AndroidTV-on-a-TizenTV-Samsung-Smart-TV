@@ -41,6 +41,8 @@ class Build058Integration(unittest.TestCase):
         self.assertIn("CONFIG_DRM_PANFROST=m", src)
         self.assertIn("drivers/gpu/drm/panfrost/panfrost.o", src)
         self.assertIn("check_arm_object", src)
+        self.assertIn("required_objects=(", src)
+        self.assertIn("Still blocked:", src)
         self.assertIn("Refusing to overwrite existing output directory", src)
         self.assertIn("original_drm_extract", src)
         self.assertIn("samsung_drm_stage1", src)
