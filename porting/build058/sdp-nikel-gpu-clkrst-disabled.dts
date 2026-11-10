@@ -1,0 +1,21 @@
+/dts-v1/;
+
+/*
+ * BUILD 058: standalone reference fixture; NOT an original Samsung board DT.
+ * Do not flash or use as a live DT overlay. No Panfrost consumer is enabled.
+ * This node overlaps the original samsung,sdp1804-clock controller mapping;
+ * future integration MUST use one coordinated owner, not two MMIO providers.
+ */
+/ {
+	compatible = "nover,nikel-build058-reference-only";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	gpu-clkrst@f50000 {
+		compatible = "nover,sdp-nikel-gpu-clkrst-experimental";
+		reg = <0x00f50000 0x3000>;
+		#clock-cells = <1>; /* 0: GPU gate; parent clock unknown */
+		#reset-cells = <1>; /* 0: BUSIF; 1: CORE */
+		status = "disabled";
+	};
+};
