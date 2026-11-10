@@ -1,0 +1,2 @@
+# Build 054: deliberately isolated architecture sanity check only.
+obj-m += nover_arm32_probe.o
