@@ -1,0 +1,417 @@
+{
+  "archives": {
+    "bootmode": {
+      "expected_source_hash_matches": true,
+      "filename": "tztv-bootmode.tgz",
+      "sha256": "7feb006983b35431df9408aef4ea176c7204578d7ba0e1b898dd10e364e58516"
+    },
+    "kernel": {
+      "expected_source_hash_matches": true,
+      "filename": "linux-4.1.10-tizen5.5.tgz",
+      "sha256": "31a92f0d20248abbe2976bd2da1ab95dde4fed3e010ddcdc1c07494c4fd867b0"
+    },
+    "media": {
+      "expected_source_hash_matches": true,
+      "filename": "tztv-media-nike.tgz",
+      "sha256": "40c2a25eba331b8b04d8d81baf76061493f15f228a74893c7f825f7a1da724b6"
+    }
+  },
+  "build": "050",
+  "findings": {
+    "bootmode_module_proves_safe_stock_recovery": false,
+    "legacy_32bit_secondary_entry_api_found": true,
+    "legacy_arm32_nikel_machine_registration_found": true,
+    "legacy_drm_load_unload_callbacks_found": true,
+    "legacy_drm_platform_init_call_found": true,
+    "mali_kbase_ddk_userspace_version_handshake_found": true,
+    "sdp1600_arm64_tree_is_not_nikel_tree": true
+  },
+  "hardware_boot_tested": false,
+  "interpretation": "These are literal observations in hash-pinned GPL sources, NOT a completed driver port. Exact Nike-L defconfig, live GPU ID, bootloader signatures, AArch64 entry and recovery remain unverified. The source package also contains a different sdp1600 ARM64 DTS; do not treat it as a Nike-L DTB.",
+  "linux_6_6_driver_compiled": false,
+  "nike_m_unmodified_release_defconfig": {
+    "CONFIG_ANDROID_BINDER_IPC": "n",
+    "CONFIG_ARM": "y",
+    "CONFIG_ARM64": "not_listed",
+    "CONFIG_ARM_PSCI": "y",
+    "CONFIG_BPF_SYSCALL": "n",
+    "CONFIG_CGROUPS": "y",
+    "CONFIG_ION": "n",
+    "CONFIG_SECCOMP_FILTER": "y",
+    "CONFIG_SECURITY_SELINUX": "n",
+    "CONFIG_SECURITY_SMACK": "y"
+  },
+  "original_nike_l_release_config_verified": false,
+  "real_soc_gpu_ids_verified": false,
+  "safe_to_flash": false,
+  "source_files": {
+    "alsa_audio": {
+      "archive_family": "media",
+      "literal_marker_line_numbers": {
+        "audio": [
+          25,
+          29,
+          31,
+          32,
+          34,
+          35,
+          97,
+          99,
+          120,
+          206,
+          207,
+          212,
+          320,
+          410,
+          411
+        ],
+        "snd_soc": [
+          10777,
+          10779,
+          10781,
+          11069,
+          11078,
+          11082,
+          11085,
+          11088,
+          11091,
+          11094,
+          11096,
+          11101,
+          11103,
+          11106,
+          11110
+        ]
+      },
+      "member": "tztv-media-nike/sdp_alsa_nike/sdp_audio_machine.c",
+      "sha256": "090b3221a61581bebe2a1f2ba0722c56c1f5de59c44701b72404f1a668dfec56",
+      "size_bytes": 375973
+    },
+    "board_legacy_arm32": {
+      "archive_family": "kernel",
+      "literal_marker_line_numbers": {
+        "DT_MACHINE_START": [
+          215
+        ],
+        "samsung,sdp-nikel": [
+          63
+        ],
+        "samsung,sdp-nikem": [
+          62
+        ],
+        "sdp_nike_powerup_cpu": [
+          76,
+          183
+        ],
+        "sdp_secondary_startup": [
+          179
+        ],
+        "u32 entry": [
+          168
+        ]
+      },
+      "member": "linux-4.1.10/arch/arm/mach-sdp/board-nike-dt.c",
+      "sha256": "4332005679a814474f9dcee278cda278dd59d4230ba4708d420e626eef9d3f86",
+      "size_bytes": 5551
+    },
+    "different_arm64_sdp1600_dts": {
+      "archive_family": "kernel",
+      "literal_marker_line_numbers": {
+        "arm,psci-0.2": [
+          60
+        ],
+        "compatible = \"arm,cortex-a57\"": [
+          23,
+          32,
+          41,
+          50
+        ],
+        "enable-method = \"psci\"": [
+          27,
+          36,
+          45,
+          54
+        ],
+        "samsung,sdp1600": [
+          14,
+          80
+        ]
+      },
+      "member": "linux-4.1.10/arch/arm64/boot/dts/sdp/sdp1600.dtsi",
+      "sha256": "4ab531e39f9f09f21b6c191e655e87d46a36f217b123e4f8b82be6eb3db862a1",
+      "size_bytes": 9808
+    },
+    "drm_display": {
+      "archive_family": "media",
+      "literal_marker_line_numbers": {
+        ".gem_free_object": [
+          372
+        ],
+        ".load": [
+          359
+        ],
+        ".unload": [
+          360
+        ],
+        "drm_fbdev_cma_restore_mode": [
+          354
+        ],
+        "drm_platform_init": [
+          406,
+          409
+        ],
+        "drm_put_dev": [
+          424,
+          435
+        ],
+        "samsung,sdp-drm": [
+          429
+        ]
+      },
+      "member": "tztv-media-nike/sdp_drm_nike/sdp_drm_drv.c",
+      "sha256": "2f35fcfe3fb284c460fb07a00d24f048277b839641b6738e91773ff11128981d",
+      "size_bytes": 15236
+    },
+    "frc_nikel": {
+      "archive_family": "media",
+      "literal_marker_line_numbers": {
+        "sdp_frc_dormant_suspend": [
+          85,
+          2521,
+          2750,
+          2765
+        ],
+        "sdp_frc_irq_init": [
+          88,
+          2434
+        ],
+        "sdp_frc_tcon.h": [
+          47
+        ]
+      },
+      "member": "tztv-media-nike/sdp_frc_nike/nikel/sdp_frc_drv.c",
+      "sha256": "3c86caceba38bc1ceec415f7f1a79136358873cf9b6e94fe6c772c22e3867303",
+      "size_bytes": 87083
+    },
+    "hdmi": {
+      "archive_family": "media",
+      "literal_marker_line_numbers": {
+        "V4L2_CID_DV_G_HDCP_STATUS": [
+          903
+        ],
+        "hdcp22": [
+          4843,
+          4919,
+          4921,
+          4923,
+          4927,
+          4928,
+          4929,
+          4931,
+          4932,
+          4933,
+          4934,
+          4935,
+          4936,
+          4938,
+          4942
+        ],
+        "video_register_device": [
+          5801
+        ]
+      },
+      "member": "tztv-media-nike/sdp_hdmi_nike/sdp_hdmi_main.c",
+      "sha256": "5320c893ef5377c725599a33f9ebc6d6856e04f4887b5cc49f18b2b4d96ddd10",
+      "size_bytes": 215356
+    },
+    "mali_kernel": {
+      "archive_family": "media",
+      "literal_marker_line_numbers": {
+        "KERNEL_SIDE_DDK_VERSION_STRING": [
+          125,
+          708,
+          717,
+          718
+        ],
+        "KERNEL_VERSION(4, 6, 0)": [
+          301
+        ],
+        "dma_buf": [],
+        "kbase_api_get_ddk_version": [
+          704,
+          1173
+        ],
+        "pm_runtime": []
+      },
+      "member": "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/mali_kbase_core_linux.c",
+      "sha256": "89b90beb0a2495388d634ad7f04a6eda260afdc7961c126a7e27eb699125d7f6",
+      "size_bytes": 128319
+    },
+    "mali_makefile": {
+      "archive_family": "media",
+      "literal_marker_line_numbers": {
+        "ARCH ?= arm": [
+          25
+        ],
+        "CONFIG_MALI_MIDGARD=m": [
+          57
+        ],
+        "PLATFORM_CONFIG ?= sdp": [
+          41
+        ]
+      },
+      "member": "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/Makefile",
+      "sha256": "9b90dab85e4fb74c533e416012d95ff8821a4ee51f47acd27bb54cb45f126f4c",
+      "size_bytes": 4992
+    },
+    "mali_sdp_platform": {
+      "archive_family": "media",
+      "literal_marker_line_numbers": {
+        "MuseM_DVFS_table": [
+          42,
+          54,
+          59
+        ],
+        "gpufreq_tmu_notifier": [
+          103,
+          138
+        ],
+        "sdp_set_clkrst_mux": [
+          37,
+          195,
+          196,
+          197,
+          200,
+          201,
+          202,
+          205,
+          206,
+          207,
+          208,
+          273,
+          275,
+          278,
+          280
+        ]
+      },
+      "member": "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/platform/sdp/mali_kbase_platform_sdp.c",
+      "sha256": "5b1f5a748854b4ce48dfd13ed7d2f2ef779001bb781765cf719c3b4bdeeb621d",
+      "size_bytes": 15141
+    },
+    "mfc_video": {
+      "archive_family": "media",
+      "literal_marker_line_numbers": {
+        "mfc": [
+          14,
+          23,
+          46,
+          56,
+          65,
+          70,
+          116,
+          141,
+          146,
+          151,
+          182,
+          184,
+          185,
+          217,
+          250
+        ],
+        "platform_driver": [
+          11320,
+          11341,
+          11350,
+          11354
+        ]
+      },
+      "member": "tztv-media-nike/sdp_codec_nike/sdp_mfc.c",
+      "sha256": "1cffaed51503a8abc6e4d1d43070203c7e84fb48f08e04a26f0065757b1da06c",
+      "size_bytes": 321903
+    },
+    "nike_m_release_defconfig": {
+      "archive_family": "kernel",
+      "literal_marker_line_numbers": {},
+      "member": "linux-4.1.10/arch/arm/configs/Nike.M-Tizen_release_defconfig",
+      "sha256": "54dab3e4d55462362d074e6ee11bac7be4d201cb0daa6b18de1454f162f06bc0",
+      "size_bytes": 100472
+    },
+    "panel_legacy": {
+      "archive_family": "kernel",
+      "literal_marker_line_numbers": {
+        "drm_panel": [
+          15,
+          28,
+          59,
+          64,
+          81,
+          98,
+          128,
+          167,
+          171,
+          190,
+          191
+        ],
+        "panel-sdp": [
+          35
+        ],
+        "sdp": [
+          17,
+          27,
+          30,
+          35,
+          37,
+          50,
+          51,
+          59,
+          61,
+          64,
+          66,
+          81,
+          83,
+          98,
+          100
+        ]
+      },
+      "member": "linux-4.1.10/drivers/gpu/drm/panel/panel-sdp.c",
+      "sha256": "4e09eb66ca69d04e2b4bcee57173439621d530d5fb029e45e7a2211c015e3654",
+      "size_bytes": 4769
+    },
+    "tizen_bootmode_module": {
+      "archive_family": "bootmode",
+      "literal_marker_line_numbers": {
+        "TIZEN_BOOTING": [
+          31,
+          122,
+          128,
+          132,
+          161
+        ],
+        "bootmode_ew": [
+          40,
+          45,
+          90,
+          116,
+          122,
+          128,
+          132,
+          142,
+          146,
+          150,
+          161
+        ],
+        "proc_create": [
+          140,
+          144,
+          148,
+          152
+        ]
+      },
+      "member": "tztv-bootmode/tztv-bootmode.c",
+      "sha256": "a948ee08e7c733f7716c26f3d7bd536bfddceba7dda273acc3a122605fd63f00",
+      "size_bytes": 4624
+    }
+  },
+  "status": "SOURCE_CODE_CONFIRMED_TV_UNVERIFIED",
+  "type": "q60t_build050_direct_original_source_audit"
+}
