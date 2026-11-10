@@ -1,0 +1,15 @@
+# Build 054: diagnostic compilation of unmodified Samsung DRM/GEM sources.
+# Keep this separate from the Linux-6.6-ported source tree and kernel output.
+# The published source bundle is missing proprietary vd_kernel-interfaces
+# headers (e.g. drm/drm_tztv.h); expect the vendor compile to report blockers.
+
+obj-m += sdp_drm_drv.o
+obj-m += sdp_drm_gem.o
+
+ccflags-y += -D__LINUX_OS__ -DCONFIG_ARCH_SDP1601
+ccflags-y += -I$(src)
+ccflags-y += -I$(src)/dp/nikel
+ccflags-y += -I$(src)/gfx/nikel
+ccflags-y += -I$(src)/../sdp_sys_nike/bus
+ccflags-y += -I$(src)/../sdp_codec_nike
+ccflags-y += -I$(src)/../sdp_socite_nike
