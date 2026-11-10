@@ -79,10 +79,47 @@ If the server has `arm-linux-gnueabihf-gcc` instead, invoke with
 | `sdp_drm_drv_elf`, `sdp_drm_gem_elf` | Individual Samsung patched objects, *if* they build | Complete DRM driver or module link |
 | `sdp_nikel_*.o` | Compiled fail-closed prototype object | Clock/voltage/temperature on Q60T |
 
-`modules` may report missing `Module.symvers` and fail at modpost even if
-individual `.o` objects exist: the report intentionally checks both. A
-prepared upstream kernel (including its symbol table) will provide stronger
-module-link evidence later.
+**Build 058 ARM32 correction (after the first Debian run):** A successful
+`.o` compile is **not** a successful `.ko` link. The runner now compiles each
+external object directly with the Linux 6.6 kbuild single-target syntax
+`make ... M=<staged-path> <name>.o` and checks ELF class/machine separately.
+The default run performs no `modpost`; `RESULTS.tsv` reports
+`<component>_modpost = SKIPPED_OBJECT_ONLY` and explicitly records whether
+`kernel-obj/Module.symvers` exists. A missing symbol table after
+`modules_prepare` is **expected** and is not reported as a C compilation
+failure.
+
+For a **full kernel build and module-link attempt**, use a *new* output
+directory with the optional flag (needs much more RAM, disk and time):
+
+```bash
+BUILD058_FULL_KERNEL=1 JOBS=2 bash \
+  porting/build058/integration/run-arm32-compile-only.sh \
+  /opt/samsung-atv-lab/linux-6.6.162 \
+  /opt/samsung-atv-lab/samsung/build018-qemu-004/tztv-media-nike.tgz \
+  /opt/samsung-atv-lab/build058-integration-fullkernel001
+```
+
+This attempts a `vmlinux` build for the same configured source tree and
+links staged modules only if the resulting `Module.symvers` exists. Kernel
+or modpost failures get their **own** status/log; per-object `.o` results
+remain separate. This does not boot or install anything.
+
+### Vendor DRM headers
+
+The exact `trace/early.h` was recovered from the original Samsung
+`linux-4.1.10/include/trace/early.h` (copyright Roman Pen, 2014). A
+license-attributed copy is under `drm/legacy-include/trace/early.h` and is
+passed through `ccflags-y` **only** in the extracted diagnostic DRM build.
+No Linux 6.6 system header is overwritten.
+
+`drm/drm_tztv.h` does **not** occur in either pinned Samsung Linux
+4.1.10 or `tztv-media-nike` source archive. It defines part of the vendor
+DRM ioctl ABI (`DRM_SDP_*` commands, request structures, etc.). The runner
+records `samsung_drm_tztv_header = BLOCKED_MISSING_ABI`, tries original
+Core/GEM source compilation for evidence, and keeps the actual compiler
+errors. It does **not** fabricate ABI definitions. Full source compilation
+requires the genuine `vd_kernel-interfaces` headers and further API porting.
 
 Panfrost Linux 6.6 Kconfig depends on `DRM`, ARM/ARM64 or `COMPILE_TEST`,
 MMU and `!GENERIC_ATOMIC64`, and selects devfreq/GEM helpers. If the module
@@ -95,6 +132,7 @@ Sources:
 - [Panfrost Kconfig, Linux v6.6](https://github.com/torvalds/linux/blob/v6.6/drivers/gpu/drm/panfrost/Kconfig).
 - [Panfrost Makefile, Linux v6.6](https://github.com/torvalds/linux/blob/v6.6/drivers/gpu/drm/panfrost/Makefile).
 - [Linux kbuild documentation](https://docs.kernel.org/6.6/kbuild/modules.html).
+- [Linux 6.6 cpufreq.h (`verify` signature, 16-byte name)](https://github.com/torvalds/linux/blob/v6.6/include/linux/cpufreq.h).
 
 No `insmod`, `modprobe`, firmware flash, DT enablement, TV MMIO, or TV
 access. Successful compilation is **not** proven hardware functionality.
