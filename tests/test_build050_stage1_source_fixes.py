@@ -47,6 +47,7 @@ static void sdp_drm_lastclose(struct drm_device *dev)
 class TestStage1SourceFixes(unittest.TestCase):
     def test_panel_api_migration_is_compile_only(self):
         fixed = stage.migrate_panel(PANEL_FIXTURE)
+        self.assertIn("#include <drm/drm_device.h>", fixed)
         self.assertIn("drm_panel_init(&panel->base, &pdev->dev", fixed)
         self.assertIn("drm_mode_vrefresh(m)", fixed)
         self.assertIn("drm_panel_add(&panel->base);", fixed)
@@ -112,6 +113,32 @@ class TestStage1SourceFixes(unittest.TestCase):
             test = subprocess.run(["patch", "--dry-run", "--batch", "-p1", "-i", str(patchfile)],
                                   cwd=base, capture_output=True, text=True, check=False)
             self.assertEqual(test.returncode, 0, test.stdout + test.stderr)
+
+    def test_incremental_header_fix_matches_fresh_stage1_when_sources_exist(self):
+        root = Path(__file__).resolve().parent.parent
+        kernel = root / ".build050_vendor/srcarchives/linux-4.1.10-tizen5.5.tgz"
+        if not kernel.exists():
+            self.skipTest("Original Samsung archive not distributed in repository")
+        with tarfile.open(kernel, "r:gz") as archive:
+            reader = archive.extractfile(stage.PANEL)
+            self.assertIsNotNone(reader)
+            original = reader.read().decode("utf-8")
+        fresh = stage.migrate_panel(original)
+        previous = fresh.replace("#include <drm/drm_device.h>\n", "", 1)
+        self.assertNotEqual(fresh, previous)
+        incremental = (root / "porting/build050/patches/"
+                       "0002-panel-drm-device-header-existing-stage1.patch")
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / stage.PANEL
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(previous)
+            dry = subprocess.run(["patch", "--dry-run", "--batch", "-p1", "-i", str(incremental)],
+                                 cwd=directory, capture_output=True, text=True, check=False)
+            self.assertEqual(dry.returncode, 0, dry.stdout + dry.stderr)
+            applied = subprocess.run(["patch", "--batch", "-p1", "-i", str(incremental)],
+                                     cwd=directory, capture_output=True, text=True, check=False)
+            self.assertEqual(applied.returncode, 0, applied.stdout + applied.stderr)
+            self.assertEqual(target.read_text(), fresh)
 
 
 if __name__ == "__main__":
