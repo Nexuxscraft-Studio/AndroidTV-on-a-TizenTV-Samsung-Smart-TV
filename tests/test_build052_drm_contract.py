@@ -37,6 +37,8 @@ class TestBuild052DRMContract(unittest.TestCase):
         self.assertNotIn("drm_platform_init(", self.source)
 
     def test_modern_gem_lifetime_functions_are_structurally_present(self):
+        for header in ("drm_device.h", "drm_drv.h", "drm_file.h", "drm_gem.h", "drm_ioctl.h"):
+            self.assertIn(f"#include <drm/{header}>", self.source)
         for required in (
             "struct drm_gem_object_funcs", ".free = nover_sdp52_gem_free,",
             "drm_gem_object_init(drm, object, size)",
