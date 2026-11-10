@@ -89,6 +89,21 @@ verwenden. Ergebnis je Lauf in `~/b059-out/artifacts-<arch>-<profil>/`:
   nur, wenn die EL3-Firmware (Secure World) selbst AArch64 ist und den Wechsel
   erlaubt. Deshalb baut Build 059 **beide** Architekturen aus denselben Quellen.
 
+## Bootweg: Stand der Fakten
+
+| Frage | Befund (Quelle) |
+|---|---|
+| kexec aus dem laufenden Tizen | **nicht möglich**: `# CONFIG_KEXEC is not set` (Samsung `Nike.M-Tizen_release_defconfig`) |
+| `/dev/mem` | aus: `# CONFIG_DEVMEM is not set` |
+| eigene Kernelmodule | `CONFIG_MODULES=y`, aber Samsungs UEP prüft Module (`CONFIG_SECURITY_SFD_UEP_CHECK_MODULE=y`) |
+| Kernel-Image-Format | U-Boot-Legacy-`uImage`, ARM, unkomprimiert, Load/Entry `0x80008000`; daneben `sign.bin` (1040 Byte) |
+| Speicherbelegung | `0x80008000` liegt in **keiner** Speicherbank der Firmware-DTBs → der Bootloader schreibt `/memory` vermutlich zur Laufzeit um. Die echte Belegung zeigt erst ein laufendes System (`/proc/iomem`, das Diagnose-init gibt sie aus). |
+
+Folge: Ein Start ohne Flashen über Standardwege gibt es nicht; die signierte
+Bootkette (`sign.bin`, `seret`, `secos`) ist das eigentliche Nadelöhr. Dieser
+Build bereitet alles vor, was dafür **nicht** nötig ist, damit der erste Test –
+sobald ein Bootweg existiert – möglichst viel Information liefert.
+
 ## Offen / nächste Stufen
 
 1. **Bootkette** (entscheidet arm64 vs. arm32): `secos.bin`, `seret.bin`,
