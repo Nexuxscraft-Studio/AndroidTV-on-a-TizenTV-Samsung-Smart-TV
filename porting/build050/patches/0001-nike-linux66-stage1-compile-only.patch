@@ -1,6 +1,6 @@
 --- a/linux-4.1.10/drivers/gpu/drm/panel/panel-sdp.c
 +++ b/linux-4.1.10/drivers/gpu/drm/panel/panel-sdp.c
-@@ -11,7 +11,10 @@
+@@ -11,7 +11,11 @@
  #include <linux/of.h>
  #include <linux/platform_device.h>
  #include <linux/backlight.h>
@@ -8,11 +8,12 @@
 +#include <linux/fb.h>
 +#include <linux/slab.h>
 +#include <drm/drm_connector.h>
++#include <drm/drm_device.h>
 +#include <drm/drm_modes.h>
  #include <drm/drm_panel.h>
  
  struct sdp_panel_desc {
-@@ -44,7 +47,6 @@
+@@ -44,7 +48,6 @@
  	.vsync_start = 1080,
  	.vsync_end = 1080,
  	.vtotal = 1080,
@@ -20,7 +21,7 @@
  };
  
  static const struct sdp_panel_desc sdp_panel_desc = {
-@@ -95,11 +97,11 @@
+@@ -95,11 +98,11 @@
  	return 0;
  }
  
@@ -35,7 +36,7 @@
  	struct drm_display_mode *mode;
  	unsigned int i, num = 0;
  
-@@ -109,7 +111,7 @@
+@@ -109,7 +112,7 @@
  		mode = drm_mode_duplicate(drm, m);
  		if (!mode) {
  			dev_err(drm->dev, "failed to add mode %ux%u@%u\n",
@@ -44,7 +45,7 @@
  			continue;
  		}
  
-@@ -138,7 +140,6 @@
+@@ -138,7 +141,6 @@
  	struct device_node *backlight;
  #endif
  	struct sdp_panel_data *panel;
@@ -52,7 +53,7 @@
  
  	if (!node) {
  		dev_err(&pdev->dev, "device tree node not found\n");
-@@ -164,40 +165,32 @@
+@@ -164,40 +166,32 @@
  			panel->enabled = true;
  	}
  #endif
