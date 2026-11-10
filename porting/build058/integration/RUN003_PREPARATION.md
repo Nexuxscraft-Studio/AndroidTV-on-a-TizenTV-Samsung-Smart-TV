@@ -22,7 +22,7 @@ Previous user-supplied run002 results (not reproduced in this environment):
 ## Run003 (Debian lab; new output only)
 
 ```bash
-python3 -m unittest discover -s porting/build058/integration -p 'test-early-tracing.py' -v
+python3 porting/build058/integration/test-early-tracing.py -v
 CROSS_COMPILE=arm-linux-gnueabihf- JOBS=2 BUILD058_FULL_KERNEL=1 \
   bash porting/build058/integration/run-arm32-compile-only.sh \
   /opt/samsung-atv-lab/linux-6.6.162 \
