@@ -6,7 +6,7 @@ unveränderte Dateien aus dem verifizierten Samsung-OSS-Archiv.
 
 | Fix | Effekt | Absichtlich offen |
 | --- | --- | --- |
-| Panel-6.6-API | Entfernt das verschwundene `drmP.h`, passt `get_modes`/`drm_panel_init`/`drm_panel_add` an, entfernt `drm_panel_detach` und altes `vrefresh`-Feld | Reales Panel-Timing, Connector-Typ, Backlight-Sequenzierung, Kernelkompilierung |
+| Panel-6.6-API | Entfernt das verschwundene `drmP.h`, ergänzt den vollständigen `drm_device.h`, passt `get_modes`/`drm_panel_init`/`drm_panel_add` an, entfernt `drm_panel_detach` und altes `vrefresh`-Feld | Reales Panel-Timing, Connector-Typ, Backlight-Sequenzierung, Kernelkompilierung |
 | Panel-Sicherheitsgrenze | Ersetzt `samsung,sdp1202-panel` durch `nover,compile-only-sdp-panel` | **Keine** Bindung an den echten Samsung-DTB, kein Bild auf dem Gerät |
 | DRM ohne Connector | Gibt `-ENXIO` zurück, wenn keine Encoder/Connectoren vorhanden sind | Vollständige Encoder-/FRC-/TCON-Registrierung und Fehlerpfade |
 | Veralteter fbdev-Aufruf | Entfernt einen möglicherweise problematischen `lastclose`-Pfad mit `drm_fbdev_cma_restore_mode(priv->fbdev)` | Moderne fbdev-Emulation, DRM/GEM-Gesamtportierung |
@@ -21,6 +21,28 @@ unveränderte Dateien aus dem verifizierten Samsung-OSS-Archiv.
 - Aus den Dummy-Paneltimings (1920×1080) werden **keine** Register-
   oder Backlight-Einstellungen für den Q60T abgeleitet.
 - **Nicht auf dem Fernseher flashen oder Hardwaremodule laden.**
+
+### Nachtrag: erster realer Linux-6.6-Compilerfehler aus Build 051
+
+Beim separaten ARM64-Kbuild-Test wurde der Stack-Protector-Fehler nach
+Nutzerangabe bereits behoben; danach meldete der Compiler bei
+`drm->dev` die **unvollständige Definition von `struct drm_device`**.
+Die aktuelle Vollversion von Stage 1 enthält deshalb explizit
+`#include <drm/drm_device.h>` (offizieller Linux-6.6-Header).
+
+**Zwei unterschiedliche Ausgangszustände:**
+
+1. **Frische Originalquellen:** Ausschließlich die aktuelle
+   `0001-nike-linux66-stage1-compile-only.patch` verwenden; der Header
+   ist schon enthalten.
+2. **Stage 1 bereits nach dem alten Patch angewendet:** Ausschließlich
+   `patches/0002-panel-drm-device-header-existing-stage1.patch` zusätzlich
+   auf die bestehende *schreibbare Quellkopie* anwenden. **Nicht** beide
+   Varianten erneut auf denselben Quellstand anwenden.
+
+Beide Patches wurden auf unveränderten bzw. entsprechend vorbereiteten
+Samsung-Quelltexten im Trockenlauf geprüft. Der tatsächliche nächste
+Kompilationstest muss weiterhin auf dem Linux-6.6-Testhost erfolgen.
 
 ## Patch reproduzieren
 
