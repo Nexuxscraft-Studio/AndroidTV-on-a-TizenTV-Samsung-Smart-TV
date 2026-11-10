@@ -1,0 +1,164 @@
+{
+  "build": "057",
+  "status": "ORIGINAL_POWER_SEQUENCE_CROSSCHECKED_OFFLINE",
+  "samsung_original_source_archive_sha256": "40c2a25eba331b8b04d8d81baf76061493f15f228a74893c7f825f7a1da724b6",
+  "firmware_entries_sha256": {
+    "dtb": "9698e1aeca3f614bfb536dc73f8f02fc9acc8f34887070c333f47324c7b342e2",
+    "gpu": "115aadc5b2874cc4210f9b6c58bf2b4e09abadfe84fe7ad217f17770b21ecf29",
+    "drm": "be8d3e249f813dad1258269dfe074d66668111390b84ed6c7915a310fe4b94ba"
+  },
+  "firmware_variants_checked": [
+    "nikel-2G",
+    "nikel-1.5G"
+  ],
+  "gpu_core_mmio_base_not_clock_controller": "0x00500000",
+  "clock_controller": {
+    "base": "0x00f50000",
+    "size": 12288
+  },
+  "nike_l_gpu_control_registers": {
+    "SDP_REG_GPU_CLK_MASK": "0x00f5088c",
+    "SDP_REG_GPU_BUSIF_SW_RESET": "0x00f507f8",
+    "SDP_REG_GPU_CORE_SW_RESET": "0x00f507f8",
+    "SDP_REG_GPU_POWER_REQ_IDLE": "0x00f50a10",
+    "SDP_REG_GPU_POWER_IDLE": "0x00f50a14"
+  },
+  "power_control_original_source": "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/platform/sdp/mali_kbase_platform_sdp.c",
+  "power_sequence": {
+    "off": [
+      {
+        "control": "GPU_POWER_REQ_IDLE",
+        "register": "0x00f50a10",
+        "mask": "0x00000001",
+        "bit": 0,
+        "written_bit_value": 1,
+        "original_source_line": 476
+      },
+      {
+        "action": "wait_until_idle",
+        "control": "GPU_POWER_IDLE",
+        "register": "0x00f50a14",
+        "mask": "0x00000001",
+        "bit": 0,
+        "original_source_line": 479,
+        "operator_in_original": "&& (logical AND, not bitwise AND)",
+        "has_timeout": false,
+        "risk": "Unbounded busy-loop can hang; logical AND may mistake other nonzero bits for IDLE."
+      },
+      {
+        "control": "GPU_BUSIF_SW_RESET",
+        "register": "0x00f507f8",
+        "mask": "0x01000000",
+        "bit": 24,
+        "written_bit_value": 0,
+        "original_source_line": 483
+      },
+      {
+        "control": "GPU_CORE_SW_RESET",
+        "register": "0x00f507f8",
+        "mask": "0x10000000",
+        "bit": 28,
+        "written_bit_value": 0,
+        "original_source_line": 484
+      },
+      {
+        "control": "GPU_CLK_MASK",
+        "register": "0x00f5088c",
+        "mask": "0x00001000",
+        "bit": 12,
+        "written_bit_value": 0,
+        "original_source_line": 486
+      }
+    ],
+    "on": [
+      {
+        "control": "GPU_CLK_MASK",
+        "register": "0x00f5088c",
+        "mask": "0x00001000",
+        "bit": 12,
+        "written_bit_value": 1,
+        "original_source_line": 490
+      },
+      {
+        "control": "GPU_BUSIF_SW_RESET",
+        "register": "0x00f507f8",
+        "mask": "0x01000000",
+        "bit": 24,
+        "written_bit_value": 1,
+        "original_source_line": 491
+      },
+      {
+        "control": "GPU_CORE_SW_RESET",
+        "register": "0x00f507f8",
+        "mask": "0x10000000",
+        "bit": 28,
+        "written_bit_value": 1,
+        "original_source_line": 492
+      },
+      {
+        "control": "GPU_POWER_REQ_IDLE",
+        "register": "0x00f50a10",
+        "mask": "0x00000001",
+        "bit": 0,
+        "written_bit_value": 0,
+        "original_source_line": 493
+      }
+    ]
+  },
+  "kbase_core_original_source": "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/mali_kbase_core_linux.c",
+  "suspend_resume_relative_order": {
+    "suspend": [
+      {
+        "operation": "kbase_pm_suspend(kbdev);",
+        "source_line": 4098
+      },
+      {
+        "operation": "kbase_platform_sdp_gpu_power_control(0);",
+        "source_line": 4101
+      }
+    ],
+    "resume": [
+      {
+        "operation": "kbase_platform_sdp_gpu_power_control(1);",
+        "source_line": 4125
+      },
+      {
+        "operation": "kbase_pm_resume(kbdev);",
+        "source_line": 4127
+      }
+    ]
+  },
+  "other_samsung_dependencies": [
+    "regulator_get_optional(mali) in kbase platform probe",
+    "clk_prepare_enable in kbase platform probe; legacy code can continue without GPU clock",
+    "sdp_runtime_pm_init_and_get custom Samsung runtime-PM helper",
+    "GPU DVFS path switching contains udelay(20) and mux/prescaler writes"
+  ],
+  "linux_6_6_panfrost_interfaces_already_present": {
+    "source": "torvalds/linux v6.6 drivers/gpu/drm/panfrost/panfrost_device.c",
+    "gpu_clock": "devm_clk_get + clk_prepare_enable",
+    "optional_bus_clock": "devm_clk_get_optional(bus)",
+    "reset": "devm_reset_control_array_get_optional_exclusive",
+    "power": "panfrost_pm_domain_init and regulator/OPP integration",
+    "runtime_pm": "drivers/gpu/drm/panfrost/panfrost_drv.c pm_runtime_*"
+  },
+  "migration_gaps": [
+    "Linux 6.6 common-clock provider for samsung,sdp1804-clock not implemented/validated",
+    "Linux 6.6 reset-controller provider for shared 0x00f507f8 register bits not implemented",
+    "Hardware IDLE handshake needs bounded polling and verified timeout strategy",
+    "DT GPU node lacks clocks; provider phandles/IDs not verified",
+    "No validated power-domain/regulator bindings or safe suspend/resume order for Panfrost",
+    "GIC interrupt trigger flags are raw zero values; polarity not verified",
+    "Whole Samsung Nike-L board DT not yet ported"
+  ],
+  "notes": [
+    "The reset bits for BUSIF and CORE share a register but have different masks.",
+    "No clocks, resets or MMIO must be driven directly from this report.",
+    "Original logical && in idle poll and missing timeout are unsafe to transplant verbatim.",
+    "The Linux 6.6 Panfrost consumers already exist; Samsung hardware providers remain missing."
+  ],
+  "gpu_driver_built": false,
+  "device_tree_binding_validated": false,
+  "hardware_access_performed": false,
+  "safe_to_flash": false
+}
