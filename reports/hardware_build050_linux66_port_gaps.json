@@ -1,0 +1,346 @@
+{
+  "arm64_compile_test_passed": false,
+  "blocking_check_count": 17,
+  "build": "050",
+  "checks": [
+    {
+      "detected": true,
+      "id": "legacy_drm_bus_init",
+      "original_line_numbers": [
+        406
+      ],
+      "required_work": "Move full device initialization into platform probe before drm_dev_register().",
+      "severity": "critical",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "legacy_drm_load",
+      "original_line_numbers": [
+        359
+      ],
+      "required_work": "Move initialization out of deprecated drm_driver.load into probe.",
+      "severity": "high",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "legacy_drm_unload",
+      "original_line_numbers": [
+        360
+      ],
+      "required_work": "Use explicit reverse-order teardown and drm_dev_unregister()/drm_dev_put().",
+      "severity": "high",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_gem_free_object_driver_field",
+      "original_line_numbers": [
+        372
+      ],
+      "required_work": "Rework GEM lifetime through drm_gem_object_funcs.free; validate ownership.",
+      "severity": "critical",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_gem_vm_ops_driver_field",
+      "original_line_numbers": [
+        373
+      ],
+      "required_work": "Review per-object VM mappings and drm_gem_object_funcs instead.",
+      "severity": "critical",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_set_busid_driver_field",
+      "original_line_numbers": [
+        363
+      ],
+      "required_work": "Drop obsolete drm_driver.set_busid; use DRM core registration.",
+      "severity": "high",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_debugfs_cleanup_driver_field",
+      "original_line_numbers": [
+        369
+      ],
+      "required_work": "Rework debugfs cleanup with current DRM-managed lifetimes.",
+      "severity": "high",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_dumb_destroy_driver_field",
+      "original_line_numbers": [
+        376
+      ],
+      "required_work": "Handle GEM lifetime via current GEM core and object functions.",
+      "severity": "high",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_gem_open_object_driver_field",
+      "original_line_numbers": [
+        379
+      ],
+      "required_work": "Use drm_gem_object_funcs.open for per-handle callbacks.",
+      "severity": "high",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_gem_prime_export_driver_field",
+      "original_line_numbers": [
+        380
+      ],
+      "required_work": "Review GEM DMA-BUF export through per-object funcs and dma_buf APIs.",
+      "severity": "critical",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_gem_prime_get_sg_table_driver_field",
+      "original_line_numbers": [
+        382
+      ],
+      "required_work": "Move scatter/gather export to current drm_gem_object_funcs.",
+      "severity": "critical",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_gem_prime_vmap_driver_field",
+      "original_line_numbers": [
+        384
+      ],
+      "required_work": "Review drm_gem_object_funcs.vmap and iosys_map semantics.",
+      "severity": "critical",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_gem_prime_vunmap_driver_field",
+      "original_line_numbers": [
+        385
+      ],
+      "required_work": "Review drm_gem_object_funcs.vunmap and matching memory ownership.",
+      "severity": "critical",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "removed_gem_prime_mmap_driver_field",
+      "original_line_numbers": [
+        386
+      ],
+      "required_work": "Review current GEM mmap and DMA-BUF callback interfaces.",
+      "severity": "critical",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "legacy_fbdev_restore",
+      "original_line_numbers": [
+        354
+      ],
+      "required_work": "Review 6.6 fbdev emulation and lastclose lifecycle.",
+      "severity": "high",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "unchecked_missing_connectors",
+      "original_line_numbers": [
+        179
+      ],
+      "required_work": "Do not consider a registered DRM device display-ready without a validated connector.",
+      "severity": "critical",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "unchecked_dma_address_width",
+      "original_line_numbers": [
+        402
+      ],
+      "required_work": "Validate real DMA address width and use DMA mask APIs; do not assume 64 bits.",
+      "severity": "high",
+      "source": "drm"
+    },
+    {
+      "detected": true,
+      "id": "old_panel_init_signature",
+      "original_line_numbers": [
+        167
+      ],
+      "required_work": "Linux 6.6 drm_panel_init takes panel, device, funcs, connector type.",
+      "severity": "critical",
+      "source": "panel"
+    },
+    {
+      "detected": true,
+      "id": "old_panel_add_return_value",
+      "original_line_numbers": [
+        171
+      ],
+      "required_work": "Linux 6.6 drm_panel_add returns void; revise probe error paths.",
+      "severity": "critical",
+      "source": "panel"
+    },
+    {
+      "detected": true,
+      "id": "old_panel_get_modes_signature",
+      "original_line_numbers": [
+        98
+      ],
+      "required_work": "Linux 6.6 get_modes receives (panel, connector); update mode allocation.",
+      "severity": "critical",
+      "source": "panel"
+    },
+    {
+      "detected": true,
+      "id": "old_panel_embedded_connector",
+      "original_line_numbers": [
+        101
+      ],
+      "required_work": "Linux 6.6 drm_panel no longer owns a connector field.",
+      "severity": "critical",
+      "source": "panel"
+    },
+    {
+      "detected": true,
+      "id": "old_panel_embedded_drm_device",
+      "original_line_numbers": [
+        102
+      ],
+      "required_work": "Use the supplied DRM connector's device instead of panel.drm.",
+      "severity": "critical",
+      "source": "panel"
+    },
+    {
+      "detected": true,
+      "id": "dummy_panel_data",
+      "original_line_numbers": [
+        35
+      ],
+      "required_work": "These are dummy 1080p timings, not proof of actual Q60T panel wiring/timings.",
+      "severity": "critical",
+      "source": "panel"
+    },
+    {
+      "detected": true,
+      "id": "removed_display_mode_vrefresh_field",
+      "original_line_numbers": [
+        47
+      ],
+      "required_work": "Linux 6.6 drm_display_mode no longer has .vrefresh; use drm_mode_vrefresh().",
+      "severity": "critical",
+      "source": "panel"
+    },
+    {
+      "detected": true,
+      "id": "drm_arm64_conditional_build",
+      "original_line_numbers": [
+        69,
+        181
+      ],
+      "required_work": "ARM64 switch exists but this is neither a 6.6 compile test nor boot evidence.",
+      "severity": "info",
+      "source": "drm_makefile"
+    },
+    {
+      "detected": true,
+      "id": "gpu_arm64_conditional_build",
+      "original_line_numbers": [
+        70
+      ],
+      "required_work": "GPU module has an ARM64 switch, but its older DDK and includes require porting.",
+      "severity": "info",
+      "source": "gpu_makefile"
+    },
+    {
+      "detected": true,
+      "id": "drm_arm32_include_dependency",
+      "original_line_numbers": [
+        137,
+        138
+      ],
+      "required_work": "Remove/replace ARM32 mach-sdp private header dependencies for arm64.",
+      "severity": "critical",
+      "source": "drm_makefile"
+    }
+  ],
+  "dummy_panel_mode": {
+    "clock": 150660,
+    "frequency_from_clock_and_totals_hz": 72.656,
+    "hdisplay": 1920,
+    "htotal": 1920,
+    "is_usable_q60t_panel_timing": false,
+    "timing_has_no_horizontal_or_vertical_blanking": true,
+    "vdisplay": 1080,
+    "vrefresh": 60,
+    "vtotal": 1080
+  },
+  "linux_6_6_driver_compiled": false,
+  "linux_6_6_reference": {
+    "drm_driver_header": "include/drm/drm_drv.h",
+    "drm_driver_header_git_blob_sha": "9813fa759b75d4dd39350a6eb687fbf455a64aed",
+    "modes_header": "include/drm/drm_modes.h",
+    "modes_header_git_blob_sha": "c613f0abe9dceca89ae399b796feb3f2e222e6f2",
+    "panel_header": "include/drm/drm_panel.h",
+    "panel_header_git_blob_sha": "10015891b056f816c7a992a2052b36fd26943c5b",
+    "repository": "torvalds/linux",
+    "tag": "v6.6"
+  },
+  "notes": [
+    "drm_driver.load/unload still exist in v6.6 but are deprecated; do not call them removed.",
+    "gem_free_object and gem_vm_ops are absent from Linux v6.6 drm_driver.",
+    "drm_panel_init is four-argument and drm_panel_add returns void in Linux v6.6.",
+    "Linux v6.6 drm_display_mode has no .vrefresh member; the dummy 1080p mode is unusable.",
+    "Samsung source ARM64 build flags do not demonstrate a verified ARM64 bootloader.",
+    "No hardware registers, clocks, panel voltages or DTB should be guessed."
+  ],
+  "safe_to_flash": false,
+  "status": "SOURCE_API_MIGRATION_REQUIRED",
+  "target_gpu_id_verified": false,
+  "target_panel_verified": false,
+  "type": "q60t_build050_linux66_source_porting_gaps",
+  "vendor_source_archives": {
+    "kernel": {
+      "filename": "linux-4.1.10-tizen5.5.tgz",
+      "sha256": "31a92f0d20248abbe2976bd2da1ab95dde4fed3e010ddcdc1c07494c4fd867b0"
+    },
+    "media": {
+      "filename": "tztv-media-nike.tgz",
+      "sha256": "40c2a25eba331b8b04d8d81baf76061493f15f228a74893c7f825f7a1da724b6"
+    }
+  },
+  "vendor_source_members": {
+    "drm": {
+      "archive_family": "media",
+      "member": "tztv-media-nike/sdp_drm_nike/sdp_drm_drv.c",
+      "sha256": "2f35fcfe3fb284c460fb07a00d24f048277b839641b6738e91773ff11128981d"
+    },
+    "drm_makefile": {
+      "archive_family": "media",
+      "member": "tztv-media-nike/sdp_drm_nike/Makefile",
+      "sha256": "daf49adf86e008c90ef5e82e1b21e1e3d916cec84a826665a89c8a07b050e262"
+    },
+    "gpu_makefile": {
+      "archive_family": "media",
+      "member": "tztv-media-nike/sdp_gpu_nike/Makefile",
+      "sha256": "a13f465e2e781ab78cb1766b82da89607ee9ef29f037cdcfa835ef258cfdc695"
+    },
+    "panel": {
+      "archive_family": "kernel",
+      "member": "linux-4.1.10/drivers/gpu/drm/panel/panel-sdp.c",
+      "sha256": "4e09eb66ca69d04e2b4bcee57173439621d530d5fb029e45e7a2211c015e3654"
+    }
+  }
+}
