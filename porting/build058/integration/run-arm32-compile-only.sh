@@ -103,7 +103,8 @@ if ! record_step arm32_modules_prepare kernel_make -j"$jobs" modules_prepare; th
 
 # In-tree Panfrost driver. The composite object includes all source objects
 # defined in drivers/gpu/drm/panfrost/Makefile; no dummy replacement.
-if record_step panfrost_arm32 kernel_make -j"$jobs" drivers/gpu/drm/panfrost/panfrost.o; then
+if record_step panfrost_arm32 kernel_make -j"$jobs" drivers/gpu/drm/panfrost/panfrost.o || \
+   record_step panfrost_arm32_directory kernel_make -j"$jobs" drivers/gpu/drm/panfrost/; then
   if ! check_arm_object "$output_dir/kernel-obj/drivers/gpu/drm/panfrost/panfrost.o"; then
     printf 'panfrost_elf\tFAIL\t1\tinvalid ARM ELF\n' >> "$summary"
   else
@@ -172,3 +173,27 @@ fi
 
 printf 'Finished. Inspect %s and individual log files.\n' "$summary"
 printf 'This does NOT validate functionality, booting, clocks, DRM display, or TV safety.\n'
+
+# Do not emit a misleading success exit code for missing real ARM objects.
+# Both large Samsung DRM files are required for a full integration PASS;
+# current vendor interfaces may still block them, yielding PARTIAL/FAIL.
+required_objects=(
+  panfrost_elf
+  sdp_drm_util_elf sdp_drm_fence_elf
+  sdp_nikel_gpu_clkrst.o sdp_nikel_cpu_clk.o
+  sdp_nikel_cpufreq.o sdp_nikel_thermal.o
+  sdp_drm_drv_elf sdp_drm_gem_elf
+)
+missing=0
+for object in "${required_objects[@]}"; do
+  if ! awk -F '\t' -v key="$object" \
+    '$1 == key && $2 == "PASS" { found = 1 } END { exit !found }' "$summary"; then
+    printf 'Still blocked: %s\n' "$object" >&2
+    missing=1
+  fi
+done
+if [[ "$missing" != 0 ]]; then
+  printf 'PARTIAL / FAILED: not all required ARM32 source objects compiled.\n' >&2
+  exit 1
+fi
+printf 'OBJECTS_COMPILED: all required ARM32 objects exist (hardware still unverified).\n'
