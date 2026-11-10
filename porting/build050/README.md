@@ -80,10 +80,21 @@ Die ausführliche Migrationsmatrix steht unter
 Dieser Bericht ist ein **Compiler-Vorbereitungsinventar**, kein
 nachgewiesener Treiberbuild.
 
+## Erste Quellcodefixes / Stage 1
+
+Der experimentelle, ausdrücklich nicht hardwaregebundene Panel-6.6-Patch
+liegt unter [`patches/0001-nike-linux66-stage1-compile-only.patch`](patches/0001-nike-linux66-stage1-compile-only.patch).
+Er wird reproduzierbar aus den Original-TGZs mit
+`q60t_build050_stage1_source_fixes.py` erzeugt. Ein Patch-Trockenlauf
+gegen die echten Quelldateien war erfolgreich; eine Kompilierung ist
+noch **nicht** nachgewiesen. Die vollständigen Sicherheitsgrenzen und
+Testkommandos stehen unter [`STAGE1_FIXES.md`](STAGE1_FIXES.md).
+
 ```bash
 python3 -m unittest tests/test_build050_hardware_evidence.py -v
 python3 -m unittest tests/test_build050_vendor_code_audit.py -v
 python3 -m unittest tests/test_build050_linux66_port_gaps.py -v
+python3 -m unittest tests/test_build050_stage1_source_fixes.py -v
 python3 -m unittest discover -s tests -q
 python3 q60t_release_audit.py .
 ```
