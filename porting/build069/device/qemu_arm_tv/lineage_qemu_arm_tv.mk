@@ -83,7 +83,8 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/fstab.qemuarm:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.qemuarm \
     $(LOCAL_PATH)/fstab.qemuarm:$(TARGET_COPY_OUT_RAMDISK)/fstab.qemuarm \
     $(LOCAL_PATH)/init.qemuarm.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.qemuarm.rc \
-    $(LOCAL_PATH)/qemu_logcat_kmsg.sh:$(TARGET_COPY_OUT_VENDOR)/bin/qemu_logcat_kmsg.sh
+    $(LOCAL_PATH)/qemu_logcat_kmsg.sh:$(TARGET_COPY_OUT_VENDOR)/bin/qemu_logcat_kmsg.sh \
+    $(LOCAL_PATH)/qemu_display_diag.sh:$(TARGET_COPY_OUT_VENDOR)/bin/qemu_display_diag.sh
 
 # atv_generic_system.mk lists "android.hardware.wifi"; see Android.mk here
 # (empty phony package, QEMU has no Wi-Fi).

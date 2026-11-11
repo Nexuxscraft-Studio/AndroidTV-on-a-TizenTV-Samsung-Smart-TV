@@ -33,3 +33,13 @@ on early-init
 
 on property:sys.use_memfd=false
     setprop sys.use_memfd true
+
+# Boot 9: display diagnostics (see qemu_display_diag.sh).
+service qemu_display_diag /system/bin/sh /vendor/bin/qemu_display_diag.sh
+    user root
+    group root log graphics system
+    oneshot
+    disabled
+
+on property:init.svc.surfaceflinger=running
+    start qemu_display_diag

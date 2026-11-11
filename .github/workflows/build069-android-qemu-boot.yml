@@ -109,6 +109,8 @@ jobs:
             grep -E "CONFIG_(BPF|CGROUP|NET_CLS_BPF|NET_ACT_BPF|BPF_JIT|SOCK_CGROUP|NETFILTER_XT_MATCH_BPF)" "$w/kernel/artifacts-arm-android/config" || true
             echo "===== guest logcat via kmsg: graphics (L> lines)"
             grep -a 'L> ' "$w/qemu-android.log" | grep -a -i -E 'surfaceflinger|SurfaceFlinger|EGL|angle|vulkan|swiftshader|pastel|RenderEngine|gralloc|minigbm|composer|hwc|drm|libEGL|GLES' | cut -c1-400 | head -400 || true
+            echo "===== guest display diagnostics (D> lines)"
+            grep -a 'D> ' "$w/qemu-android.log" | sed 's/^.*D> //' | cut -c1-300 | head -500 || true
             echo "===== guest logcat via kmsg: all E/ and F/ (head 400)"
             grep -a -E 'L> [EF]/' "$w/qemu-android.log" | grep -a -v 'F/DEBUG' | cut -c1-400 | head -400 || true
             echo "===== graphics libraries in PRODUCT_OUT"
