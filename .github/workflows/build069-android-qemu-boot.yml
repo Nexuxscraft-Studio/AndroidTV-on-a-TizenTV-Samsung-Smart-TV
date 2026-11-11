@@ -107,6 +107,15 @@ jobs:
             grep -a -E "NOT YET: opcode|unknown opcode|bpf_jit|BPF JIT" "$w/qemu-android.log" || echo "(none)"
             echo "===== kernel BPF/cgroup config"
             grep -E "CONFIG_(BPF|CGROUP|NET_CLS_BPF|NET_ACT_BPF|BPF_JIT|SOCK_CGROUP|NETFILTER_XT_MATCH_BPF)" "$w/kernel/artifacts-arm-android/config" || true
+            echo "===== guest logcat via kmsg: graphics (L> lines)"
+            grep -a 'L> ' "$w/qemu-android.log" | grep -a -i -E 'surfaceflinger|SurfaceFlinger|EGL|angle|vulkan|swiftshader|pastel|RenderEngine|gralloc|minigbm|composer|hwc|drm|libEGL|GLES' | cut -c1-400 | head -400 || true
+            echo "===== guest logcat via kmsg: all E/ and F/ (head 400)"
+            grep -a -E 'L> [EF]/' "$w/qemu-android.log" | grep -a -v 'F/DEBUG' | cut -c1-400 | head -400 || true
+            echo "===== graphics libraries in PRODUCT_OUT"
+            po="$LOS_DIR/out/target/product/$PRODUCT_DIR"
+            for d in vendor/lib/egl vendor/lib/hw system/lib/egl system/lib/hw vendor/etc/vintf/manifest; do
+              [ -d "$po/$d" ] && { echo "--- $d"; ls -1 "$po/$d" | grep -i -E 'egl|gles|vulkan|pastel|angle|gralloc|minigbm|mapper|composer|hwc' || true; }
+            done
             echo "===== services started / died"
             grep -a -E "starting service|exited with status|received signal|Kernel panic|boot_completed|sys.boot" "$w/qemu-android.log" | head -300 || true
             echo "===== qemu-android.log (tail 120)"
