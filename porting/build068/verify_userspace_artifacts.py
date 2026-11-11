@@ -148,6 +148,14 @@ def check(out: Path) -> dict:
                            "ro.vendor.product.cpu.abi",
                            "ro.system.product.cpu.abi")
     if abi is None:
+        # GSI builds (system image only) carry no vendor/build.prop; fall back
+        # to the first entry of the system ABI list.
+        key, lst = _first_prop(props, "ro.system.product.cpu.abilist",
+                               "ro.product.cpu.abilist")
+        if lst:
+            abi = lst.split(",")[0].strip()
+            key = f"{key}[0]"
+    if abi is None:
         add("primary_abi_armeabi_v7a", "MISSING", "ro.product.cpu.abi fehlt")
     elif abi == "armeabi-v7a":
         add("primary_abi_armeabi_v7a", "PASS", f"{key}={abi}")

@@ -119,6 +119,13 @@ class VerifierTests(unittest.TestCase):
         report = v.check(self.root)
         self.assertEqual(self.status(report, "android_15"), "FAIL")
 
+    def test_gsi_without_vendor_uses_system_abilist(self) -> None:
+        make_good_tree(self.root)
+        (self.root / "vendor/build.prop").unlink()
+        report = v.check(self.root)
+        self.assertEqual(self.status(report, "primary_abi_armeabi_v7a"), "PASS")
+        self.assertEqual(report["overall"], "PASS")
+
     def test_parse_props_ignores_comments_and_imports(self) -> None:
         props = v.parse_props("# c\nimport /x.prop\na=1\n b = 2 \nnoeq\n")
         self.assertEqual(props, {"a": "1", "b": "2"})

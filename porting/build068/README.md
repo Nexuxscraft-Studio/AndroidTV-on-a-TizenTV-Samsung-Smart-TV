@@ -47,6 +47,19 @@ ARM32-TV-Produkt in seinem eigenen `device/google/atv`-Fork.
    Lauf. Fallback ohne Codeänderung: `--target gsi_tv_arm`
    (`lineage_gsi_tv_arm-bp1a-userdebug`, ebenfalls ARM32-TV, reines GSI).
 
+### Erster Runner-Lauf (11.11.2026, Runner `debian`)
+
+`repo sync` 39 min, `check-target` und 32-Bit-Guard bestanden
+(`TARGET_ARCH=arm`, `armv7-a-neon`, kein 2nd-Arch, `BUILD_ID=BP1A.250505.005`).
+Dann **Kati-Abbruch nach 3 min** in `build/make/core/artifact_path_requirements.mk`:
+`lineage_sdk_tv_arm` setzt `PRODUCT_ENFORCE_ARTIFACT_PATH_REQUIREMENTS := relaxed`,
+`relaxed` bricht bei Fremddateien im `atv_generic_system`-Pfad aber trotzdem ab
+(nur `false`/leer schaltet ab); Lineages TV-Zusätze (openssh, vim, LeanbackIME,
+`init.lineage.atv.rc` …) landen unter `system/product`, `system/system_ext`.
+→ `lineage_sdk_tv_arm` ist in 22.2 **so nicht baubar**. Wechsel auf
+`gsi_tv_arm` (`lineage_gsi_tv_arm` setzt die Prüfung leer = aus), dessen
+System-Image ohnehin der Kandidat für den QEMU-Boot auf unserem Kernel ist.
+
 ## 2. Korrektur: Binder-ABI ist 64-Bit-Protokoll, auch auf ARM32
 
 Build 062 und die Kickoff-Übergabe nennen als Ziel „32-Bit-Binder
