@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Build 069 M3: audio policy for the QEMU ARM32 ATV emulator.
+     Derived from device/google/cuttlefish/shared/config/audio/policy/
+     audio_policy_configuration.xml (Apache-2.0), but without the Bluetooth
+     include: bluetooth_audio_policy_configuration_7_0.xml is not installed on
+     this product, the unresolved xi:include made the whole file invalid and
+     the AOSP example core HAL never registered IModule/default (boot 8). -->
+<audioPolicyConfiguration version="7.0" xmlns:xi="http://www.w3.org/2001/XInclude">
+    <globalConfiguration speaker_drc_enabled="false"/>
+
+    <modules>
+        <!-- Primary Audio HAL -->
+        <xi:include href="primary_audio_policy_configuration.xml"/>
+
+        <!-- Remote Submix Audio HAL -->
+        <xi:include href="r_submix_audio_policy_configuration.xml"/>
+    </modules>
+
+    <xi:include href="audio_policy_volumes.xml"/>
+    <xi:include href="default_volume_tables.xml"/>
+</audioPolicyConfiguration>

@@ -106,6 +106,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build069/device/qemu_arm_tv/fstab.qemuarm",
     "porting/build069/device/qemu_arm_tv/init.qemuarm.rc",
     "porting/build069/device/qemu_arm_tv/manifest.xml",
+    "porting/build069/device/qemu_arm_tv/audio_policy_configuration.xml",
     "porting/build069/device/qemu_arm_tv/qemu_logcat_kmsg.sh",
     "porting/build069/runner/request.env",
 }
