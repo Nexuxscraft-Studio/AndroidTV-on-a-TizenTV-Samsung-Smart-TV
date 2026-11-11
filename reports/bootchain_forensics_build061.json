@@ -1,0 +1,105 @@
+{
+  "type": "bootchain_forensics_build061",
+  "components": {
+    "seret.bin": {
+      "bytes": 3137552,
+      "sha256": "c97ae1b4db73c2981b13fa9b7121930d77702e8705641225c3a1506064bec728",
+      "role": "AArch32 Linux zImage stub (NOT a TrustZone monitor)",
+      "entry_words_le": [
+        "e1a0300f",
+        "e3520000",
+        "0a000005",
+        "e2433008",
+        "e59f4020",
+        "e083d004",
+        "e24dd004",
+        "e203033f",
+        "ea000003",
+        "e203333f",
+        "e2834301",
+        "e1a0d004",
+        "e1a00003",
+        "ea00011f",
+        "00002848",
+        "e1a0c00d"
+      ],
+      "looks_like_arm_zimage_head": true,
+      "decompressor_strings": {
+        "done, booting the kernel": {
+          "off": 46888,
+          "text": "done, booting the kernel."
+        },
+        "Input is not in the XZ format": {
+          "off": 46955,
+          "text": "Input is not in the XZ format (wrong magic bytes)"
+        },
+        "/chosen/bootargs": {
+          "off": 9462,
+          "text": "/chosen/bootargs"
+        },
+        "decompressor returned an error": {
+          "off": 46856,
+          "text": "decompressor returned an error"
+        }
+      },
+      "markers": {
+        "xz_magic_constant": 46915,
+        "payload_entropy_run": [
+          {
+            "start": 0,
+            "end": 32768,
+            "band": "LOW",
+            "e": 4.35
+          },
+          {
+            "start": 32768,
+            "end": 49152,
+            "band": "MID",
+            "e": 6.55
+          },
+          {
+            "start": 49152,
+            "end": 1720320,
+            "band": "HIGH",
+            "e": 7.99
+          },
+          {
+            "start": 1720320,
+            "end": 3145728,
+            "band": "LOW",
+            "e": 5.7
+          }
+        ]
+      },
+      "note": "Payload region is high-entropy and not decompressible with standard codecs (gzip/zlib/xz/lzma); consistent with an encrypted or non-standard-packed kernel payload."
+    },
+    "secos.bin": {
+      "bytes": 4186128,
+      "sha256": "20e957cffcd89dd3cd942fff6155c0630ab1bfc0986b5f8c57ebe0ceef08ceff",
+      "role": "Secure OS / TrustZone image",
+      "entropy_first_100k": 8.0,
+      "likely_encrypted": true,
+      "note": "Key most likely held in hardware (eFuse/OTP); not decryptable without an exploit. Not attempted."
+    },
+    "ddr.init": {
+      "bytes": 311312,
+      "sha256": "128cb3a48977cd063fb26b33794f5180e2403260b956250e2b198db565b03708",
+      "role": "DDR training blob",
+      "entropy_first_100k": 8.0,
+      "likely_encrypted": true,
+      "note": "Key most likely held in hardware (eFuse/OTP); not decryptable without an exploit. Not attempted."
+    },
+    "sign.bin": {
+      "bytes": 1040,
+      "sha256": "244cbe7ef9ad8fc3f198e5f556968bd18cd0a34f986934b9c5126b6284c4b0b4",
+      "size": 1040,
+      "salted_magic_off": 264,
+      "salt": "cdc64090508afc06",
+      "is_openssl_enc": true,
+      "pkcs7_pad_tail": true,
+      "interpretation": "OpenSSL symmetric enc container (password/HW-key derived via EVP_BytesToKey). NOT a plaintext hash of the other components; without the hardware-held key it is neither reproducible nor forgeable."
+    }
+  },
+  "arch_conclusion": "EL3/secure monitor runs AArch32 (seret stub is a 32-bit zImage; stock kernel enters in AArch32 HYP). With a 32-bit EL3, SCR_EL3.RW cannot be set, so lower exception levels stay AArch32 and an AArch64 Linux cannot boot. The A57 cores are ARMv8 silicon, but this firmware permits only AArch32 -> target ARM 32-bit.",
+  "disclaimer": "Descriptive, read-only inventory. No secure-boot validation, no bootability claim, no device flash. Research only."
+}
