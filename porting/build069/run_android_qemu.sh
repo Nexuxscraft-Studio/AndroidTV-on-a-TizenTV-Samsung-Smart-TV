@@ -155,7 +155,10 @@ stage_boot() {
     disks+=(-drive "if=none,id=vendor,file=$VENDOR_IMG,format=raw,snapshot=on"
             -device virtio-blk-pci,drive=vendor
             -drive "if=none,id=userdata,file=$USERDATA_IMG,format=raw"
-            -device virtio-blk-pci,drive=userdata)
+            -device virtio-blk-pci,drive=userdata
+            # M3: virtual GPU (KMS scanout) for drm_hwcomposer/minigbm;
+            # headless (-nographic), software rendering in the guest.
+            -device virtio-gpu-pci)
   fi
   timeout "$TIMEOUT" qemu-system-arm -M virt -cpu cortex-a15 -smp "$SMP" -m "$MEM" \
     -nographic -no-reboot -nic none \
