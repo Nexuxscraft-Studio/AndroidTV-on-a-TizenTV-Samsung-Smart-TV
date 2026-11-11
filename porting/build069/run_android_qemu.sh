@@ -159,11 +159,15 @@ stage_boot() {
             -drive "if=none,id=userdata,file=$USERDATA_IMG,format=raw"
             -device virtio-blk-pci,drive=userdata
             # M3: virtual GPU (KMS scanout) for drm_hwcomposer/minigbm;
-            # headless (-nographic), software rendering in the guest.
+            # picture via VNC on the runner (127.0.0.1:5901), software
+            # rendering in the guest.
             -device virtio-gpu-pci)
   fi
   timeout "$TIMEOUT" qemu-system-arm -M virt -cpu cortex-a15 -smp "$SMP" -m "$MEM" \
-    -nographic -no-reboot -nic none \
+    -no-reboot -nic none \
+    -vnc 127.0.0.1:1 \
+    -serial stdio \
+    -monitor unix:/tmp/android-qemu-monitor.sock,server=on,wait=off \
     -kernel "$ZIMAGE" -initrd "$RAMDISK" "${disks[@]}" \
     -append "$cmdline" > "$QLOG" 2>&1 < /dev/null &
   local qpid=$! seen=0 reason=""

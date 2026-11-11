@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Build 069 M3: read-only probe 3d - installable AOSP default audio HAL for an
-# ARM32 vendor (audioserver SIGSEGV without IModule/IFactory).
+# Build 069 M3: read-only probe 3e - why the AOSP example audio core HAL never
+# registers IModule/default (boot 8: "Invalid XML config file").
 set -uo pipefail
 L="${1:?los dir}"; cd "$L" || exit 1
+O=out/target/product/qemu_arm_tv
 sec() { printf '\n######## %s\n' "$*"; }
-D=hardware/interfaces/audio/aidl/default
-sec "$D/Android.bp: module names, namespace, enabled, vendor"; grep -n -E '^[a-z_]+ \{|name: "|soong_namespace|enabled:|vendor:|installable:|relative_install_path|apex_available|compile_multilib' $D/Android.bp | head -120
-sec "$D/apex"; ls -R $D/apex 2>/dev/null | head -30; for f in $(find $D/apex -name Android.bp 2>/dev/null); do echo "--- $f"; sed -n 1,140p "$f"; done
-sec "cuttlefish audio product config"; grep -rn -E 'audio' device/google/cuttlefish/shared/device.mk device/google/cuttlefish/shared/config/*.mk 2>/dev/null | grep -v '^\s*#' | head -40
-sec "cuttlefish audio mk files"; ls device/google/cuttlefish/shared/*/ 2>/dev/null | head -0; find device/google/cuttlefish -name '*audio*' -maxdepth 4 | head -20
-sec "goldfish/emulator audio product"; grep -rn -E 'audio.service|com.android.hardware.audio|audio.effect' device/generic/goldfish/product/*.mk device/generic/goldfish/*.mk 2>/dev/null | head -20
-sec "module-info for audio example (if built)"; grep -o -E '"android.hardware.audio[^"]*example[^"]*"' out/target/product/qemu_arm_tv/module-info.json 2>/dev/null | sort -u | head -20; grep -o -E '"com.android.hardware.audio[^"]*"' out/target/product/qemu_arm_tv/module-info.json 2>/dev/null | sort -u | head
+C=device/google/cuttlefish/shared/config/audio/policy
+sec "cuttlefish audio_policy_configuration.xml"; cat $C/audio_policy_configuration.xml
+sec "xi:include targets vs installed vendor/etc"; grep -o 'href="[^"]*"' $C/*.xml | sort -u; ls $O/vendor/etc | grep -i -E 'audio|volume' 
+sec "cuttlefish device.mk audio copy block"; sed -n 295,325p device/google/cuttlefish/shared/device.mk
+sec "example HAL main.cpp module registration"; grep -n -E 'IModule|getModuleConfig|registerService|AServiceManager|createInstance|primary|default' hardware/interfaces/audio/aidl/default/main.cpp | head -40
+sec "AHAL_Config invalid xml"; grep -rn -B3 -A3 'Invalid XML config file' hardware/interfaces/audio/aidl/default/*.cpp | head -40
 echo "(done)"
