@@ -85,3 +85,10 @@ nach `device/nexuxscraft/qemu_arm_tv` im LOS-Baum kopiert,
 
 Das ist zugleich die Vorlage für `device/samsung/nikel` (dort später echte
 Partitionen, HALs, eigener Kernel).
+
+### M2 Gerätebuild 1 (Run 43056019061)
+
+Kati-Abbruch nach 2 min: `lineage_qemu_arm_tv includes non-existent modules
+in PRODUCT_PACKAGES: android.hardware.wifi` (aus `atv_generic_system.mk`; bei
+AOSP-TV liefert das die Goldfish-Vendor-Schicht). → gezielt in
+`PRODUCT_ENFORCE_PACKAGES_EXIST_ALLOW_LIST`; QEMU hat kein WLAN.

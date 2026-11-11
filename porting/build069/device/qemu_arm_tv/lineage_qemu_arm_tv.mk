@@ -32,6 +32,10 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/fstab.qemuarm:$(TARGET_COPY_OUT_RAMDISK)/fstab.qemuarm \
     $(LOCAL_PATH)/init.qemuarm.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.qemuarm.rc
 
+# atv_generic_system.mk lists the wifi HAL; for AOSP TV it is provided by the
+# goldfish emulator vendor (not usable on ARM32). QEMU has no Wi-Fi.
+PRODUCT_ENFORCE_PACKAGES_EXIST_ALLOW_LIST += android.hardware.wifi
+
 TARGET_NO_KERNEL_OVERRIDE := true
 PRODUCT_ENFORCE_ARTIFACT_PATH_REQUIREMENTS := false
 PRODUCT_CHARACTERISTICS := tv
