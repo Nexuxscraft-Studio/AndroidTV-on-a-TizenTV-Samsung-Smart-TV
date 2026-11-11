@@ -26,6 +26,18 @@ class DriverAuditTests(unittest.TestCase):
             self.assertEqual(fence["boot_and_runtime"], "UNVERIFIED")
             self.assertFalse(report["components"]["samsung_drm_core_and_gem"]["source_present"])
 
+    def test_optional_external_samsung_media_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "vendor/sdp_drm_nike/sdp_drm_drv.c"
+            source.parent.mkdir(parents=True)
+            source.write_text("/* vendor source stub */", encoding="utf-8")
+            report = mod.inspect(root, root / "vendor")
+            core = report["components"]["samsung_drm_core_and_gem"]
+            self.assertEqual(core["external_samsung_source_candidates"],
+                             ["sdp_drm_nike/sdp_drm_drv.c"])
+            self.assertFalse(core["source_present"])
+
 
 if __name__ == "__main__":
     unittest.main()
