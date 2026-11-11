@@ -196,3 +196,31 @@ Patch 0010 (BPF-Interpreter-Fallback).
 `minigbm` (Allocator/Mapper) + Software-GLES; dazu ein Default-Audio-HAL.
 Das ist dieselbe Architektur wie für den TV geplant (drm_hwcomposer + gbm,
 dort mit Mesa/Panfrost statt Software-GLES).
+
+## M3 – Grafik und Audio (11.11.2026, Boots 3–10)
+
+Diagnose: `qemu_logcat_kmsg.sh` leitet Logcat (`*:W`) als `L> …` in den
+Kernel-Log; `extract_tombstones.sh` liest Tombstones aus `userdata.img`;
+`run_android_qemu.sh` stoppt QEMU 90 s nach einer Crash-Schleife oder
+`boot_completed` selbst. Seit Boot 9 läuft QEMU mit VNC
+(`-vnc 127.0.0.1:1`, Runner-Port 5901), `-serial stdio` und Monitor-Socket
+`/tmp/android-qemu-monitor.sock`.
+
+| Boot | Befund (aus Log/Tombstone) | Fix |
+|---|---|---|
+| 3/4 | SurfaceFlinger SIGABRT `no suitable EGLConfig found`; Ursache: `vulkan.pastel.so … not found` im `default`-Namespace → ANGLE-Init scheitert | – |
+| Probe 3/3b | `ro.treble.enabled=false`: `PRODUCT_ENFORCE_VINTF_MANIFEST_OVERRIDE := false` (M2) schaltet `PRODUCT_FULL_TREBLE` ab (`build/make/core/config.mk:790`) → Legacy-Linkerconfig ohne `sphal` | Override entfernt (VINTF-Check läuft jetzt und ist grün) |
+| 5 | EGL ok; RenderEngine `output buffer not gpu writeable`; minigbm `DRM_IOCTL_MODE_CREATE_DUMB failed (4, 13)` = EACCES auf dem Render-Node | Kernel-Patch **0011** (Dumb-ioctls auf Render-Nodes, entspricht ACK „ANDROID: Allow DRM_IOCTL_MODE_*_DUMB for render clients“) |
+| 6 | SurfaceFlinger stabil; zygote/system_server: `Failed to create ashmem` (6.6 hat kein `CONFIG_ASHMEM`) | `sys.use_memfd=true` (libcutils nutzt dann memfd; `init.rc` setzt sonst `false`) |
+| 7 | system_server läuft; audioserver SIGSEGV (kein `IModule`/`IFactory`) | Vendor-APEX `com.android.hardware.audio` (Beispiel-HALs sind `installable:false`) |
+| 8 | Core-HAL registriert `IModule/default` nie: Cuttlefish-`audio_policy_configuration.xml` bindet die hier fehlende Bluetooth-Datei ein → „Invalid XML config file“ → AudioService ohne Streams → `TvInputManagerService` wirft → system_server stirbt | eigene `audio_policy_configuration.xml` ohne Bluetooth |
+| 9 | Audio-HAL ok, system_server stabil, keine Neustart-Schleife. **Kein Bild:** `LocalDisplayAdapter: Can't find display mode with id -1`, `Default display is null` | Display-Diagnose `qemu_display_diag.sh` (`D> …`: DRM-State, `/sys/class/drm` Modi, `dumpsys SurfaceFlinger/display`, HWC) |
+| 10 | ausstehend (Runner-Job hing in GitHub, siehe unten) | – |
+
+Für den TV-Kernel relevant: Patch 0011 und memfd statt ashmem.
+`debug.sf.nobootanimation=1` ist noch gesetzt – deshalb kein Bootlogo,
+auch wenn das Display funktioniert.
+
+CI-Hinweis: Run 43095047193 hing in GitHub (Job `offline-tests` lokal
+fertig, nie als beendet gemeldet; Abbrechen/Löschen per API abgelehnt).
+Die Concurrency-Gruppe heißt deshalb jetzt `build068-selfhosted-v2`.
