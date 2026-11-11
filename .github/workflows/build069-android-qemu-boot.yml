@@ -67,7 +67,7 @@ jobs:
         run: |
           KCONFIG="$WORK_DIR/kernel/artifacts-arm-android/config" \
             bash porting/build069/probe_graphics.sh "$LOS_DIR"
-          bash porting/build069/probe_graphics2.sh "$LOS_DIR"
+          bash porting/build069/probe_graphics3.sh "$LOS_DIR" qemu_arm_tv
 
       - name: Crash evidence from last guest userdata (MODE=tombstones)
         if: env.MODE == 'tombstones'

@@ -100,6 +100,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build069/run_android_qemu.sh",
     "porting/build069/probe_graphics.sh",
     "porting/build069/probe_graphics2.sh",
+    "porting/build069/probe_graphics3.sh",
     "porting/build069/extract_tombstones.sh",
     "porting/build069/qemu-virt.config",
     "porting/build069/device/qemu_arm_tv/fstab.qemuarm",
