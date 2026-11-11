@@ -90,6 +90,8 @@ ALLOWED_PORTING_SOURCES = {
     # Build 066: framebuffer-handoff scaffold (text only)
     "porting/build066/configs/nikel-simpledrm.config",
     "porting/build066/dts/sdp-nikel-simplefb-handoff.dts",
+    # Build 067: QEMU boot harness (text only)
+    "porting/build067/run-qemu-boot.sh",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES
