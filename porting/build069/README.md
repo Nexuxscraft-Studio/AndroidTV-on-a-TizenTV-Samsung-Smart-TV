@@ -166,3 +166,33 @@ Fenster – ein Kernel-Sprung auf 6.12 wäre für ARM32 ausgeschlossen.
   (6.6-Äquivalent von df0cb5cb50bd: `jit_needed = false`; Kfunc/`JIT_ALWAYS_ON`
   erzwingen weiterhin JIT). Gilt auch für den TV-Kernel. `build.sh` wendet
   Patches jetzt einzeln an (bereits angewendete werden erkannt).
+
+### M2-Boot 8 (Run 43069165445) – BPF gelöst, Zygote startet
+
+Mit Patch 0010: **`bpfloader` exit 0**, `update_verifier` ok,
+**`init: starting service 'zygote'`** (erstmals), `netd`, `audioserver`,
+`vendor.cas-default`, **`surfaceflinger`** starten. Dann:
+`surfaceflinger` SIGABRT (wiederholt), `audioserver` SIGSEGV →
+„process with updatable components 'surfaceflinger' exited 4 times before
+boot completed“ → Neustart. Ursache: das Gerät hat **keinen Grafik-HAL**
+(Composer/Allocator/Mapper/GLES) und QEMU keine GPU; ebenso kein Audio-HAL.
+
+## Stand M2 / nächster Schritt M3
+
+| Meilenstein | Stand |
+|---|---|
+| Kernel 6.6.162 ARM32 → `/init` | ✅ |
+| first stage, `/system`+`/vendor`, SELinux-Policy | ✅ |
+| second stage, `/data`, apexd, keystore2+KeyMint(SW), vold | ✅ |
+| bpfloader (Patch 0010) | ✅ |
+| zygote gestartet | ✅ |
+| surfaceflinger / system_server / boot_completed | ❌ Grafik fehlt |
+
+Kernel-Fixes, die auch für den TV-Kernel gelten (Build-059-Profil
+`android`): `CONFIG_LSM` mit selinux, ext4/erofs/tmpfs-Security-xattrs,
+Patch 0010 (BPF-Interpreter-Fallback).
+
+**M3 (Grafik):** QEMU `virtio-gpu` (KMS) + `drm_hwcomposer` (HWC3) +
+`minigbm` (Allocator/Mapper) + Software-GLES; dazu ein Default-Audio-HAL.
+Das ist dieselbe Architektur wie für den TV geplant (drm_hwcomposer + gbm,
+dort mit Mesa/Panfrost statt Software-GLES).
