@@ -90,5 +90,7 @@ Partitionen, HALs, eigener Kernel).
 
 Kati-Abbruch nach 2 min: `lineage_qemu_arm_tv includes non-existent modules
 in PRODUCT_PACKAGES: android.hardware.wifi` (aus `atv_generic_system.mk`; bei
-AOSP-TV liefert das die Goldfish-Vendor-Schicht). → gezielt in
-`PRODUCT_ENFORCE_PACKAGES_EXIST_ALLOW_LIST`; QEMU hat kein WLAN.
+AOSP-TV liefert das die Goldfish-Vendor-Schicht). Die Allow-List ist pro
+Produkt schreibgeschützt (`enforce-product-packages-exist`), ein `+=` wirkt
+nicht (Lauf 2, Run 43056830608). → leeres Phony-Paket gleichen Namens in
+`device/qemu_arm_tv/Android.mk` (nur für dieses Gerät); QEMU hat kein WLAN.
