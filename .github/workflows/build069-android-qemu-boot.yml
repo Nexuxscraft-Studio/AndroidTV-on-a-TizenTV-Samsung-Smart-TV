@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: build068-selfhosted   # shares the runner/tree with the Build-068 builds
+  group: build068-selfhosted-v2   # shares the runner/tree with the Build-068 builds
   cancel-in-progress: false
 
 jobs:

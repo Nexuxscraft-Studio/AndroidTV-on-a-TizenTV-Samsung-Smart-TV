@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: build068-selfhosted
+  group: build068-selfhosted-v2
   cancel-in-progress: false
 
 jobs:
