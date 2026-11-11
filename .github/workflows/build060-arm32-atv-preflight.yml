@@ -1,0 +1,27 @@
+name: Build060 Android 15 ARM32 ATV preflight
+
+# Only checks the offline host-gate implementation. It does not download
+# Android sources, build a ROM, access the TV or alter firmware.
+on:
+  push:
+    paths:
+      - 'porting/build060/**'
+      - '.github/workflows/build060-arm32-atv-preflight.yml'
+  pull_request:
+    paths:
+      - 'porting/build060/**'
+      - '.github/workflows/build060-arm32-atv-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-preflight-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test ARM32 ATV host preflight
+        run: python3 -m unittest discover -s porting/build060/tests -v
+      - name: Compile preflight Python
+        run: python3 -m py_compile porting/build060/host_preflight.py
