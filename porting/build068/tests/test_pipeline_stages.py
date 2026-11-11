@@ -29,6 +29,7 @@ PRODUCT_MAKEFILES := \\
 ENVSETUP = """\
 # stub envsetup for tests
 breakfast() { echo "lunch lineage_$1-bp1a-$2"; export T_PRODUCT="lineage_$1"; }
+lunch() { echo "lunch $1"; export T_PRODUCT="${1%%-*}"; }
 get_build_var() {
   case "$1" in
     TARGET_PRODUCT) echo "$T_PRODUCT" ;;
@@ -94,7 +95,7 @@ class PipelineTests(unittest.TestCase):
         r = self.run_pipeline("--dry-run")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("repo init", r.stderr.replace("'", ""))
-        self.assertIn("breakfast \"sdk_tv_arm\" \"eng\"", r.stderr)
+        self.assertIn('lunch "lineage_sdk_tv_arm-${release}-eng"', r.stderr)
         self.assertFalse(self.work.exists())
 
     def test_check_build_verify_emulator_handback(self) -> None:
@@ -116,6 +117,16 @@ class PipelineTests(unittest.TestCase):
         # stage markers -> rerun skips
         r = self.run_pipeline("--only", "build")
         self.assertIn("already done", r.stderr)
+
+    def test_qemu_arm_tv_device_is_installed_from_repo(self) -> None:
+        (self.los / "device/google/atv/products/atv_generic_system.mk").write_text("# stub\n")
+        r = self.run_pipeline("--only", "check-target", "--target", "qemu_arm_tv")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        dev = self.los / "device/nexuxscraft/qemu_arm_tv"
+        self.assertTrue((dev / "BoardConfig.mk").is_file())
+        self.assertIn("lineage_qemu_arm_tv.mk", (dev / "AndroidProducts.mk").read_text())
+        ct = (self.work / "check-target.json").read_text()
+        self.assertIn('"lunch": "lineage_qemu_arm_tv-bp1a-userdebug"', ct)
 
     def test_missing_target_is_rejected(self) -> None:
         (self.los / "vendor/lineage/build/target/product/AndroidProducts.mk").write_text(

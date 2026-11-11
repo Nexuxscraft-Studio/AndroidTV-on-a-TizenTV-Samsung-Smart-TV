@@ -11,7 +11,7 @@ name: Build068 LineageOS 22.2 ARM32 ATV userspace (self-hosted)
 #    the request.env of the selected ref is used).
 on:
   push:
-    branches: ['claude/build068-*']
+    branches: ['claude/build068-*', 'claude/build069-*']
     paths: ['porting/build068/runner/request.env']
   workflow_dispatch:
 
@@ -42,7 +42,7 @@ jobs:
           INSTALL_DEPS="$(get INSTALL_DEPS)"; ALLOW_UNDERSIZED="$(get ALLOW_UNDERSIZED)"
           FORCE="$(get FORCE)"
           case "$MODE" in preflight|build) ;; *) echo "bad MODE"; exit 1 ;; esac
-          case "$TARGET" in sdk_tv_arm|gsi_tv_arm) ;; *) echo "bad TARGET"; exit 1 ;; esac
+          case "$TARGET" in sdk_tv_arm|gsi_tv_arm|qemu_arm_tv) ;; *) echo "bad TARGET"; exit 1 ;; esac
           [ "$JOBS" = auto ] && JOBS="$(nproc)"
           [[ "$JOBS" =~ ^[0-9]+$ ]] || { echo "bad JOBS"; exit 1; }
           case "$FROM_STAGE" in ""|deps|preflight|init|sync|check-target|build|verify|emulator|handback) ;; *) echo "bad FROM_STAGE"; exit 1 ;; esac

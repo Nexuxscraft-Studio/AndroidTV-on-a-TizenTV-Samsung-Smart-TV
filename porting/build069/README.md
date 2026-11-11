@@ -56,3 +56,32 @@ Vorlage für `device/samsung/nikel` ist.
   `porting/build059/kernel/configs/nikel-android.config`
   (`CONFIG_LSM=…selinux…`, `DEFAULT_SECURITY_SELINUX`), automatisch im
   Profil `android`.
+
+### Lauf M1-b (Run 43053991206) – mit SELinux-LSM-Fix
+
+`LSM: initializing lsm=capability,selinux,integrity` → first stage init läuft:
+`/system` (ext4, `vda`) gemountet, **`Switching root to '/system'`**,
+SELinux-Setup beginnt – und bricht ab:
+`Failed to read /vendor/etc/selinux/plat_sepolicy_vers.txt` →
+„Unable to open SELinux policy“. Erwartet: ein GSI hat keine Vendor-Partition
+und damit keine Vendor-Hälfte der Split-Policy.
+
+## M2 – Minimal-Gerät `qemu_arm_tv` mit Vendor-Partition
+
+[`device/qemu_arm_tv/`](device/qemu_arm_tv) (wird von der Build-068-Pipeline
+nach `device/nexuxscraft/qemu_arm_tv` im LOS-Baum kopiert,
+`--target qemu_arm_tv` → `lunch lineage_qemu_arm_tv-bp1a-userdebug`):
+
+- gleiche ATV-Systembasis wie `lineage_gsi_tv_arm`
+  (`atv_generic_system`/`system_ext`/`product`, Lineage `common_full_tv`),
+  plus `base_vendor.mk`, `atv_vendor.mk` (TV-Vendor-SEPolicy),
+  `generic_ramdisk.mk` (first-stage init);
+- Board: ARM32 `armv7-a-neon`, **eigene `vendor.img` (ext4)**, keine
+  dynamischen Partitionen; virtio-Platten `vda`=system, `vdb`=vendor,
+  `vdc`=userdata (`fstab.qemuarm`, auch in der Ramdisk);
+- `ro.zygote=zygote32` explizit (32-Bit-Produkte bekommen keinen Default),
+  `PRODUCT_SHIPPING_API_LEVEL 35`, minimales VINTF-Manifest (target-level
+  202404), Build-VINTF-Prüfung für die Emulation abgeschaltet.
+
+Das ist zugleich die Vorlage für `device/samsung/nikel` (dort später echte
+Partitionen, HALs, eigener Kernel).

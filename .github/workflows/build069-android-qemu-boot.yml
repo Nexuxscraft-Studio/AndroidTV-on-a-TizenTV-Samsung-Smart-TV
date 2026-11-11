@@ -46,7 +46,8 @@ jobs:
           get() { sed -n "s/^$1=//p" "$f" | tail -1; }
           LOS_DIR="$(get LOS_DIR)"; TIMEOUT="$(get TIMEOUT)"; SMP="$(get SMP)"
           MEM="$(get MEM)"; HW="$(get HARDWARE)"; REBUILD="$(get REBUILD_KERNEL)"
-          EXTRA="$(get EXTRA_CMDLINE)"
+          EXTRA="$(get EXTRA_CMDLINE)"; PRODUCT_DIR="$(get PRODUCT_DIR)"
+          case "$PRODUCT_DIR" in generic|qemu_arm_tv) ;; *) echo "bad PRODUCT_DIR"; exit 1 ;; esac
           [[ "$LOS_DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "bad LOS_DIR"; exit 1; }
           for v in "$TIMEOUT" "$SMP" "$MEM"; do [[ "$v" =~ ^[0-9]+$ ]] || { echo "bad number"; exit 1; }; done
           [[ "$HW" =~ ^[a-z0-9_]+$ ]] || { echo "bad HARDWARE"; exit 1; }
@@ -54,7 +55,7 @@ jobs:
           [[ "$EXTRA" =~ ^[A-Za-z0-9._=,:/\ -]*$ ]] || { echo "bad EXTRA_CMDLINE"; exit 1; }
           {
             echo "LOS_DIR=$LOS_DIR"; echo "TIMEOUT=$TIMEOUT"; echo "SMP=$SMP"; echo "MEM=$MEM"
-            echo "HW=$HW"; echo "REBUILD=$REBUILD"; echo "EXTRA=$EXTRA"
+            echo "HW=$HW"; echo "REBUILD=$REBUILD"; echo "EXTRA=$EXTRA"; echo "PRODUCT_DIR=$PRODUCT_DIR"
             echo "WORK_DIR=$(realpath -m "$WORK_DIR")"
           } | tee -a "$GITHUB_ENV"
 
@@ -63,7 +64,8 @@ jobs:
         run: |
           set -uo pipefail
           args=(--los-dir "$LOS_DIR" --work-dir "$WORK_DIR" --timeout "$TIMEOUT"
-                --smp "$SMP" --mem "$MEM" --hardware "$HW")
+                --smp "$SMP" --mem "$MEM" --hardware "$HW"
+                --product-out "$LOS_DIR/out/target/product/$PRODUCT_DIR")
           [ "$REBUILD" = 1 ] && args+=(--rebuild-kernel)
           [ -n "$EXTRA" ] && args+=(--extra-cmdline "$EXTRA")
           bash porting/build069/run_android_qemu.sh "${args[@]}"

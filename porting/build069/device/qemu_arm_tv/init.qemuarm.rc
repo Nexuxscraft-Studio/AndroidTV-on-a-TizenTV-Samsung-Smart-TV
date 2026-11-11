@@ -1,0 +1,6 @@
+# Build 069 M2 - device init for QEMU virt (emulation only)
+on fs
+    mount_all /vendor/etc/fstab.${ro.hardware} --late
+
+on post-fs-data
+    setprop vold.post_fs_data_done 1

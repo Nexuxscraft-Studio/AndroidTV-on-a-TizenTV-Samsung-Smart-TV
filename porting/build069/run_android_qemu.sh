@@ -9,7 +9,8 @@
 # Stages: kernel -> images -> boot -> analyse   (kernel/images are cached)
 #
 # Usage: run_android_qemu.sh --los-dir DIR --work-dir DIR [options]
-#   --product-out DIR   default <los>/out/target/product/generic
+#   --product-out DIR   default <los>/out/target/product/generic (GSI);
+#                       out/target/product/qemu_arm_tv = M2 device (vendor.img)
 #   --timeout SEC       QEMU wall-clock cap (default 1200; TCG is slow)
 #   --smp N / --mem MB  default 4 / 3072
 #   --hardware NAME     androidboot.hardware (default qemuarm)
@@ -91,6 +92,8 @@ stage_kernel() {
 # ------------------------------------------------------------------ images
 SYS_IMG="$WORK/system.raw"
 RAMDISK="$WORK/ramdisk-$HW.img"
+VENDOR_IMG=""
+USERDATA_IMG="$WORK/userdata.img"
 stage_images() {
   local src="$PRODUCT_OUT/system.img" magic fstype fstab="$WORK/fstab.$HW"
   [ -f "$src" ] || die "$src missing (run Build 068 first)"
@@ -121,9 +124,19 @@ stage_images() {
   fi
   python3 "$HERE/ramdisk_tool.py" list "$PRODUCT_OUT/ramdisk.img" > "$WORK/ramdisk-listing.txt"
   head -1 "$WORK/ramdisk-listing.txt" >&2
-  python3 "$HERE/ramdisk_tool.py" add "$PRODUCT_OUT/ramdisk.img" "$RAMDISK" \
-    --file "fstab.$HW=$fstab" \
-    --file-if-dir "first_stage_ramdisk:first_stage_ramdisk/fstab.$HW=$fstab" >&2
+  if [ -f "$PRODUCT_OUT/vendor.img" ]; then
+    # M2 device mode: the device build ships its own fstab in ramdisk+vendor.
+    VENDOR_IMG="$PRODUCT_OUT/vendor.img"
+    grep -q " fstab.$HW\$" "$WORK/ramdisk-listing.txt" \
+      || die "device ramdisk has no fstab.$HW (check PRODUCT_COPY_FILES)"
+    cp "$PRODUCT_OUT/ramdisk.img" "$RAMDISK"
+    rm -f "$USERDATA_IMG"; truncate -s 4G "$USERDATA_IMG"   # empty -> fs_mgr formats it
+    log "images: device mode - vendor.img $(stat -Lc %s "$VENDOR_IMG") bytes, fresh 4G userdata"
+  else
+    python3 "$HERE/ramdisk_tool.py" add "$PRODUCT_OUT/ramdisk.img" "$RAMDISK" \
+      --file "fstab.$HW=$fstab" \
+      --file-if-dir "first_stage_ramdisk:first_stage_ramdisk/fstab.$HW=$fstab" >&2
+  fi
 }
 
 # ------------------------------------------------------------------ boot
@@ -135,11 +148,18 @@ stage_boot() {
   log "boot: qemu-system-arm virt, smp=$SMP mem=${MEM}M, cap ${TIMEOUT}s"
   log "boot: cmdline: $cmdline"
   set +e
+  # virtio-blk-pci: probe order = command-line order -> vda, vdb, vdc.
+  local disks=(-drive "if=none,id=system,file=$SYS_IMG,format=raw,snapshot=on"
+               -device virtio-blk-pci,drive=system)
+  if [ -n "$VENDOR_IMG" ]; then
+    disks+=(-drive "if=none,id=vendor,file=$VENDOR_IMG,format=raw,snapshot=on"
+            -device virtio-blk-pci,drive=vendor
+            -drive "if=none,id=userdata,file=$USERDATA_IMG,format=raw"
+            -device virtio-blk-pci,drive=userdata)
+  fi
   timeout "$TIMEOUT" qemu-system-arm -M virt -cpu cortex-a15 -smp "$SMP" -m "$MEM" \
     -nographic -no-reboot -nic none \
-    -kernel "$ZIMAGE" -initrd "$RAMDISK" \
-    -drive "if=none,id=system,file=$SYS_IMG,format=raw,snapshot=on" \
-    -device virtio-blk-device,drive=system \
+    -kernel "$ZIMAGE" -initrd "$RAMDISK" "${disks[@]}" \
     -append "$cmdline" > "$QLOG" 2>&1
   local rc=$?
   set -e

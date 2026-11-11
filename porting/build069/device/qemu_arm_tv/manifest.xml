@@ -1,0 +1,3 @@
+<!-- Build 069 M2: minimal device VINTF manifest (QEMU emulation, no HALs). -->
+<manifest version="1.0" type="device" target-level="202404">
+</manifest>
