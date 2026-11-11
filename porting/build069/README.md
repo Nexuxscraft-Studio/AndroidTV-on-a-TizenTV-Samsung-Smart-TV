@@ -101,3 +101,13 @@ nicht (Lauf 2, Run 43056830608). → leeres Phony-Paket gleichen Namens in
 (Cache aus Build 068). `system.img`, **`vendor.img`** (ext4, 512 MiB, nahe am
 Limit), `ramdisk.img`. Verifier **GESAMT PASS**, jetzt inkl.
 **`ro.zygote=zygote32`** und `ro.vendor.product.cpu.abilist=armeabi-v7a,armeabi`.
+
+### M2-Boot 1 (Run 43060887976)
+
+`/system` (vda) **und `/vendor` (vdb)** gemountet, **SELinux-Policy geladen**
+(Split-Policy, File-Contexts aus system/system_ext/product/vendor). Abbruch:
+`SELinux: (dev vda, type ext4) has no security xattr handler` → alle Dateien
+`unlabeled`, `restorecon /system/bin/init` scheitert (ro) → `InitFatalReboot`.
+Ursache: `CONFIG_EXT4_FS_SECURITY` fehlt. **Fix** in
+`nikel-android.config` (gilt auch für den TV-Kernel): `EXT4_FS_SECURITY`,
+`EXT4_FS_POSIX_ACL`, `EROFS_FS_XATTR`/`SECURITY`, `TMPFS_XATTR`/`POSIX_ACL`.
