@@ -71,6 +71,19 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build059/kernel/configs/nikel-arm64.config",
     "porting/build059/kernel/configs/nikel-common.config",
     "porting/build059/kernel/configs/required-symbols.txt",
+    # Build 063: driver bring-up scaffolds (text only, compile-gated in CI)
+    "porting/build063/build.sh",
+    "porting/build063/kernel/display/sdp_drm.c",
+    "porting/build063/kernel/display/Kconfig",
+    "porting/build063/kernel/display/Makefile",
+    "porting/build063/configs/compile-test.config",
+    "porting/build063/configs/nikel-display.config",
+    "porting/build063/configs/nikel-gpu.config",
+    "porting/build063/configs/nikel-cpu.config",
+    "porting/build063/configs/nikel-soc-extra.config",
+    "porting/build063/dts/sdp-nikel-display-disabled.dts",
+    "porting/build063/dts/sdp-nikel-gpu-panfrost-disabled.dts",
+    "porting/build063/dts/sdp-nikel-cpu-dvfs-disabled.dts",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES

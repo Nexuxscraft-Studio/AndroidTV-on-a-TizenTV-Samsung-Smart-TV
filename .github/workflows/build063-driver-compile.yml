@@ -1,0 +1,85 @@
+name: Build063 driver compile-gate (Linux 6.6.162, arm32)
+
+# Compile-gates the Build 063 driver bring-up scaffolds against a pinned
+# Linux 6.6.162 tree: the sdp-drm display DRM/KMS skeleton is built W=1 -Werror
+# for ARM32, and every build063 reference DTS is checked with dtc.
+#
+# A green run proves the display skeleton and the device-tree fixtures are
+# syntactically valid for ARM32. It does NOT prove any driver works or boots.
+# No kernel image is flashed; nothing touches the television.
+
+on:
+  push:
+    paths:
+      - 'porting/build063/**'
+      - '.github/workflows/build063-driver-compile.yml'
+  pull_request:
+    paths:
+      - 'porting/build063/**'
+      - '.github/workflows/build063-driver-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LINUX_TAG: v6.6.162
+  LINUX_COMMIT: 5139929c698c273e07cb0635732f6a918a7b8e78
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build 063 unit tests
+        run: python3 -m unittest discover -s porting/build063/tests -v
+      - name: Driver coverage matrix
+        run: python3 porting/build063/driver_coverage.py
+
+  compile:
+    needs: host-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang lld llvm flex bison bc libssl-dev libelf-dev make \
+            device-tree-compiler python3 kmod
+
+      - name: Fetch pinned Linux 6.6.162
+        run: |
+          git clone --depth 1 --branch "$LINUX_TAG" \
+            https://github.com/gregkh/linux.git "$RUNNER_TEMP/linux"
+          actual="$(git -C "$RUNNER_TEMP/linux" rev-parse HEAD)"
+          echo "Linux commit: $actual"
+          test "$actual" = "$LINUX_COMMIT"
+
+      - name: Compile-gate drivers (W=1 -Werror) + dtc
+        env:
+          TOOLCHAIN: llvm
+          JOBS: 4
+        run: |
+          bash porting/build063/build.sh "$RUNNER_TEMP/linux" \
+            "${{ matrix.arch }}" "$RUNNER_TEMP/out" 2>&1 | tee "$RUNNER_TEMP/build.log"
+          test "${PIPESTATUS[0]}" = 0
+
+      - name: Collect artifacts
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/out/artifacts-${{ matrix.arch }}"
+          cp "$RUNNER_TEMP/build.log" "$RUNNER_TEMP/out/artifacts-${{ matrix.arch }}/" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build063-${{ matrix.arch }}
+          path: ${{ runner.temp }}/out/artifacts-${{ matrix.arch }}
+          retention-days: 30
