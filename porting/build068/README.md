@@ -1,7 +1,7 @@
 # Build 068 – Android-Userspace-Pipeline (LineageOS 22.2, ARM32, Android TV)
 
-**Status:** Pipeline + Verifikation fertig und offline getestet. **Noch kein**
-Android-Build gelaufen (braucht den großen x86_64-Buildhost). Kein TV-Zugriff,
+**Status:** Erster ARM32-Android-TV-Userspace gebaut und statisch geprüft
+(`lineage_gsi_tv_arm`, Runner `debian`, Verifier PASS). Noch kein Boot. Kein TV-Zugriff,
 kein Flash, keine Firmware-/Signaturänderung.
 
 Ziel: aus dem LineageOS-22.2-Quellbaum reproduzierbar einen **reinen
@@ -59,6 +59,26 @@ Dann **Kati-Abbruch nach 3 min** in `build/make/core/artifact_path_requirements.
 → `lineage_sdk_tv_arm` ist in 22.2 **so nicht baubar**. Wechsel auf
 `gsi_tv_arm` (`lineage_gsi_tv_arm` setzt die Prüfung leer = aus), dessen
 System-Image ohnehin der Kandidat für den QEMU-Boot auf unserem Kernel ist.
+
+### Lauf 2/3 + Prüfung: erster ARM32-ATV-Userspace gebaut
+
+- Lauf 2 (`gsi_tv_arm`): Kati bestanden, Compile-Abbruch `ccache: error: Not a
+  directory` → `CCACHE_DIR` explizit (`<work-dir>/ccache`, 50 GB).
+- **Lauf 3: `lineage_gsi_tv_arm-bp1a-userdebug` — „build completed
+  successfully“ in 2:37:32 h** (130.768 Ninja-Schritte, `-j6`, 8 vCPU,
+  24 GiB RAM, Debian 13). Sync-Snapshot gepinnt (`manifest-pinned.xml`).
+- Ergebnis in `out/target/product/generic`: `system.img` (1,14 GB),
+  `ramdisk.img`, `vbmeta.img`; kein `vendor.img` (GSI).
+- **Verifier: GESAMT PASS** — Android 15/SDK 35, `ro.product.cpu.abi=armeabi-v7a`,
+  `abilist64` leer, `app_process32`/`servicemanager`/`init` und der Linker aus
+  dem Runtime-APEX (`symbols/apex/com.android.runtime/bin/linker`) sind
+  ELF32 EM_ARM, kein `lib64`/`app_process64`/`linker64`,
+  `android.software.leanback` deklariert. `file` bestätigt:
+  *„ELF 32-bit LSB pie executable, ARM, EABI5 … for Android 35“*.
+- `zygote32` = **N/A**: Ein GSI baut keinen Vendor, `ro.zygote` setzt die
+  Vendor-Partition des Geräts (später `device/samsung/nikel`, Wert `zygote32`).
+- Nicht bewiesen: Boot, Binder-Laufzeit, Grafik. Nächster Schritt Build 069:
+  `system.img` + Build-059-6.6.162-ARM32-Kernel unter `qemu-system-arm`.
 
 ## 2. Korrektur: Binder-ABI ist 64-Bit-Protokoll, auch auf ARM32
 
@@ -137,7 +157,8 @@ Android 15/SDK 35 · `ro.product.cpu.abi=armeabi-v7a` · keine 64-Bit-ABI-Listen
 `ro.zygote=zygote32` · ELF32/EM_ARM für `app_process32`, `servicemanager`,
 `init`, `linker` · kein `lib64`/`app_process64`/`linker64` ·
 `android.software.leanback` deklariert · welche Images entstanden sind.
-Fehlende Eingaben → `MISSING`/`INCOMPLETE`, niemals `PASS`.
+Fehlende Eingaben → `MISSING`/`INCOMPLETE`, niemals `PASS`. Nicht anwendbare
+Prüfungen (z. B. `ro.zygote` in einem Vendor-losen GSI) → `N/A`.
 
 ## 6. Tests (offline, auch in CI)
 
