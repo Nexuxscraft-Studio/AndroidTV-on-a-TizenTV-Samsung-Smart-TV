@@ -25,6 +25,8 @@ LINUX_COMMIT=5139929c698c273e07cb0635732f6a918a7b8e78
 
 LOS_DIR=""; WORK=""; PRODUCT_OUT=""; TIMEOUT=1200; SMP=4; MEM=3072
 HW=qemuarm; REBUILD=0; EXTRA_CMDLINE=""
+GRACE=90
+STOP_REGEX="exited 4 times before boot completed|sys\\.boot_completed=1|Boot is finished|Kernel panic|reboot: Restarting"
 while [ $# -gt 0 ]; do
   case "$1" in
     --los-dir) LOS_DIR="$2"; shift 2 ;;
@@ -163,10 +165,27 @@ stage_boot() {
   timeout "$TIMEOUT" qemu-system-arm -M virt -cpu cortex-a15 -smp "$SMP" -m "$MEM" \
     -nographic -no-reboot -nic none \
     -kernel "$ZIMAGE" -initrd "$RAMDISK" "${disks[@]}" \
-    -append "$cmdline" > "$QLOG" 2>&1
-  local rc=$?
+    -append "$cmdline" > "$QLOG" 2>&1 < /dev/null &
+  local qpid=$! seen=0 reason=""
+  # Auto-stop: once a crash loop or a completed boot is visible, keep logging
+  # for $GRACE s (crash dumps, more context) and then stop QEMU, so no run
+  # has to be cancelled by hand.
+  while kill -0 "$qpid" 2>/dev/null; do
+    sleep 5
+    if [ "$seen" = 0 ] && grep -a -q -E "$STOP_REGEX" "$QLOG" 2>/dev/null; then
+      seen="$(date +%s)"; reason="$(grep -a -m1 -o -E "$STOP_REGEX" "$QLOG" | head -c 160)"
+      log "boot: stop condition seen ('$reason'), collecting ${GRACE}s more"
+    fi
+    if [ "$seen" != 0 ] && [ $(( $(date +%s) - seen )) -ge "$GRACE" ]; then
+      log "boot: grace period over - stopping QEMU"
+      pkill -TERM -P "$qpid" 2>/dev/null; kill -TERM "$qpid" 2>/dev/null
+      break
+    fi
+  done
+  wait "$qpid"; local rc=$?
   set -e
-  log "boot: qemu exit $rc (124 = time cap reached, guest still running)"
+  if [ -n "$reason" ]; then echo "auto-stop: $reason" > "$WORK/qemu-autostop.txt"; else rm -f "$WORK/qemu-autostop.txt"; fi
+  log "boot: qemu exit $rc (124 = time cap, 143 = auto-stop, 0 = guest rebooted/powered off)"
   echo "$rc" > "$WORK/qemu-exit.txt"
 }
 

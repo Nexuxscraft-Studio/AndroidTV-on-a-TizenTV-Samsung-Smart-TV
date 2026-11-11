@@ -47,6 +47,12 @@ PRODUCT_VENDOR_PROPERTIES += \
     ro.hardware.gralloc=minigbm \
     ro.opengles.version=196608
 
+# Audio: AOSP example AIDL core + effect HAL (audioserver crashed without any
+# audio HAL in VINTF, M3-Boot 2). Emulation only, no real sound device.
+PRODUCT_PACKAGES += \
+    android.hardware.audio.service-aidl.example \
+    android.hardware.audio.effect.service-aidl.example
+
 # Minimal platform HALs system_server expects (AOSP examples).
 PRODUCT_PACKAGES += \
     android.hardware.health-service.example \
@@ -60,7 +66,8 @@ PRODUCT_VENDOR_PROPERTIES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/fstab.qemuarm:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.qemuarm \
     $(LOCAL_PATH)/fstab.qemuarm:$(TARGET_COPY_OUT_RAMDISK)/fstab.qemuarm \
-    $(LOCAL_PATH)/init.qemuarm.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.qemuarm.rc
+    $(LOCAL_PATH)/init.qemuarm.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.qemuarm.rc \
+    $(LOCAL_PATH)/qemu_logcat_kmsg.sh:$(TARGET_COPY_OUT_VENDOR)/bin/qemu_logcat_kmsg.sh
 
 # atv_generic_system.mk lists "android.hardware.wifi"; see Android.mk here
 # (empty phony package, QEMU has no Wi-Fi).

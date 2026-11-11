@@ -12,10 +12,13 @@ on post-fs-data
     setprop vold.post_fs_data_done 1
 
 # Diagnostics (emulation only): mirror warnings/errors and the crash buffer
-# (debuggerd tombstone text) to the kernel log, i.e. the QEMU serial console.
-service qemu_logcat_kmsg /system/bin/logcat -b crash -b main -b system -v brief -f /dev/kmsg *:W
+# (debuggerd tombstone text) to the kernel log = QEMU serial console.
+# One kmsg record per line (logcat -f cannot open a char device), oneshot so
+# that it can never count as a crashing service before boot completed.
+service qemu_logcat_kmsg /system/bin/sh /vendor/bin/qemu_logcat_kmsg.sh
     user root
     group root log
+    oneshot
     disabled
 
 on post-fs-data

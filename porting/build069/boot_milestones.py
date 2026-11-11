@@ -26,6 +26,8 @@ MILESTONES = [
     ("servicemanager", r"starting service 'servicemanager'"),
     ("logd", r"starting service 'logd'"),
     ("zygote", r"starting service 'zygote'"),
+    ("surfaceflinger_started", r"starting service 'surfaceflinger'"),
+    ("system_server", r"Entered the Android system server|SystemServer: Entered|SystemServerTiming"),
     ("boot_completed", r"sys\.boot_completed=1|Boot is finished"),
 ]
 
