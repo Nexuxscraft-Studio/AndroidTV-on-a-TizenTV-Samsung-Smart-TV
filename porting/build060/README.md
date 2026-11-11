@@ -129,15 +129,21 @@ die **aufgelöste**, final generierte ARM32-`.config` prüfen:
 python3 porting/build060/kernel_config_gate.py \
   --config /pfad/zu/build059-arm32/.config
 python3 porting/build060/driver_audit.py --repo .
+
+# Optional: externe, zuvor lokal entpackte Samsung-Media-Quellen nur lesen:
+python3 porting/build060/driver_audit.py --repo . \
+  --vendor-source /opt/samsung-atv-lab/.../tztv-media-nike
 ```
 
 Der Config-Check unterscheidet harte Projekt-Basisflags und weitere
 Review-Flags. `PASS_STATIC_CONFIG_ONLY` ist **kein** Android-CDD/VTS-Test
 und kein Nachweis, dass der Samsung-Bootloader das Image akzeptiert.
 
-Der Treibercheck zählt ausschließlich im Checkout vorhandene **Quellen**;
-er führt keine Samsung-Hardware aus und liest keine proprietären Archive.
-Die Lage muss mit dem externen Media-Paket `tztv-media-nike.tgz` ergänzt werden.
+Der Treibercheck ermittelt vorhandene **Quelldateien** im Checkout;
+er führt keine Samsung-Hardware aus und entpackt keine proprietären Archive.
+Optional kann er Dateinamen aus einem extern bereits entpackten
+`tztv-media-nike.tgz` inventarisieren. Keine Quelldateien werden kopiert,
+veröffentlicht oder kompiliert. Ein Treffer beweist noch keine Portierbarkeit.
 Bekannte Grenzen aus Build058: Panfrost/GPU-Clock, CPU-Clock und DRM-`util`/
 `fence` lieferten ARM32-Objekte; GPU-`modpost`, CPUFreq/Thermal und
 Samsung-DRM-Core/GEM sind weiterhin nicht abgeschlossen.
