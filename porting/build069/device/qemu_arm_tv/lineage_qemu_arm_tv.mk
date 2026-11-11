@@ -28,6 +28,30 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     android.hardware.security.keymint-service
 
+# Graphics (Build 069 M3), same architecture as AOSP Cuttlefish:
+# virtio-gpu (KMS) -> drm_hwcomposer (HWC3), minigbm (allocator + stable-C
+# mapper), SwiftShader Vulkan ("pastel") + ANGLE for GLES. Software
+# rendering, emulation only. On the TV: drm_hwcomposer + gbm with Mesa/Panfrost.
+PRODUCT_PACKAGES += \
+    android.hardware.composer.hwc3-service.drm \
+    android.hardware.graphics.allocator-service.minigbm \
+    mapper.minigbm \
+    vulkan.pastel \
+    libEGL_angle \
+    libGLESv1_CM_angle \
+    libGLESv2_angle
+
+PRODUCT_VENDOR_PROPERTIES += \
+    ro.hardware.egl=angle \
+    ro.hardware.vulkan=pastel \
+    ro.hardware.gralloc=minigbm \
+    ro.opengles.version=196608
+
+# Minimal platform HALs system_server expects (AOSP examples).
+PRODUCT_PACKAGES += \
+    android.hardware.health-service.example \
+    android.hardware.power-service.example
+
 # 32-bit only product: no default zygote is set by core_64_bit*.mk.
 PRODUCT_VENDOR_PROPERTIES += \
     ro.zygote=zygote32 \

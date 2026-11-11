@@ -25,3 +25,6 @@ TARGET_COPY_OUT_PRODUCT := system/product
 TARGET_COPY_OUT_SYSTEM_EXT := system/system_ext
 
 DEVICE_MANIFEST_FILE := device/nexuxscraft/qemu_arm_tv/manifest.xml
+
+# minigbm gralloc SELinux types (as in Cuttlefish); the boot runs permissive.
+BOARD_VENDOR_SEPOLICY_DIRS += external/minigbm/cros_gralloc/sepolicy
