@@ -26,7 +26,11 @@ ZIMAGE="$OUT/artifacts-arm-full/zImage"
 LOG="$OUT/qemu-boot.log"
 echo "build067: booting zImage under qemu-system-arm -M virt (90s cap)..."
 set +e
+# -nic none: the 'virt' machine otherwise auto-adds a virtio-net device that
+# needs efi-virtio.rom (not shipped with qemu-system-arm on the runner), which
+# makes qemu fail to start. We do not need networking for the boot smoke test.
 timeout 90 qemu-system-arm -M virt -cpu cortex-a15 -m 512 -nographic -no-reboot \
+  -nic none \
   -kernel "$ZIMAGE" -append "console=ttyAMA0 earlycon panic=-1" > "$LOG" 2>&1
 rc=$?
 set -e
