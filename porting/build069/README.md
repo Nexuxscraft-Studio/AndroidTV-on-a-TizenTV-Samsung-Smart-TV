@@ -124,3 +124,12 @@ LineageOS-Debuggerd meldet `ABI: 'arm'`, Fingerprint
 security level TEE“, kein KeyMint-HAL) → `vold` wartet endlos auf
 `android.security.maintenance`. **Fix:** Software-KeyMint
 `android.hardware.security.keymint-service` (AOSP-Referenz, nur Emulation).
+
+### M2-Boot 3 (Run 43063918737) – Neustart-Schleife
+
+Mit Software-KeyMint startet `vendor.keymint-default`; zweite Stufe läuft bis
+`post-fs-data`, aber **`/data` ist nicht gemountet** (alle `mkdir /data/…`:
+„Read-only file system“) → `apexd` (`reboot_on_failure`) →
+`reboot,apexd-failed`. Ursache: `init.qemuarm.rc` rief nur
+`mount_all … --late` (mountet nur `latemount`-Einträge). **Fix:** `--early`
+in `on fs`, `--late` in `on late-fs`.

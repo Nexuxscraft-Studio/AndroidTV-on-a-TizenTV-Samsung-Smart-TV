@@ -1,5 +1,11 @@
 # Build 069 M2 - device init for QEMU virt (emulation only)
+# --early mounts every non-first-stage entry WITHOUT "latemount" (here: /data);
+# --late only those WITH it. Calling only --late left /data unmounted and
+# apexd forced "reboot,apexd-failed" (M2-Boot 3).
 on fs
+    mount_all /vendor/etc/fstab.${ro.hardware} --early
+
+on late-fs
     mount_all /vendor/etc/fstab.${ro.hardware} --late
 
 on post-fs-data
