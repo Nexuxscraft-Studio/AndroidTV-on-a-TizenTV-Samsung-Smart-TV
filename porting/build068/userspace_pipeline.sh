@@ -146,8 +146,8 @@ stage_deps() {
   if [ ${#missing[@]} -eq 0 ]; then log "deps: all packages present"; return 0; fi
   log "deps: missing: ${missing[*]}"
   if [ "$INSTALL_DEPS" -eq 1 ] || [ "$DRY_RUN" -eq 1 ]; then
-    run sudo apt-get update
-    run sudo apt-get install -y "${missing[@]}"
+    run sudo -n apt-get update
+    run sudo -n apt-get install -y "${missing[@]}"
     run git lfs install
   else
     die "missing packages; rerun with --install-deps or install them manually"

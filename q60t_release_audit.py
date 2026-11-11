@@ -94,6 +94,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build067/run-qemu-boot.sh",
     # Build 068: Android userspace build pipeline (text only, host-side)
     "porting/build068/userspace_pipeline.sh",
+    "porting/build068/runner/request.env",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES

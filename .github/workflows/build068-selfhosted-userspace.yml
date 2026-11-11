@@ -1,0 +1,126 @@
+name: Build068 LineageOS 22.2 ARM32 ATV userspace (self-hosted)
+
+# Runs the Build-068 pipeline on the project's own self-hosted runner
+# ("debian"). Never runs on GitHub-hosted machines. Does not touch the TV,
+# firmware, signatures or flashing.
+#
+# Trigger:
+#  - push of porting/build068/runner/request.env on a claude/build068-* branch
+#    (works before the PR stack is merged to main), or
+#  - workflow_dispatch (button appears once this file is on the default branch;
+#    the request.env of the selected ref is used).
+on:
+  push:
+    branches: ['claude/build068-*']
+    paths: ['porting/build068/runner/request.env']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build068-selfhosted
+  cancel-in-progress: false
+
+jobs:
+  userspace:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 4320
+    env:
+      WORK_DIR: ${{ github.workspace }}/../build068-run
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse and validate request.env
+        shell: bash
+        run: |
+          set -euo pipefail
+          f=porting/build068/runner/request.env
+          get() { sed -n "s/^$1=//p" "$f" | tail -1; }
+          MODE="$(get MODE)"; TARGET="$(get TARGET)"; JOBS="$(get JOBS)"
+          FROM_STAGE="$(get FROM_STAGE)"; LOS_DIR="$(get LOS_DIR)"
+          INSTALL_DEPS="$(get INSTALL_DEPS)"; ALLOW_UNDERSIZED="$(get ALLOW_UNDERSIZED)"
+          FORCE="$(get FORCE)"
+          case "$MODE" in preflight|build) ;; *) echo "bad MODE"; exit 1 ;; esac
+          case "$TARGET" in sdk_tv_arm|gsi_tv_arm) ;; *) echo "bad TARGET"; exit 1 ;; esac
+          [ "$JOBS" = auto ] && JOBS="$(nproc)"
+          [[ "$JOBS" =~ ^[0-9]+$ ]] || { echo "bad JOBS"; exit 1; }
+          case "$FROM_STAGE" in ""|deps|preflight|init|sync|check-target|build|verify|emulator|handback) ;; *) echo "bad FROM_STAGE"; exit 1 ;; esac
+          for v in "$INSTALL_DEPS" "$ALLOW_UNDERSIZED" "$FORCE"; do
+            case "$v" in 0|1) ;; *) echo "flags must be 0/1"; exit 1 ;; esac
+          done
+          LOS_DIR="${LOS_DIR/#\~/$HOME}"
+          [[ "$LOS_DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "bad LOS_DIR"; exit 1; }
+          WORK_DIR="$(realpath -m "$WORK_DIR")"
+          {
+            echo "MODE=$MODE"; echo "TARGET=$TARGET"; echo "JOBS=$JOBS"
+            echo "FROM_STAGE=$FROM_STAGE"; echo "LOS_DIR=$LOS_DIR"
+            echo "INSTALL_DEPS=$INSTALL_DEPS"; echo "ALLOW_UNDERSIZED=$ALLOW_UNDERSIZED"
+            echo "FORCE=$FORCE"; echo "WORK_DIR=$WORK_DIR"
+          } | tee -a "$GITHUB_ENV"
+
+      - name: Preflight inventory (read-only, never fails on NOT READY)
+        if: env.MODE == 'preflight'
+        shell: bash
+        run: |
+          set +e -uo pipefail
+          out="$RUNNER_TEMP/preflight"; rm -rf "$out"; mkdir -p "$out"
+          probe="$LOS_DIR"; while [ ! -d "$probe" ]; do probe="$(dirname "$probe")"; done
+          python3 porting/build060/host_preflight.py --build-dir "$probe" --json > "$out/preflight.json"
+          echo "host_preflight exit $? (0 READY, 2 NOT READY)" | tee "$out/preflight-exit.txt"
+          {
+            echo "### os";      cat /etc/os-release
+            echo "### uname";   uname -a
+            echo "### cpu";     nproc; lscpu | grep -E 'Model name|^CPU\(s\)|Thread|Virtualization' || true
+            echo "### mem";     free -h
+            echo "### swap";    swapon --show || true
+            echo "### zram";    compgen -G '/sys/block/zram*' || echo none
+            echo "### disks";   lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT || true
+            echo "### df";      df -hT -x tmpfs -x devtmpfs || true
+            echo "### probe";   echo "$probe"; df -h "$probe"
+            echo "### kvm";     ls -l /dev/kvm 2>&1 || true
+            echo "### sudo -n"; sudo -n true 2>&1 && echo "passwordless sudo: yes" || echo "passwordless sudo: no"
+            echo "### tools";   for t in git git-lfs repo python3 ccache qemu-system-arm; do printf '%s: ' "$t"; command -v "$t" || echo missing; done
+            echo "### existing trees"; for d in "$LOS_DIR" "$HOME"/*/.repo /opt/*/.repo /mnt/*/.repo /srv/*/.repo; do [ -e "$d" ] && echo "$d"; done; true
+          } > "$out/host.txt" 2>&1
+          bash porting/build068/userspace_pipeline.sh --dry-run --only deps \
+            --los-dir "$LOS_DIR" --work-dir "$WORK_DIR" > "$out/deps.txt" 2>&1 || true
+          cat "$out/preflight.json" "$out/host.txt" "$out/deps.txt"
+
+      - name: Upload preflight inventory
+        if: env.MODE == 'preflight'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build068-preflight-${{ github.run_id }}
+          path: ${{ runner.temp }}/preflight
+          retention-days: 30
+
+      - name: Run Build-068 pipeline
+        if: env.MODE == 'build'
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--los-dir "$LOS_DIR" --work-dir "$WORK_DIR" --target "$TARGET" --jobs "$JOBS")
+          [ "$INSTALL_DEPS" = 1 ] && args+=(--install-deps)
+          [ "$ALLOW_UNDERSIZED" = 1 ] && args+=(--allow-undersized)
+          [ "$FORCE" = 1 ] && args+=(--force)
+          [ -n "$FROM_STAGE" ] && args+=(--from "$FROM_STAGE")
+          bash porting/build068/userspace_pipeline.sh "${args[@]}"
+
+      - name: Handback (also after failure)
+        if: always() && env.MODE == 'build'
+        shell: bash
+        run: |
+          bash porting/build068/userspace_pipeline.sh --only handback \
+            --los-dir "$LOS_DIR" --work-dir "$WORK_DIR" --target "$TARGET" || true
+          latest="$(ls -t "$WORK_DIR"/handback-*.tar.gz 2>/dev/null | head -1 || true)"
+          echo "HANDBACK=$latest" >> "$GITHUB_ENV"
+          echo "handback: ${latest:-none}"
+
+      - name: Upload handback
+        if: always() && env.MODE == 'build' && env.HANDBACK != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: build068-handback-${{ github.run_id }}
+          path: ${{ env.HANDBACK }}
+          retention-days: 30
