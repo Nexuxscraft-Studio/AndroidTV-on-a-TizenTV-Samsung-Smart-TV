@@ -22,6 +22,12 @@ PRODUCT_PACKAGES += \
     TvSampleLeanbackLauncher \
     TvProvision
 
+# Software KeyMint (AOSP reference, in-process TA - emulation only, NOT secure).
+# Without any KeyMint HAL keystore2 aborts ("mandatory security level TEE")
+# and vold blocks on android.security.maintenance (Build 069 M2-Boot 2).
+PRODUCT_PACKAGES += \
+    android.hardware.security.keymint-service
+
 # 32-bit only product: no default zygote is set by core_64_bit*.mk.
 PRODUCT_VENDOR_PROPERTIES += \
     ro.zygote=zygote32 \

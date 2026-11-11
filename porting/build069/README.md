@@ -111,3 +111,16 @@ Limit), `ramdisk.img`. Verifier **GESAMT PASS**, jetzt inkl.
 Ursache: `CONFIG_EXT4_FS_SECURITY` fehlt. **Fix** in
 `nikel-android.config` (gilt auch für den TV-Kernel): `EXT4_FS_SECURITY`,
 `EXT4_FS_POSIX_ACL`, `EROFS_FS_XATTR`/`SECURITY`, `TMPFS_XATTR`/`POSIX_ACL`.
+
+### M2-Boot 2 (Run 43061373504, nach ~9 min abgebrochen)
+
+Mit `EXT4_FS_SECURITY`: **`init: init second stage started!`**, Produkt-Props
+(`lineage_qemu_arm_tv`, ABI `armeabi-v7a`), `init.rc`/`init.qemuarm.rc`/
+`init.zygote32.rc` geparst; laufen: `ueventd`, `apexd` (33 APEX, Bootstrap-
+APEX gemountet), `logd`, **`servicemanager`**, `vold`, `tombstoned`.
+LineageOS-Debuggerd meldet `ABI: 'arm'`, Fingerprint
+`Nexuxscraft/lineage_qemu_arm_tv/qemu_arm_tv:15/BP1A.250505.005/...`.
+**Bruchstelle:** `keystore2` bricht ab („Trying to construct mandatory
+security level TEE“, kein KeyMint-HAL) → `vold` wartet endlos auf
+`android.security.maintenance`. **Fix:** Software-KeyMint
+`android.hardware.security.keymint-service` (AOSP-Referenz, nur Emulation).
