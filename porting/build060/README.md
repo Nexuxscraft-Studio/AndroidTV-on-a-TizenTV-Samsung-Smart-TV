@@ -39,6 +39,9 @@ Kernel- und Strukturtests.
 
 ```bash
 # Im Projektrepository; testet nur den aktuell verfügbaren Speicherplatz
+# Die kleinen Basiswerkzeuge vorher installieren (z. B. Ubuntu 24.04):
+sudo apt-get update
+sudo apt-get install -y git git-lfs repo
 python3 porting/build060/host_preflight.py --build-dir /opt
 
 # Unabhängige, netzwerkfreie Selbsttests
@@ -47,8 +50,10 @@ python3 -m unittest discover -s porting/build060/tests -v
 
 ## Erster echter ARM32-TV-Userspace-Build (auf geeignetem x86_64-Buildhost)
 
-**Nur nach bestandenem Host-Gate** und falls der Nutzer den großen
-Source-Download ausdrücklich gestartet haben will:
+**Nur nach bestandenem Host-Gate**, auf einem Ubuntu-24.04-Buildhost und falls
+der Nutzer den großen Source-Download ausdrücklich gestartet haben will.
+Auf Debian können Paketnamen abweichen; dort die Abhängigkeiten einzeln
+gegen die Distribution prüfen:
 
 ```bash
 sudo apt-get update
