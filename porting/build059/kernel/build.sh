@@ -68,14 +68,16 @@ else
 fi
 
 # 1. patches -----------------------------------------------------------------
-if [ -f "$KSRC/drivers/tty/serial/sdp_uart.c" ]; then
-  log "patches already applied"
-else
-  for p in "$HERE"/patches/*.patch; do
+# Per patch: skip if already applied (reverse dry-run succeeds), else apply.
+# A tree that already has 0001..N gets newly added patches applied too.
+for p in "$HERE"/patches/*.patch; do
+  if patch -d "$KSRC" -p1 -R --dry-run --batch --force < "$p" > /dev/null 2>&1; then
+    log "already applied $(basename "$p")"
+  else
     log "applying $(basename "$p")"
     patch -d "$KSRC" -p1 --forward --batch < "$p" > /dev/null
-  done
-fi
+  fi
+done
 
 # 2. configuration -------------------------------------------------------------
 FRAGS=("$HERE/configs/nikel-common.config" "$HERE/configs/nikel-$ARCH_NAME.config")

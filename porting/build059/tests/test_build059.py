@@ -78,8 +78,17 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 9)
+        self.assertEqual(len(names), 10)
         self.assertTrue(names[0].startswith("0001-serial"))
+        # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
+        # upstream df0cb5cb50bd
+        self.assertTrue(names[9].startswith("0010-bpf-restore-interpreter-fallback"))
+
+    def test_bpf_fallback_patch(self):
+        txt = self._patch_text("0010-bpf")
+        self.assertIn("-\tbool jit_needed = fp->jit_requested;", txt)
+        self.assertIn("+\tbool jit_needed = false;", txt)
+        self.assertIn("Fixes: 86bc9c742426", txt)
 
     def test_memory_matches_firmware_profiles(self):
         dts = self._patch_text("dts")

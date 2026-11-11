@@ -147,3 +147,22 @@ LOS 22.2):** Android 15 lehnt **32-Bit-Kernel ≥ 6.7 immer** ab; 32-Bit-Kernel
 ≥ 5.16 und 32-Bit-Userspace auf ≥ 6.2 sind **nur für ARM-TV/Wear** erlaubt.
 Unsere Kombination (ARM32 ATV, Kernel 6.6) liegt genau im letzten zulässigen
 Fenster – ein Kernel-Sprung auf 6.12 wäre für ARM32 ausgeschlossen.
+
+### M2-Boot 5/6 – BPF-Ursache gefunden
+
+- `BPF_PROG_LOAD` für `offload@mainline.o:schedcls_tether_downstream6_ether`:
+  Verifier ok („processed 612 insns“), Rückgabe **524 `ENOTSUPP`** (das
+  „Operation not permitted“ war ein veralteter errno).
+- Kernel-Log: **`*** NOT YET: opcode c3 ***`** = `BPF_STX|BPF_ATOMIC|BPF_W`.
+  Der ARM32-JIT kann keine Atomics – weder in 6.6 noch in Mainline 7.4-rc2.
+- 6.6.162 enthält den Stable-Backport von **86bc9c742426** („bpf: Avoid
+  __bpf_prog_ret0_warn when jit fails“): `jit_needed = fp->jit_requested`
+  → kein Interpreter-Fallback mehr. `NetBpfLoad` erzwingt `bpf_jit_enable=1`.
+  Upstream hat die daraus folgende ARM-Regression (OpenWRT/ARMv6) mit
+  **df0cb5cb50bd** („bpf: Allow fall back to interpreter for programs with
+  stack size <= 512“) behoben – nicht in 6.6.y.
+- **Fix:** Build-059-Patch
+  `0010-bpf-restore-interpreter-fallback-when-JIT-fails.patch`
+  (6.6-Äquivalent von df0cb5cb50bd: `jit_needed = false`; Kfunc/`JIT_ALWAYS_ON`
+  erzwingen weiterhin JIT). Gilt auch für den TV-Kernel. `build.sh` wendet
+  Patches jetzt einzeln an (bereits angewendete werden erkannt).

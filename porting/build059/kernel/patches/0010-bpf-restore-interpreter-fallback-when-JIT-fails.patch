@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 11 Nov 2026 18:30:00 +0100
+Subject: [PATCH 10/10] bpf: restore interpreter fallback when the JIT fails
+
+Linux 6.6.y carries a stable backport of upstream 86bc9c742426
+("bpf: Avoid __bpf_prog_ret0_warn when jit fails"), which makes
+bpf_prog_select_runtime() return -ENOTSUPP whenever the JIT was requested
+but could not compile a program. Upstream fixed the resulting regression on
+ARM (reported by OpenWRT on ARMv6) with df0cb5cb50bd ("bpf: Allow fall back
+to interpreter for programs with stack size <= 512"), which is not in 6.6.y.
+
+6.6 has no may_goto, so bpf_prog_select_func() always installs an
+interpreter and the stack is limited to 512 bytes; the 6.6 equivalent of
+df0cb5cb50bd is therefore to stop forcing the JIT. Programs with kfunc
+calls (and CONFIG_BPF_JIT_ALWAYS_ON) still require the JIT.
+
+Measured in Build 069 (QEMU, Android 15 ARM32): the ARM32 BPF JIT has no
+BPF_ATOMIC support ("*** NOT YET: opcode c3 ***"), so the tethering
+program schedcls_tether_downstream6_ether failed with -ENOTSUPP (524),
+NetBpfLoad aborted and init rebooted (reboot,bpfloader-failed).
+
+Fixes: 86bc9c742426 ("bpf: Avoid __bpf_prog_ret0_warn when jit fails")
+Link: https://lore.kernel.org/r/20250909144614.2991253-1-kafai.wan@linux.dev
+---
+ kernel/bpf/core.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/kernel/bpf/core.c b/kernel/bpf/core.c
+--- a/kernel/bpf/core.c
++++ b/kernel/bpf/core.c
+@@ -2448,8 +2448,13 @@ struct bpf_prog *bpf_prog_select_runtime(struct bpf_prog *fp, int *err)
+ {
+ 	/* In case of BPF to BPF calls, verifier did all the prep
+ 	 * work with regards to JITing, etc.
++	 *
++	 * Do not force JIT just because it was requested: if the JIT cannot
++	 * handle a program (e.g. ARM32 has no BPF_ATOMIC support), fall back
++	 * to the interpreter, which is always selected in this kernel.
++	 * (6.6 equivalent of upstream df0cb5cb50bd.)
+ 	 */
+-	bool jit_needed = fp->jit_requested;
++	bool jit_needed = false;
+ 
+ 	if (fp->bpf_func)
+ 		goto finalize;
+-- 
+2.43.0
