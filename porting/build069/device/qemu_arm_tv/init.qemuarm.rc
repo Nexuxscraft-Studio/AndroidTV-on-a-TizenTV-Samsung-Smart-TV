@@ -10,3 +10,13 @@ on late-fs
 
 on post-fs-data
     setprop vold.post_fs_data_done 1
+
+# Diagnostics (emulation only): mirror warnings/errors and the crash buffer
+# (debuggerd tombstone text) to the kernel log, i.e. the QEMU serial console.
+service qemu_logcat_kmsg /system/bin/logcat -b crash -b main -b system -v brief -f /dev/kmsg *:W
+    user root
+    group root log
+    disabled
+
+on post-fs-data
+    start qemu_logcat_kmsg
