@@ -47,6 +47,8 @@ jobs:
           LOS_DIR="$(get LOS_DIR)"; TIMEOUT="$(get TIMEOUT)"; SMP="$(get SMP)"
           MEM="$(get MEM)"; HW="$(get HARDWARE)"; REBUILD="$(get REBUILD_KERNEL)"
           EXTRA="$(get EXTRA_CMDLINE)"; PRODUCT_DIR="$(get PRODUCT_DIR)"
+          MODE="$(get MODE)"; MODE="${MODE:-boot}"
+          case "$MODE" in boot|probe) ;; *) echo "bad MODE"; exit 1 ;; esac
           case "$PRODUCT_DIR" in generic|qemu_arm_tv) ;; *) echo "bad PRODUCT_DIR"; exit 1 ;; esac
           [[ "$LOS_DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "bad LOS_DIR"; exit 1; }
           for v in "$TIMEOUT" "$SMP" "$MEM"; do [[ "$v" =~ ^[0-9]+$ ]] || { echo "bad number"; exit 1; }; done
@@ -55,11 +57,19 @@ jobs:
           [[ "$EXTRA" =~ ^[A-Za-z0-9._=,:/\ -]*$ ]] || { echo "bad EXTRA_CMDLINE"; exit 1; }
           {
             echo "LOS_DIR=$LOS_DIR"; echo "TIMEOUT=$TIMEOUT"; echo "SMP=$SMP"; echo "MEM=$MEM"
-            echo "HW=$HW"; echo "REBUILD=$REBUILD"; echo "EXTRA=$EXTRA"; echo "PRODUCT_DIR=$PRODUCT_DIR"
+            echo "HW=$HW"; echo "REBUILD=$REBUILD"; echo "EXTRA=$EXTRA"; echo "PRODUCT_DIR=$PRODUCT_DIR"; echo "MODE=$MODE"
             echo "WORK_DIR=$(realpath -m "$WORK_DIR")"
           } | tee -a "$GITHUB_ENV"
 
+      - name: Read-only source probe (MODE=probe)
+        if: env.MODE == 'probe'
+        shell: bash
+        run: |
+          KCONFIG="$WORK_DIR/kernel/artifacts-arm-android/config" \
+            bash porting/build069/probe_graphics.sh "$LOS_DIR"
+
       - name: Kernel + images + QEMU boot + milestone analysis
+        if: env.MODE == 'boot'
         shell: bash
         run: |
           set -uo pipefail
@@ -72,7 +82,7 @@ jobs:
           echo "run_android_qemu exit $? (0 = second-stage init reached)"
 
       - name: Print evidence into the job log
-        if: always()
+        if: always() && env.MODE == 'boot'
         shell: bash
         run: |
           w="$WORK_DIR"
@@ -97,7 +107,7 @@ jobs:
           true
 
       - name: Upload boot evidence
-        if: always()
+        if: always() && env.MODE == 'boot'
         uses: actions/upload-artifact@v4
         with:
           name: build069-qemu-boot-${{ github.run_id }}
