@@ -11,6 +11,8 @@
 #   DIAG_INITRAMFS=1 (default) | 0   embed initramfs/q60t-diag-init as /init
 #   ANDROID_BASE_CONFIG              path to AOSP android-6.6/android-base.config
 #                                    (required for the android profile)
+#   EXTRA_FRAGMENTS                  colon-separated extra config fragments
+#                                    (merged last, must survive like the others)
 #
 # The kernel tree must be a clean v6.6.162 checkout. The patches are applied
 # in place (once); use a dedicated tree for this. Nothing is installed,
@@ -77,6 +79,11 @@ fi
 
 # 2. configuration -------------------------------------------------------------
 FRAGS=("$HERE/configs/nikel-common.config" "$HERE/configs/nikel-$ARCH_NAME.config")
+# Optional extra fragments (colon-separated paths), e.g. Build 069 QEMU virtio.
+if [ -n "${EXTRA_FRAGMENTS:-}" ]; then
+  IFS=: read -r -a _extra <<< "$EXTRA_FRAGMENTS"
+  for f in "${_extra[@]}"; do [ -f "$f" ] || die "extra fragment not found: $f"; FRAGS+=("$f"); done
+fi
 MERGE_EXTRA=()
 [ "$PROFILE" = android ] && MERGE_EXTRA=("$ANDROID_BASE_CONFIG")
 if [ "$PROFILE" = tiny ]; then
