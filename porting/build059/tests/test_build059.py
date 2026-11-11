@@ -78,11 +78,18 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 10)
+        self.assertEqual(len(names), 11)
         self.assertTrue(names[0].startswith("0001-serial"))
         # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
         # upstream df0cb5cb50bd
         self.assertTrue(names[9].startswith("0010-bpf-restore-interpreter-fallback"))
+        # 0011 (Build 069 M3): ACK-equivalent dumb ioctls on render nodes
+        self.assertTrue(names[10].startswith("0011-drm-allow-dumb-buffer-ioctls"))
+
+    def test_drm_dumb_render_patch(self):
+        txt = self._patch_text("0011-drm")
+        for ioctl in ("CREATE_DUMB", "MAP_DUMB", "DESTROY_DUMB"):
+            self.assertRegex(txt, r"\+\tDRM_IOCTL_DEF\(DRM_IOCTL_MODE_%s, [a-z_]+, DRM_RENDER_ALLOW\)," % ioctl)
 
     def test_bpf_fallback_patch(self):
         txt = self._patch_text("0010-bpf")

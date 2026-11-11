@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Wed, 11 Nov 2026 18:30:00 +0100
-Subject: [PATCH 10/10] bpf: restore interpreter fallback when the JIT fails
+Subject: [PATCH 10/11] bpf: restore interpreter fallback when the JIT fails
 
 Linux 6.6.y carries a stable backport of upstream 86bc9c742426
 ("bpf: Avoid __bpf_prog_ret0_warn when jit fails"), which makes
