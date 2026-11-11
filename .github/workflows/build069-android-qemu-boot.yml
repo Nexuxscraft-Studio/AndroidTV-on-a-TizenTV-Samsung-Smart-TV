@@ -48,7 +48,7 @@ jobs:
           MEM="$(get MEM)"; HW="$(get HARDWARE)"; REBUILD="$(get REBUILD_KERNEL)"
           EXTRA="$(get EXTRA_CMDLINE)"; PRODUCT_DIR="$(get PRODUCT_DIR)"
           MODE="$(get MODE)"; MODE="${MODE:-boot}"
-          case "$MODE" in boot|probe) ;; *) echo "bad MODE"; exit 1 ;; esac
+          case "$MODE" in boot|probe|tombstones) ;; *) echo "bad MODE"; exit 1 ;; esac
           case "$PRODUCT_DIR" in generic|qemu_arm_tv) ;; *) echo "bad PRODUCT_DIR"; exit 1 ;; esac
           [[ "$LOS_DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "bad LOS_DIR"; exit 1; }
           for v in "$TIMEOUT" "$SMP" "$MEM"; do [[ "$v" =~ ^[0-9]+$ ]] || { echo "bad number"; exit 1; }; done
@@ -68,6 +68,11 @@ jobs:
           KCONFIG="$WORK_DIR/kernel/artifacts-arm-android/config" \
             bash porting/build069/probe_graphics.sh "$LOS_DIR"
           bash porting/build069/probe_graphics2.sh "$LOS_DIR"
+
+      - name: Crash evidence from last guest userdata (MODE=tombstones)
+        if: env.MODE == 'tombstones'
+        shell: bash
+        run: bash porting/build069/extract_tombstones.sh "$WORK_DIR"
 
       - name: Kernel + images + QEMU boot + milestone analysis
         if: env.MODE == 'boot'
@@ -91,6 +96,8 @@ jobs:
           [ -f "$w/kernel/artifacts-arm-android/android-coverage.txt" ] && { echo "===== android-coverage (head)"; head -40 "$w/kernel/artifacts-arm-android/android-coverage.txt"; }
           [ -f "$w/ramdisk-listing.txt" ] && { echo "===== ramdisk listing"; cat "$w/ramdisk-listing.txt"; }
           [ -f "$w/kernel-build.log" ] && { echo "===== kernel-build.log (tail 30)"; tail -n 30 "$w/kernel-build.log"; }
+          echo "===== tombstones (guest userdata)"
+          bash porting/build069/extract_tombstones.sh "$w" | head -400 || true
           if [ -f "$w/qemu-android.log" ]; then
             echo "===== qemu-android.log (init/fs/selinux lines)"
             grep -a -n -E 'init:|Run /init|VFS|EXT4-fs|erofs|virtio|vda|SELinux|selinux|panic|Kernel panic|reboot:|binder|apexd|servicemanager|zygote' "$w/qemu-android.log" | grep -v 'avc:' | head -1500 || true
