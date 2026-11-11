@@ -1,0 +1,47 @@
+name: Build067 QEMU ARM32 boot (Linux 6.6.162)
+
+# Boots the Build 059 Nike-L kernel (6.6.162 ARM32, multi_v7 + embedded
+# q60t-diag-init) on the generic qemu-system-arm 'virt' machine and checks it
+# reaches the userspace init. This proves the kernel boots to userspace IN
+# EMULATION only. It is NOT the Samsung board and proves nothing about the TV.
+
+on:
+  push:
+    paths: ['porting/build067/**', 'porting/build059/**', '.github/workflows/build067-qemu-boot.yml']
+  pull_request:
+    paths: ['porting/build067/**', '.github/workflows/build067-qemu-boot.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LINUX_TAG: v6.6.162
+  LINUX_COMMIT: 5139929c698c273e07cb0635732f6a918a7b8e78
+
+jobs:
+  qemu-boot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build + qemu dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang lld llvm flex bison bc libssl-dev libelf-dev make patch \
+            python3 cpio kmod qemu-system-arm
+      - name: Fetch pinned Linux 6.6.162
+        run: |
+          git clone --depth 1 --branch "$LINUX_TAG" \
+            https://github.com/gregkh/linux.git "$RUNNER_TEMP/linux"
+          test "$(git -C "$RUNNER_TEMP/linux" rev-parse HEAD)" = "$LINUX_COMMIT"
+      - name: Build + QEMU boot
+        env: { TOOLCHAIN: llvm, JOBS: 4 }
+        run: bash porting/build067/run-qemu-boot.sh "$RUNNER_TEMP/linux" "$RUNNER_TEMP/out"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build067-qemu-log
+          path: ${{ runner.temp }}/out/qemu-boot.log
+          retention-days: 30
