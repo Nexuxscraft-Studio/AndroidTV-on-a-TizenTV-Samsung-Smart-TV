@@ -6,6 +6,11 @@
 LOCAL_PATH := device/nexuxscraft/qemu_arm_tv
 
 PRODUCT_SHIPPING_API_LEVEL := 35
+# Boot 4 / probe 3: the build produced ro.treble.enabled=false, so
+# linkerconfig generated the legacy layout without the exported "sphal"
+# namespace and the Vulkan loader could not dlopen /vendor/lib/hw/vulkan.pastel.so
+# (ANGLE init failed -> SurfaceFlinger "no suitable EGLConfig found").
+PRODUCT_FULL_TREBLE_OVERRIDE := true
 # Skip the build-time VINTF compatibility check: the emulator provides no HALs.
 PRODUCT_ENFORCE_VINTF_MANIFEST_OVERRIDE := false
 
@@ -59,7 +64,8 @@ PRODUCT_PACKAGES += \
 # 32-bit only product: no default zygote is set by core_64_bit*.mk.
 PRODUCT_VENDOR_PROPERTIES += \
     ro.zygote=zygote32 \
-    debug.sf.nobootanimation=1
+    debug.sf.nobootanimation=1 \
+    ro.sf.lcd_density=320
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/fstab.qemuarm:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.qemuarm \
