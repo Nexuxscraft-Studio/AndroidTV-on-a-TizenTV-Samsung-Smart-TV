@@ -99,6 +99,7 @@ ALLOWED_PORTING_SOURCES = {
     # Build 069: Android GSI QEMU boot (host-side, text only)
     "porting/build069/run_android_qemu.sh",
     "porting/build069/probe_graphics.sh",
+    "porting/build069/probe_graphics2.sh",
     "porting/build069/qemu-virt.config",
     "porting/build069/device/qemu_arm_tv/fstab.qemuarm",
     "porting/build069/device/qemu_arm_tv/init.qemuarm.rc",
