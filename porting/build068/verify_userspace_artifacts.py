@@ -13,7 +13,8 @@ the produced userspace really is a pure 32-bit ARM Android 15 TV userspace:
 * which images were produced (informational).
 
 Read-only. No network, no TV access, no emulator start. A missing input is
-reported as ``MISSING`` (never as PASS). Exit codes: 0 = all required checks
+reported as ``MISSING`` (never as PASS); a check that does not apply to the
+build type (e.g. ro.zygote in a vendor-less GSI) is ``N/A``. Exit codes: 0 = all required checks
 PASS, 1 = at least one FAIL, 2 = no FAIL but at least one MISSING.
 """
 
@@ -50,6 +51,7 @@ ARM32_BINARIES = {
     # system/bin/linker is a symlink into /apex; the real binary is staged
     # under $PRODUCT_OUT/apex/com.android.runtime/bin/linker.
     "linker": ("apex/com.android.runtime/bin/linker",
+               "symbols/apex/com.android.runtime/bin/linker",
                "system/apex/com.android.runtime/bin/linker",
                "system/bin/linker"),
 }
@@ -183,7 +185,12 @@ def check(out: Path) -> dict:
 
     # Zygote
     zygote = props.get("ro.zygote")
-    if zygote is None:
+    vendor_built = (out / "vendor/build.prop").is_file() or (out / "vendor.img").is_file()
+    if zygote is None and not vendor_built:
+        # GSI / system-only build: ro.zygote is a vendor/device property.
+        add("zygote32", "N/A",
+            "kein Vendor gebaut (GSI); ro.zygote setzt der Vendor des Geraets")
+    elif zygote is None:
         add("zygote32", "MISSING", "ro.zygote fehlt")
     elif zygote == "zygote32":
         add("zygote32", "PASS", "ro.zygote=zygote32")
@@ -237,7 +244,7 @@ def check(out: Path) -> dict:
             add("leanback_feature", "FAIL", f"{LEANBACK_FEATURE} nicht deklariert")
 
     images = {img: (out / img).is_file() for img in IMAGES}
-    statuses = [c["status"] for c in checks]
+    statuses = [c["status"] for c in checks if c["status"] != "N/A"]
     overall = ("FAIL" if "FAIL" in statuses else
                "INCOMPLETE" if "MISSING" in statuses else "PASS")
     return {

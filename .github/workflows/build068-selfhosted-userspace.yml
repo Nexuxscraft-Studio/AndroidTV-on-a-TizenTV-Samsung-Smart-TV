@@ -129,10 +129,12 @@ jobs:
             case "$po" in /*) ;; *) po="$LOS_DIR/$po" ;; esac
             echo "===== PRODUCT_OUT diagnostics ($po)"
             ls -la "$po" | head -40
-            echo "--- prop files with ro.zygote"; grep -rs '^ro.zygote=' "$po"/system "$po"/ramdisk "$po"/root 2>/dev/null | head
-            echo "--- linker"; ls -l "$po/system/bin/linker" 2>&1; find "$po/apex" "$po/system/apex" -path '*runtime*' -name 'linker*' 2>/dev/null | head
-            echo "--- images"; ls -la "$po"/*.img 2>&1
-            for f in "$po"/system/bin/app_process32 "$po"/system/bin/servicemanager; do file -L "$f" 2>&1; done
+            echo "--- prop files with ro.zygote"; grep -rs '^ro.zygote=' "$po"/system "$po"/ramdisk "$po"/root 2>/dev/null | head || true
+            echo "--- linker"; ls -l "$po/system/bin/linker" 2>&1 || true
+            find "$po/apex" "$po/system/apex" "$po/symbols" -path '*runtime*' -name 'linker*' 2>/dev/null | head || true
+            ls "$po/system/apex" 2>/dev/null | grep -i runtime || true
+            echo "--- images"; ls -la "$po"/*.img 2>&1 || true
+            for f in "$po"/system/bin/app_process32 "$po"/system/bin/servicemanager "$po"/symbols/apex/com.android.runtime/bin/linker; do file -L "$f" 2>&1 || true; done
           fi
           true
 

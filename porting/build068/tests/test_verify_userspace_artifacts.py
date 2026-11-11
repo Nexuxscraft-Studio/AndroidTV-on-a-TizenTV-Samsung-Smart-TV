@@ -126,6 +126,30 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(self.status(report, "primary_abi_armeabi_v7a"), "PASS")
         self.assertEqual(report["overall"], "PASS")
 
+    def test_gsi_without_zygote_is_na(self) -> None:
+        make_good_tree(self.root)
+        (self.root / "vendor/build.prop").unlink()
+        (self.root / "system/build.prop").write_text(
+            SYSTEM_PROPS.replace("ro.zygote=zygote32\n", ""))
+        report = v.check(self.root)
+        self.assertEqual(self.status(report, "zygote32"), "N/A")
+        self.assertEqual(report["overall"], "PASS")
+
+    def test_device_build_without_zygote_is_missing(self) -> None:
+        make_good_tree(self.root)
+        (self.root / "system/build.prop").write_text(
+            SYSTEM_PROPS.replace("ro.zygote=zygote32\n", ""))
+        report = v.check(self.root)
+        self.assertEqual(self.status(report, "zygote32"), "MISSING")
+
+    def test_linker_from_symbols_apex(self) -> None:
+        make_good_tree(self.root)
+        (self.root / "system/bin/linker").unlink()
+        v_path = self.root / "symbols/apex/com.android.runtime/bin/linker"
+        fake_elf(v_path, v.ELFCLASS32, v.EM_ARM)
+        report = v.check(self.root)
+        self.assertEqual(self.status(report, "elf32_arm:linker"), "PASS")
+
     def test_parse_props_ignores_comments_and_imports(self) -> None:
         props = v.parse_props("# c\nimport /x.prop\na=1\n b = 2 \nnoeq\n")
         self.assertEqual(props, {"a": "1", "b": "2"})
