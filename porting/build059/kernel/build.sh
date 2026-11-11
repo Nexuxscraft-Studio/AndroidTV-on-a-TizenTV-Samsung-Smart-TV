@@ -68,15 +68,26 @@ else
 fi
 
 # 1. patches -----------------------------------------------------------------
-# Per patch: skip if already applied (reverse dry-run succeeds), else apply.
-# A tree that already has 0001..N gets newly added patches applied too.
+# Applied patches are recorded in $KSRC/.build059-patches-applied, so a tree
+# that already carries 0001..N gets newly added patches (e.g. 0010) applied.
+# (A reverse dry-run is not reliable: later patches modify files created by
+# earlier ones.) Legacy trees without the list but with the series applied
+# as a block (sdp_uart.c present) are recorded as 0001..0009.
+APPLIED="$KSRC/.build059-patches-applied"
+if [ ! -f "$APPLIED" ] && [ -f "$KSRC/drivers/tty/serial/sdp_uart.c" ]; then
+  for p in "$HERE"/patches/000[1-9]-*.patch; do basename "$p"; done > "$APPLIED"
+  log "legacy tree: recorded 0001..0009 as applied"
+fi
+touch "$APPLIED"
 for p in "$HERE"/patches/*.patch; do
-  if patch -d "$KSRC" -p1 -R --dry-run --batch --force < "$p" > /dev/null 2>&1; then
-    log "already applied $(basename "$p")"
-  else
-    log "applying $(basename "$p")"
-    patch -d "$KSRC" -p1 --forward --batch < "$p" > /dev/null
+  n="$(basename "$p")"
+  if grep -qxF "$n" "$APPLIED"; then
+    log "already applied $n"
+    continue
   fi
+  log "applying $n"
+  patch -d "$KSRC" -p1 --forward --batch < "$p" > /dev/null
+  echo "$n" >> "$APPLIED"
 done
 
 # 2. configuration -------------------------------------------------------------
