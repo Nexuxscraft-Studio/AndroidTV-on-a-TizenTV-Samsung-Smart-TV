@@ -94,3 +94,10 @@ AOSP-TV liefert das die Goldfish-Vendor-Schicht). Die Allow-List ist pro
 Produkt schreibgeschützt (`enforce-product-packages-exist`), ein `+=` wirkt
 nicht (Lauf 2, Run 43056830608). → leeres Phony-Paket gleichen Namens in
 `device/qemu_arm_tv/Android.mk` (nur für dieses Gerät); QEMU hat kein WLAN.
+
+### M2 Gerätebuild 3 (Run 43058291735) – erfolgreich
+
+`lineage_qemu_arm_tv-bp1a-userdebug`: **build completed successfully (14:11)**
+(Cache aus Build 068). `system.img`, **`vendor.img`** (ext4, 512 MiB, nahe am
+Limit), `ramdisk.img`. Verifier **GESAMT PASS**, jetzt inkl.
+**`ro.zygote=zygote32`** und `ro.vendor.product.cpu.abilist=armeabi-v7a,armeabi`.
