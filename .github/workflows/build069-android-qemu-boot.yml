@@ -85,6 +85,8 @@ jobs:
             grep -a -n -E 'init:|Run /init|VFS|EXT4-fs|erofs|virtio|vda|SELinux|selinux|panic|Kernel panic|reboot:|binder|apexd|servicemanager|zygote' "$w/qemu-android.log" | grep -v 'avc:' | head -1500 || true
             echo "===== NetBpfLoad / bpfloader (all lines)"
             grep -a -E "NetBpfLoad|bpfloader|BpfLoader|libbpf" "$w/qemu-android.log" | tail -150 || true
+            echo "===== ARM32 BPF JIT messages"
+            grep -a -E "NOT YET: opcode|unknown opcode|bpf_jit|BPF JIT" "$w/qemu-android.log" || echo "(none)"
             echo "===== kernel BPF/cgroup config"
             grep -E "CONFIG_(BPF|CGROUP|NET_CLS_BPF|NET_ACT_BPF|BPF_JIT|SOCK_CGROUP|NETFILTER_XT_MATCH_BPF)" "$w/kernel/artifacts-arm-android/config" || true
             echo "===== services started / died"
