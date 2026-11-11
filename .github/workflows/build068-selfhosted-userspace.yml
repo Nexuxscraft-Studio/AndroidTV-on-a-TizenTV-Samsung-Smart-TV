@@ -118,6 +118,13 @@ jobs:
           latest="$(ls -t "$WORK_DIR"/handback-*.tar.gz 2>/dev/null | head -1 || true)"
           echo "HANDBACK=$latest" >> "$GITHUB_ENV"
           echo "handback: ${latest:-none}"
+          # Also print the small results into the job log (readable without
+          # downloading the artifact).
+          for f in check-target.json build-vars.txt verify.json emulator.txt; do
+            [ -f "$WORK_DIR/$f" ] && { echo "===== $f"; cat "$WORK_DIR/$f"; }
+          done
+          [ -f "$WORK_DIR/logs/build.log" ] && { echo "===== build.log (tail 80)"; tail -n 80 "$WORK_DIR/logs/build.log"; }
+          true
 
       - name: Upload handback
         if: always() && env.MODE == 'build' && env.HANDBACK != ''
