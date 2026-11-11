@@ -1,0 +1,50 @@
+/dts-v1/;
+
+/*
+ * BUILD 064: P1/P2 peripheral reference fixture; NOT a real board DT, NOT
+ * bootable. Only the MFC base (0x00a40000) is taken from the HAL matrix; all
+ * other reg/IRQ/clock values are UNVERIFIED placeholders. CEC is disabled in
+ * the stock DT; IR is "okay" in stock but kept disabled here. Never flash.
+ */
+/ {
+	compatible = "nover,nikel-build064-peripherals-reference-only";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	audio {
+		compatible = "samsung,sdp-audio";
+		/* TODO: reg/IRQ/clocks; ASoC card + codec link. */
+		status = "disabled";
+	};
+
+	video-codec@a40000 {
+		compatible = "samsung,sdp-mfc";
+		reg = <0x00a40000 0x10000>; /* base from HAL matrix; size TODO */
+		/* TODO: IRQ, clocks, memory-region; V4L2 m2m integration. */
+		status = "disabled";
+	};
+
+	hdmi {
+		compatible = "samsung,sdp-hdmi";
+		/* TODO: reg/IRQ; hotplug, HDCP out of scope. */
+		status = "disabled";
+	};
+
+	cec {
+		compatible = "samsung,sdp-mc-cecif";
+		/* Disabled in both stock reference DTBs; activation path unclear. */
+		status = "disabled";
+	};
+
+	ir-receiver {
+		compatible = "samsung,sdp-mc-irb";
+		/* "okay" in stock; verify real input events + keymap. */
+		status = "disabled";
+	};
+
+	ethernet {
+		compatible = "samsung,sdp-mac";
+		/* TODO: reg/IRQ/phy; driver provenance unverified. */
+		status = "disabled";
+	};
+};
