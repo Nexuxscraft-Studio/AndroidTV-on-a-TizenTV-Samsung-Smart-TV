@@ -87,6 +87,9 @@ ALLOWED_PORTING_SOURCES = {
     # Build 064: P1/P2 peripheral scaffolds (text only)
     "porting/build064/configs/nikel-peripherals.config",
     "porting/build064/dts/sdp-nikel-peripherals-disabled.dts",
+    # Build 066: framebuffer-handoff scaffold (text only)
+    "porting/build066/configs/nikel-simpledrm.config",
+    "porting/build066/dts/sdp-nikel-simplefb-handoff.dts",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES

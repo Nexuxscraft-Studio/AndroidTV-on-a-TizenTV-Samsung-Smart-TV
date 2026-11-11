@@ -1,0 +1,30 @@
+/dts-v1/;
+
+/*
+ * BUILD 066: simple-framebuffer handoff fixture; NOT a real board DT, NOT
+ * bootable. ALL values are UNVERIFIED placeholders and MUST be read from the
+ * running stock system (framebuffer base/geometry/format/stride), e.g. via the
+ * bootloader hand-off, /proc/iomem or the VD framebuffer info. This only works
+ * if the bootloader initialises the panel and leaves a live framebuffer.
+ * status = "disabled". Never flash.
+ */
+/ {
+	compatible = "nover,nikel-build066-simplefb-reference-only";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	chosen {
+		/* A real hand-off would point framebuffer0 at the node below. */
+	};
+
+	framebuffer@0 {
+		compatible = "simple-framebuffer";
+		/* TODO: real fb base + size (bytes) from the running system. */
+		reg = <0x00000000 0x007e9000>; /* 1920*1080*4 placeholder size */
+		width = <1920>;
+		height = <1080>;
+		stride = <7680>;        /* 1920*4 placeholder */
+		format = "a8r8g8b8";    /* TODO: confirm real pixel format */
+		status = "disabled";
+	};
+};
