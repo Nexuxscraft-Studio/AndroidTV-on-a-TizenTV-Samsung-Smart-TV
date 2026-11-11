@@ -83,6 +83,10 @@ jobs:
           if [ -f "$w/qemu-android.log" ]; then
             echo "===== qemu-android.log (init/fs/selinux lines)"
             grep -a -n -E 'init:|Run /init|VFS|EXT4-fs|erofs|virtio|vda|SELinux|selinux|panic|Kernel panic|reboot:|binder|apexd|servicemanager|zygote' "$w/qemu-android.log" | grep -v 'avc:' | head -1500 || true
+            echo "===== NetBpfLoad / bpfloader (all lines)"
+            grep -a -E "NetBpfLoad|bpfloader|BpfLoader|libbpf" "$w/qemu-android.log" | tail -150 || true
+            echo "===== kernel BPF/cgroup config"
+            grep -E "CONFIG_(BPF|CGROUP|NET_CLS_BPF|NET_ACT_BPF|BPF_JIT|SOCK_CGROUP|NETFILTER_XT_MATCH_BPF)" "$w/kernel/artifacts-arm-android/config" || true
             echo "===== services started / died"
             grep -a -E "starting service|exited with status|received signal|Kernel panic|boot_completed|sys.boot" "$w/qemu-android.log" | head -300 || true
             echo "===== qemu-android.log (tail 120)"

@@ -133,3 +133,17 @@ Mit Software-KeyMint startet `vendor.keymint-default`; zweite Stufe läuft bis
 `reboot,apexd-failed`. Ursache: `init.qemuarm.rc` rief nur
 `mount_all … --late` (mountet nur `latemount`-Einträge). **Fix:** `--early`
 in `on fs`, `--late` in `on late-fs`.
+
+### M2-Boot 4 (Run 43064493718)
+
+Mit `mount_all --early/--late`: **`/data` gemountet/formatiert, `keystore2`
++ Software-KeyMint stabil**, `apexd` aktiviert alle APEX, `vdc cryptfs
+init_user0`, `derive_classpath`, `art_boot`, `odsign` laufen. Abbruch nach
+~123 s Gastzeit: `NetBpfLoad: CRITICAL FAILURE LOADING BPF PROGRAMS FROM
+/apex/com.android.tethering/etc/bpf/` → `reboot,bpfloader-failed`.
+
+**Wichtig (Quelle `packages/modules/Connectivity/bpf/loader/NetBpfLoad.cpp`,
+LOS 22.2):** Android 15 lehnt **32-Bit-Kernel ≥ 6.7 immer** ab; 32-Bit-Kernel
+≥ 5.16 und 32-Bit-Userspace auf ≥ 6.2 sind **nur für ARM-TV/Wear** erlaubt.
+Unsere Kombination (ARM32 ATV, Kernel 6.6) liegt genau im letzten zulässigen
+Fenster – ein Kernel-Sprung auf 6.12 wäre für ARM32 ausgeschlossen.
