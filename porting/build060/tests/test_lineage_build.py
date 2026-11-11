@@ -1,6 +1,8 @@
 """No-network, no-ROM tests for the opt-in Android TV build orchestrator."""
 
 import importlib.util
+from contextlib import redirect_stderr
+import io
 from pathlib import Path
 import tempfile
 import unittest
@@ -43,7 +45,7 @@ class LineageBuildTests(unittest.TestCase):
             (root / "build").mkdir()
             (root / "build/envsetup.sh").touch()
             (root / "vendor/lineage/config").mkdir(parents=True)
-            with self.assertRaises(SystemExit) as caught:
+            with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as caught:
                 mod.main(["--source", tmp, "--mode", "build"])
             self.assertEqual(caught.exception.code, 2)
 
