@@ -39,15 +39,32 @@ HISTORICAL_COMPILER_REPORTS = {
 }
 
 
-def inspect(repo: Path) -> dict:
+VENDOR_PROBES = {
+    "samsung_drm_core_and_gem": ("sdp_drm_drv.c", "sdp_drm_gem.c"),
+    "drm_utility": ("sdp_drm_util.c",),
+    "drm_fence": ("sdp_drm_fence.c",),
+    "audio_hal": ("sdp_platform.c", "sdp_pcm.c"),
+    "video_decoder_hal": ("sdp_mfc.c", "sdp_mfc*.c"),
+}
+
+
+def inspect(repo: Path, vendor_source: Path | None = None) -> dict:
     components = {}
     for name, patterns in PROBES.items():
         paths = sorted({p.relative_to(repo).as_posix()
                         for pattern in patterns for p in repo.glob(pattern)
                         if p.is_file()})
+        vendor_paths = []
+        if vendor_source is not None:
+            vendor_patterns = VENDOR_PROBES.get(name, ())
+            vendor_paths = sorted({p.relative_to(vendor_source).as_posix()
+                                   for pattern in vendor_patterns
+                                   for p in vendor_source.glob("**/" + pattern)
+                                   if p.is_file()})[:20]
         components[name] = {
             "local_sources": paths,
             "source_present": bool(paths),
+            "external_samsung_source_candidates": vendor_paths,
             "compile_status": "NOT_TESTED_IN_THIS_AUDIT",
             "historical_report": HISTORICAL_COMPILER_REPORTS.get(name, "none"),
             "boot_and_runtime": "UNVERIFIED",
@@ -55,7 +72,7 @@ def inspect(repo: Path) -> dict:
     return {
         "type": "nikel_arm32_driver_source_audit",
         "components": components,
-        "disclaimer": "Absence only means not in this checkout. The Samsung media tarball is external; no vendor blob, driver execution or hardware check was performed.",
+        "disclaimer": "Absence means not found in the scanned trees, not that a driver does not exist. External source matching is filename-only. No vendor blob, driver execution or hardware check was performed.",
     }
 
 
@@ -63,11 +80,16 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2],
                    help="Local repository root")
+    p.add_argument("--vendor-source", type=Path,
+                   help="Optional locally extracted Samsung tztv-media-nike source (read only)")
     args = p.parse_args(argv)
     repo = args.repo.resolve()
     if not repo.is_dir():
         p.error("--repo must be a directory")
-    print(json.dumps(inspect(repo), indent=2, ensure_ascii=False))
+    vendor = args.vendor_source.resolve() if args.vendor_source else None
+    if vendor is not None and not vendor.is_dir():
+        p.error("--vendor-source must be an existing directory")
+    print(json.dumps(inspect(repo, vendor), indent=2, ensure_ascii=False))
     return 0
 
 
