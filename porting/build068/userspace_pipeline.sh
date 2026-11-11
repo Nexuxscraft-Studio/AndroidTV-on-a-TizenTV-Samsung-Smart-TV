@@ -38,6 +38,8 @@ FORCE=0
 FROM_STAGE=""
 ONLY_STAGE=""
 PIN_MANIFEST=""
+NO_CCACHE=0
+CCACHE_DIR_PATH=""
 
 usage() {
   cat <<'EOF'
@@ -56,6 +58,8 @@ Usage: userspace_pipeline.sh [options]
   --pin FILE           sync exactly the revisions in a manifest snapshot
                        (as written by a previous run: <work>/manifest-pinned.xml)
   --install-deps       apt-get install missing packages (uses sudo)
+  --ccache-dir DIR     ccache directory (default: <work-dir>/ccache)
+  --no-ccache          build without ccache
   --allow-undersized   continue although the host gate says NOT READY
   --run-emulator       try the emulator stage (only if an ARM32 kernel exists)
   --from STAGE         start at STAGE      --only STAGE   run only STAGE
@@ -78,6 +82,8 @@ while [ $# -gt 0 ]; do
     --shallow) SHALLOW=1; shift ;;
     --pin) PIN_MANIFEST="$2"; shift 2 ;;
     --install-deps) INSTALL_DEPS=1; shift ;;
+    --no-ccache) NO_CCACHE=1; shift ;;
+    --ccache-dir) CCACHE_DIR_PATH="$2"; shift 2 ;;
     --allow-undersized) ALLOW_UNDERSIZED=1; shift ;;
     --run-emulator) RUN_EMULATOR=1; shift ;;
     --from) FROM_STAGE="$2"; shift 2 ;;
@@ -107,6 +113,8 @@ done
 LOS_DIR="$(realpath -m "$LOS_DIR")"
 WORK_DIR="$(realpath -m "$WORK_DIR")"
 [ -z "$PIN_MANIFEST" ] || PIN_MANIFEST="$(realpath -m "$PIN_MANIFEST")"
+[ -n "$CCACHE_DIR_PATH" ] || CCACHE_DIR_PATH="$WORK_DIR/ccache"
+CCACHE_DIR_PATH="$(realpath -m "$CCACHE_DIR_PATH")"
 STATE_DIR="$WORK_DIR/state"
 LOG_DIR="$WORK_DIR/logs"
 if [ "$DRY_RUN" -eq 0 ]; then mkdir -p "$STATE_DIR" "$LOG_DIR"; fi
@@ -262,7 +270,17 @@ inner_build_script() {  # runs in a clean bash: envsetup is not set -eu safe
   cat <<EOF
 cd "$LOS_DIR" || exit 90
 export USE_CCACHE=1 CCACHE_EXEC="\$(command -v ccache || true)"
-[ -n "\$CCACHE_EXEC" ] || unset USE_CCACHE CCACHE_EXEC
+if [ -n "\$CCACHE_EXEC" ] && [ "$NO_CCACHE" -eq 0 ]; then
+  # Explicit cache dir on the build filesystem; the runner's HOME layout is
+  # not usable for ccache ("Not a directory", Build-068 run 2).
+  export CCACHE_DIR="$CCACHE_DIR_PATH"
+  mkdir -p "\$CCACHE_DIR" || exit 96
+  "\$CCACHE_EXEC" -M 50G >/dev/null || exit 96
+  echo "ccache: \$CCACHE_DIR"
+else
+  unset USE_CCACHE CCACHE_EXEC
+  echo "ccache: off"
+fi
 source build/envsetup.sh >/dev/null || exit 91
 breakfast "$TARGET" "$VARIANT" || exit 92
 vars="\$(get_build_var TARGET_PRODUCT); \$(get_build_var TARGET_RELEASE); \$(get_build_var TARGET_BUILD_VARIANT)"
