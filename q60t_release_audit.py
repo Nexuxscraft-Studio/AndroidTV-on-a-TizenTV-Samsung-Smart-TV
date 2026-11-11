@@ -92,6 +92,8 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build066/dts/sdp-nikel-simplefb-handoff.dts",
     # Build 067: QEMU boot harness (text only)
     "porting/build067/run-qemu-boot.sh",
+    # Build 068: Android userspace build pipeline (text only, host-side)
+    "porting/build068/userspace_pipeline.sh",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES

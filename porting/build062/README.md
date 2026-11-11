@@ -4,6 +4,12 @@ Planungs-/Verifikationsanalyse (read-only, keine Hardware, kein Flash).
 Vollständiger Bericht: `../../BUILD062_REPORT.md`.
 Maschinenlesbare Treiber-Matrix: `../../reports/lineage_arm32_driver_matrix_build062.json`.
 
+> **Korrektur durch Build 068** (`../build068/README.md`): (1) `sdk_tv_arm`
+> existiert in LOS 22.2 (`lineage_sdk_tv_arm`), aber ohne ARM32-Emulator-Kernel.
+> (2) „32-Bit-Binder“ unten ist überholt: Android 15 nutzt nur noch 64-Bit-Binder
+> (Protokoll 8), Linux 6.6 hat kein `ANDROID_BINDER_IPC_32BIT` – Ziel ist
+> 32-Bit-Userspace + 32-Bit-Kernel + Binder-Protokoll 8.
+
 ## Kernaussagen
 
 - **LOS 22.2 baut 32-Bit-ARM-Android-TV** – produktiv belegt durch `sabrina`
