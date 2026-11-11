@@ -1,0 +1,36 @@
+name: Build060 LineageOS 22.2 ARM32 ATV full userspace
+
+# Manual, opt-in, resource-intensive job.  Requires a deliberately provisioned
+# self-hosted runner and a previously synced external LineageOS source tree.
+# No Samsung build, no firmware, no flashing and no device connection.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Enter BUILD_ARM32_ATV to authorize mka on the build runner'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-arm32-atv:
+    if: inputs.confirm == 'BUILD_ARM32_ATV'
+    runs-on: [self-hosted, Linux, X64, android-build]
+    timeout-minutes: 720
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify configured external LineageOS source
+        env:
+          SOURCE_ROOT: ${{ vars.LINEAGE_22_2_SOURCE_ROOT }}
+        run: |
+          test -n "$SOURCE_ROOT"
+          test -f "$SOURCE_ROOT/build/envsetup.sh"
+          test -d "$SOURCE_ROOT/.repo"
+      - name: Verify ARM32 target and compile full emulator userspace
+        env:
+          SOURCE_ROOT: ${{ vars.LINEAGE_22_2_SOURCE_ROOT }}
+        run: |
+          python3 porting/build060/lineage_build.py \
+            --source "$SOURCE_ROOT" --mode build --confirm-large-build
