@@ -47,11 +47,9 @@ PRODUCT_VENDOR_PROPERTIES += \
     ro.hardware.gralloc=minigbm \
     ro.opengles.version=196608
 
-# Audio: AOSP example AIDL core + effect HAL (audioserver crashed without any
-# audio HAL in VINTF, M3-Boot 2). Emulation only, no real sound device.
-PRODUCT_PACKAGES += \
-    android.hardware.audio.service-aidl.example \
-    android.hardware.audio.effect.service-aidl.example
+# Audio: TODO - the AOSP example AIDL audio HAL modules are not installable
+# for this product ("non-existent modules", M3 build 3); audioserver crashes
+# without an audio HAL but does not trigger a reboot. Revisit after graphics.
 
 # Minimal platform HALs system_server expects (AOSP examples).
 PRODUCT_PACKAGES += \
