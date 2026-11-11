@@ -6,13 +6,12 @@
 LOCAL_PATH := device/nexuxscraft/qemu_arm_tv
 
 PRODUCT_SHIPPING_API_LEVEL := 35
-# Boot 4 / probe 3: the build produced ro.treble.enabled=false, so
-# linkerconfig generated the legacy layout without the exported "sphal"
-# namespace and the Vulkan loader could not dlopen /vendor/lib/hw/vulkan.pastel.so
-# (ANGLE init failed -> SurfaceFlinger "no suitable EGLConfig found").
-PRODUCT_FULL_TREBLE_OVERRIDE := true
-# Skip the build-time VINTF compatibility check: the emulator provides no HALs.
-PRODUCT_ENFORCE_VINTF_MANIFEST_OVERRIDE := false
+# Boot 4 / probe 3: PRODUCT_ENFORCE_VINTF_MANIFEST_OVERRIDE := false (M2)
+# silently turned PRODUCT_FULL_TREBLE off (build/make/core/config.mk:790),
+# giving ro.treble.enabled=false. linkerconfig then generated the legacy layout
+# without the exported "sphal" namespace, the Vulkan loader could not dlopen
+# /vendor/lib/hw/vulkan.pastel.so, ANGLE init failed and SurfaceFlinger aborted
+# with "no suitable EGLConfig found". Keep VINTF enforcement on (full Treble).
 
 $(call inherit-product, device/google/atv/products/atv_generic_system.mk)
 $(call inherit-product, device/google/atv/products/atv_system_ext.mk)
