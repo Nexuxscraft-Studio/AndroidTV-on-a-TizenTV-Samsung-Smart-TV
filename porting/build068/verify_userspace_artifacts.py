@@ -38,6 +38,7 @@ PROP_FILES = (
     "system_ext/etc/build.prop",
     "odm/etc/build.prop",
     "vendor/default.prop",
+    "system/etc/prop.default",            # Android 10+: ro.zygote lives here
     "ramdisk/prop.default",
 )
 
@@ -46,7 +47,11 @@ ARM32_BINARIES = {
     "app_process32": ("system/bin/app_process32",),
     "servicemanager": ("system/bin/servicemanager",),
     "init": ("system/bin/init",),
-    "linker": ("system/bin/linker", "system/apex/com.android.runtime/bin/linker"),
+    # system/bin/linker is a symlink into /apex; the real binary is staged
+    # under $PRODUCT_OUT/apex/com.android.runtime/bin/linker.
+    "linker": ("apex/com.android.runtime/bin/linker",
+               "system/apex/com.android.runtime/bin/linker",
+               "system/bin/linker"),
 }
 
 # Paths whose presence indicates a 64-bit (or multilib) userspace.

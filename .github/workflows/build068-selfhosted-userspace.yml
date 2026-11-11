@@ -124,6 +124,16 @@ jobs:
             [ -f "$WORK_DIR/$f" ] && { echo "===== $f"; cat "$WORK_DIR/$f"; }
           done
           [ -f "$WORK_DIR/logs/build.log" ] && { echo "===== build.log (tail 80)"; tail -n 80 "$WORK_DIR/logs/build.log"; }
+          po="$(sed -n 's/^PRODUCT_OUT=//p' "$WORK_DIR/build-vars.txt" 2>/dev/null | tail -1)"
+          if [ -n "$po" ]; then
+            case "$po" in /*) ;; *) po="$LOS_DIR/$po" ;; esac
+            echo "===== PRODUCT_OUT diagnostics ($po)"
+            ls -la "$po" | head -40
+            echo "--- prop files with ro.zygote"; grep -rs '^ro.zygote=' "$po"/system "$po"/ramdisk "$po"/root 2>/dev/null | head
+            echo "--- linker"; ls -l "$po/system/bin/linker" 2>&1; find "$po/apex" "$po/system/apex" -path '*runtime*' -name 'linker*' 2>/dev/null | head
+            echo "--- images"; ls -la "$po"/*.img 2>&1
+            for f in "$po"/system/bin/app_process32 "$po"/system/bin/servicemanager; do file -L "$f" 2>&1; done
+          fi
           true
 
       - name: Upload handback
