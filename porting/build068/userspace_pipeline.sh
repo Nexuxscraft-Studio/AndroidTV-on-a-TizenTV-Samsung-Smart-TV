@@ -137,6 +137,9 @@ stage_deps() {
   local missing=()
   if command -v dpkg-query >/dev/null 2>&1; then
     for p in "${DEPS[@]}"; do
+      # Tools may come from outside dpkg (e.g. repo in /usr/local/bin).
+      case "$p" in repo|git|git-lfs|python3|curl|rsync|zip|file)
+        command -v "$p" >/dev/null 2>&1 && continue ;; esac
       dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q "install ok installed" || missing+=("$p")
     done
   else

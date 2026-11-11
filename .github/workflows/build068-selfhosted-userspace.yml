@@ -81,7 +81,9 @@ jobs:
             echo "### kvm";     ls -l /dev/kvm 2>&1 || true
             echo "### sudo -n"; sudo -n true 2>&1 && echo "passwordless sudo: yes" || echo "passwordless sudo: no"
             echo "### tools";   for t in git git-lfs repo python3 ccache qemu-system-arm; do printf '%s: ' "$t"; command -v "$t" || echo missing; done
-            echo "### existing trees"; for d in "$LOS_DIR" "$HOME"/*/.repo /opt/*/.repo /mnt/*/.repo /srv/*/.repo; do [ -e "$d" ] && echo "$d"; done; true
+            echo "### git identity"; git config --global user.name >/dev/null && git config --global user.email >/dev/null && echo "set" || echo "NOT SET (repo init needs user.name/user.email)"
+            echo "### los_dir write test"; mkdir -p "$LOS_DIR" 2>&1 && touch "$LOS_DIR/.build068-write-test" 2>&1 && rm -f "$LOS_DIR/.build068-write-test" && echo "writable: $LOS_DIR" || echo "NOT writable: $LOS_DIR"
+            echo "### existing trees"; for d in "$LOS_DIR" "$HOME"/*/.repo /opt/*/.repo /opt/*/*/.repo /mnt/*/.repo /mnt/*/*/.repo; do [ -e "$d" ] && echo "$d"; done; true
           } > "$out/host.txt" 2>&1
           bash porting/build068/userspace_pipeline.sh --dry-run --only deps \
             --los-dir "$LOS_DIR" --work-dir "$WORK_DIR" > "$out/deps.txt" 2>&1 || true
