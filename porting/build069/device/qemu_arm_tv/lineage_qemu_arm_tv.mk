@@ -51,9 +51,22 @@ PRODUCT_VENDOR_PROPERTIES += \
     ro.hardware.gralloc=minigbm \
     ro.opengles.version=196608
 
-# Audio: TODO - the AOSP example AIDL audio HAL modules are not installable
-# for this product ("non-existent modules", M3 build 3); audioserver crashes
-# without an audio HAL but does not trigger a reboot. Revisit after graphics.
+# Audio: AOSP example AIDL core + effect HAL. The binaries are
+# installable:false and ship only inside the vendor APEX
+# com.android.hardware.audio (probe 3d); same set-up as Cuttlefish
+# (device/google/cuttlefish/shared/device.mk). Without it audioserver
+# segfaults in AudioFlinger::onFirstRef and init reverts/reboots (boot 7).
+# Emulation only, no real sound device.
+PRODUCT_PACKAGES += \
+    com.android.hardware.audio
+
+PRODUCT_COPY_FILES += \
+    device/google/cuttlefish/shared/config/audio/policy/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
+    device/google/cuttlefish/shared/config/audio/policy/primary_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/primary_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/r_submix_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
+    frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
+    hardware/interfaces/audio/aidl/default/audio_effects_config.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects_config.xml
 
 # Minimal platform HALs system_server expects (AOSP examples).
 PRODUCT_PACKAGES += \
