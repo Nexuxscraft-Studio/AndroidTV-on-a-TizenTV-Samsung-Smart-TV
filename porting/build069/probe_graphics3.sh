@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Build 069 M3: read-only probe 3b - where Treble gets disabled for qemu_arm_tv.
+# Build 069 M3: read-only probe 3c - ashmem vs memfd selection in libcutils
+# (system_server: "Failed to create ashmem", kernel 6.6 has no CONFIG_ASHMEM).
 set -uo pipefail
-L="${1:?los dir}"; P="${2:-qemu_arm_tv}"; cd "$L" || exit 1
+L="${1:?los dir}"; cd "$L" || exit 1
 sec() { printf '\n######## %s\n' "$*"; }
-sec "config.mk treble logic"; grep -n -B4 -A4 -E 'FULL_TREBLE|Treble enabled|treble' build/make/core/config.mk | head -80
-sec "product var defaults"; grep -rn -E 'FULL_TREBLE' build/make/core/product.mk build/make/core/product_config.mk build/make/core/board_config.mk 2>/dev/null | head -20
-sec "who sets PRODUCT_FULL_TREBLE*"; grep -rn --include='*.mk' -E 'PRODUCT_FULL_TREBLE' build/make/target device/google/atv vendor/lineage device/nexuxscraft 2>/dev/null | head -30
-sec "ro.treble.enabled writer"; grep -rn -E 'ro.treble.enabled' build/make/core build/make/tools build/soong/android 2>/dev/null | head -10
-sec "dumpvars"; ( source build/envsetup.sh >/dev/null 2>&1; lunch lineage_${P}-bp1a-userdebug >/dev/null 2>&1; get_build_var PRODUCT_FULL_TREBLE; get_build_var PRODUCT_FULL_TREBLE_OVERRIDE; get_build_var PRODUCT_SHIPPING_API_LEVEL; get_build_var BOARD_VNDK_VERSION ) 2>&1 | tail -6
+sec "libcutils ashmem-dev.cpp memfd decision"; grep -n -B2 -A40 '__has_memfd_support()' system/core/libcutils/ashmem-dev.cpp | head -120
+sec "ApplicationSharedMemory jni"; f=$(grep -rl 'ApplicationSharedMemory_nativeCreate\|nativeCreate' frameworks/base/core/jni/*ApplicationSharedMemory* 2>/dev/null | head -1); echo "$f"; [ -n "$f" ] && grep -n -E 'ashmem|memfd' "$f" | head -20
+sec "who sets sys.use_memfd"; grep -rn --include='*.mk' --include='*.rc' --include='*.prop' 'use_memfd' build device/google system/core 2>/dev/null | head
+sec "sepolicy property context for sys.use_memfd"; grep -rn 'use_memfd' system/sepolicy 2>/dev/null | head
 echo "(done)"
