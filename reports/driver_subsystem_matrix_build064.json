@@ -1,0 +1,23 @@
+{
+  "type": "driver_subsystem_matrix_build064",
+  "target": "Samsung Q60T / Nike-L -> LineageOS 22.2 ARM32 (Linux 6.6.162)",
+  "disclaimer": "Planning matrix. No device access, no boot, no flash. Status reflects scaffolding/plan maturity, not working drivers.",
+  "principles": ["upstream-before-custom", "kernel 6.6.162 not 4.1.10", "all nodes disabled until device-verified"],
+  "critical_path": "core-soc boot -> sdp-drm KMS -> kmsro -> Panfrost -> gbm_gralloc -> SurfaceFlinger (+ drm_hwcomposer)",
+  "subsystems": [
+    {"name": "core-soc-uart-clk-gpio", "prio": "P0", "driver": "custom 6.6", "samsung_src": "board-nike-dt.c, sdp_uart", "status": "built (build059)"},
+    {"name": "emmc", "prio": "P0", "driver": "dw_mmc-exynos (upstream)", "samsung_src": "samsung,sdp-mmc", "status": "config/enable (build063)"},
+    {"name": "display", "prio": "P0", "driver": "custom sdp-drm (6.6)", "samsung_src": "sdp_drm_nike", "status": "KMS skeleton, CI-compiled green (build063)"},
+    {"name": "gpu", "prio": "P0", "driver": "Panfrost (upstream)", "samsung_src": "DT mali (G51/Bifrost)", "status": "config/DT/plan (build063)"},
+    {"name": "cpu-dvfs-thermal", "prio": "P0", "driver": "cpufreq-dt + thermal-of (upstream)", "samsung_src": "-", "status": "config/DT/plan (build063)"},
+    {"name": "video-mfc", "prio": "P1", "driver": "V4L2 m2m (upstream)", "samsung_src": "sdp_codec_nike", "status": "config/DT/plan (build064)"},
+    {"name": "audio", "prio": "P1", "driver": "ASoC (upstream)", "samsung_src": "sdp_alsa_nike", "status": "config/DT/plan (build064)"},
+    {"name": "hdmi", "prio": "P1", "driver": "drm-bridge/custom", "samsung_src": "samsung,sdp-hdmi", "status": "DT/plan (build064)"},
+    {"name": "hdmi-cec", "prio": "P1", "driver": "cec-core (upstream)", "samsung_src": "sdp-mc-cecif (disabled in stock)", "status": "DT/plan (build064)"},
+    {"name": "ir-remote", "prio": "P1", "driver": "rc-core (upstream)", "samsung_src": "sdp-mc-irb/irs (okay in stock)", "status": "DT/plan (build064)"},
+    {"name": "usb", "prio": "P2", "driver": "EHCI/OHCI (upstream)", "samsung_src": "sdp-usben", "status": "config/enable (build063)"},
+    {"name": "ethernet", "prio": "P2", "driver": "custom/generic", "samsung_src": "samsung,sdp-mac", "status": "config/DT/plan (build064)"},
+    {"name": "wlan-bt", "prio": "P2", "driver": "chipset-dependent", "samsung_src": "unclear", "status": "open"},
+    {"name": "drm-widevine", "prio": "P2", "driver": "none", "samsung_src": "no hw-DRM HAL", "status": "not guaranteed"}
+  ]
+}

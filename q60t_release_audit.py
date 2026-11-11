@@ -84,6 +84,9 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build063/dts/sdp-nikel-display-disabled.dts",
     "porting/build063/dts/sdp-nikel-gpu-panfrost-disabled.dts",
     "porting/build063/dts/sdp-nikel-cpu-dvfs-disabled.dts",
+    # Build 064: P1/P2 peripheral scaffolds (text only)
+    "porting/build064/configs/nikel-peripherals.config",
+    "porting/build064/dts/sdp-nikel-peripherals-disabled.dts",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES

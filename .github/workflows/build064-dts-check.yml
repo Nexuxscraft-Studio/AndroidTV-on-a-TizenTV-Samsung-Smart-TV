@@ -1,0 +1,40 @@
+name: Build064 peripheral DTS check
+
+# Build 064 adds no new kernel C driver (all P1/P2 bindings are upstream
+# subsystems), so there is nothing to cross-compile. This workflow only
+# syntax-checks the Build 064 reference device trees with dtc and runs the
+# existing Build 063 driver-coverage/unit tests. Nothing is flashed or booted.
+
+on:
+  push:
+    paths:
+      - 'porting/build064/**'
+      - '.github/workflows/build064-dts-check.yml'
+  pull_request:
+    paths:
+      - 'porting/build064/**'
+      - '.github/workflows/build064-dts-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dts-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dtc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends device-tree-compiler
+      - name: dtc syntax check (Build 064 fixtures)
+        run: |
+          for d in porting/build064/dts/*.dts; do
+            echo "== $d =="
+            dtc -q -I dts -O dtb -o /dev/null "$d"
+          done
+      - name: Build 063 coverage + unit tests
+        run: |
+          python3 -m unittest discover -s porting/build063/tests -v
+          python3 porting/build063/driver_coverage.py
