@@ -1,0 +1,21 @@
+name: Build066 simplefb DTS check
+
+on:
+  push:
+    paths: ['porting/build066/**', '.github/workflows/build066-dts-check.yml']
+  pull_request:
+    paths: ['porting/build066/**', '.github/workflows/build066-dts-check.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dts-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dtc
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends device-tree-compiler
+      - name: dtc syntax check
+        run: for d in porting/build066/dts/*.dts; do echo "== $d =="; dtc -q -I dts -O dtb -o /dev/null "$d"; done
