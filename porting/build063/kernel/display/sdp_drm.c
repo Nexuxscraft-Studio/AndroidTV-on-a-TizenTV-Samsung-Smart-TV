@@ -1,0 +1,191 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Build 063: Samsung SDP Nike-L display (sdp-drm) - minimal DRM/KMS skeleton
+ * for Linux 6.6, continuing the Build 058 sdp_drm_util/sdp_drm_fence migration.
+ *
+ * COMPILE-ONLY SCAFFOLD -- NEVER FLASH OR RELY ON THIS FOR A WORKING DISPLAY.
+ * It allocates a DRM device, registers ONE fixed-mode connector and a simple
+ * display pipe so the KMS stack plus gralloc/Panfrost/drm_hwcomposer can be
+ * brought up incrementally on the real build host. The actual hardware bring-up
+ * -- controller timing, plane programming, VSync/IRQ, panel (samsung,sdp1202)
+ * init, backlight -- is deliberately left as TODO and must be filled from the
+ * Samsung Nike-L sdp_drm vendor sources. Register ownership is unverified and
+ * overlaps the sdp1804 clock controller; see porting/build063/docs/DISPLAY_PORT.md.
+ */
+#include <linux/io.h>
+#include <linux/mod_devicetable.h>
+#include <linux/module.h>
+#include <linux/platform_device.h>
+
+#include <drm/drm_atomic_helper.h>
+#include <drm/drm_connector.h>
+#include <drm/drm_drv.h>
+#include <drm/drm_fbdev_dma.h>
+#include <drm/drm_fourcc.h>
+#include <drm/drm_gem_dma_helper.h>
+#include <drm/drm_gem_framebuffer_helper.h>
+#include <drm/drm_managed.h>
+#include <drm/drm_mode_config.h>
+#include <drm/drm_modeset_helper_vtables.h>
+#include <drm/drm_probe_helper.h>
+#include <drm/drm_simple_kms_helper.h>
+
+#define SDP_DRM_DEFAULT_WIDTH	1920
+#define SDP_DRM_DEFAULT_HEIGHT	1080
+
+struct sdp_drm_device {
+	struct drm_device drm;
+	void __iomem *regs;
+	struct drm_simple_display_pipe pipe;
+	struct drm_connector connector;
+};
+
+static const u32 sdp_drm_formats[] = {
+	DRM_FORMAT_XRGB8888,
+	DRM_FORMAT_ARGB8888,
+};
+
+/* Connector: expose one fixed mode. TODO: read real Nike-L panel timing. */
+static int sdp_drm_conn_get_modes(struct drm_connector *connector)
+{
+	int count;
+
+	count = drm_add_modes_noedid(connector, SDP_DRM_DEFAULT_WIDTH,
+				     SDP_DRM_DEFAULT_HEIGHT);
+	drm_set_preferred_mode(connector, SDP_DRM_DEFAULT_WIDTH,
+			       SDP_DRM_DEFAULT_HEIGHT);
+	return count;
+}
+
+static const struct drm_connector_helper_funcs sdp_drm_conn_helper_funcs = {
+	.get_modes = sdp_drm_conn_get_modes,
+};
+
+static const struct drm_connector_funcs sdp_drm_conn_funcs = {
+	.fill_modes = drm_helper_probe_single_connector_modes,
+	.destroy = drm_connector_cleanup,
+	.reset = drm_atomic_helper_connector_reset,
+	.atomic_duplicate_state = drm_atomic_helper_connector_duplicate_state,
+	.atomic_destroy_state = drm_atomic_helper_connector_destroy_state,
+};
+
+/* Simple display pipe: all hardware steps are TODO for a real bring-up. */
+static void sdp_drm_pipe_enable(struct drm_simple_display_pipe *pipe,
+				struct drm_crtc_state *crtc_state,
+				struct drm_plane_state *plane_state)
+{
+	/* TODO: program the Nike-L display controller and enable the output. */
+}
+
+static void sdp_drm_pipe_disable(struct drm_simple_display_pipe *pipe)
+{
+	/* TODO: blank the Nike-L display controller. */
+}
+
+static void sdp_drm_pipe_update(struct drm_simple_display_pipe *pipe,
+				struct drm_plane_state *old_state)
+{
+	/* TODO: flip to the new framebuffer and signal VSync/vblank. */
+}
+
+static const struct drm_simple_display_pipe_funcs sdp_drm_pipe_funcs = {
+	.enable = sdp_drm_pipe_enable,
+	.disable = sdp_drm_pipe_disable,
+	.update = sdp_drm_pipe_update,
+};
+
+static const struct drm_mode_config_funcs sdp_drm_mode_config_funcs = {
+	.fb_create = drm_gem_fb_create,
+	.atomic_check = drm_atomic_helper_check,
+	.atomic_commit = drm_atomic_helper_commit,
+};
+
+DEFINE_DRM_GEM_DMA_FOPS(sdp_drm_fops);
+
+static const struct drm_driver sdp_drm_driver = {
+	.driver_features = DRIVER_GEM | DRIVER_MODESET | DRIVER_ATOMIC,
+	.fops = &sdp_drm_fops,
+	DRM_GEM_DMA_DRIVER_OPS,
+	.name = "sdp-drm",
+	.desc = "Samsung SDP Nike-L display (skeleton)",
+	.date = "20261111",
+	.major = 0,
+	.minor = 1,
+};
+
+static int sdp_drm_probe(struct platform_device *pdev)
+{
+	struct sdp_drm_device *sdp;
+	struct drm_device *drm;
+	int ret;
+
+	sdp = devm_drm_dev_alloc(&pdev->dev, &sdp_drm_driver,
+				 struct sdp_drm_device, drm);
+	if (IS_ERR(sdp))
+		return PTR_ERR(sdp);
+	drm = &sdp->drm;
+	platform_set_drvdata(pdev, drm);
+
+	sdp->regs = devm_platform_ioremap_resource(pdev, 0);
+	if (IS_ERR(sdp->regs))
+		return PTR_ERR(sdp->regs);
+
+	ret = drmm_mode_config_init(drm);
+	if (ret)
+		return ret;
+	drm->mode_config.min_width = SDP_DRM_DEFAULT_WIDTH;
+	drm->mode_config.max_width = SDP_DRM_DEFAULT_WIDTH;
+	drm->mode_config.min_height = SDP_DRM_DEFAULT_HEIGHT;
+	drm->mode_config.max_height = SDP_DRM_DEFAULT_HEIGHT;
+	drm->mode_config.funcs = &sdp_drm_mode_config_funcs;
+
+	drm_connector_helper_add(&sdp->connector, &sdp_drm_conn_helper_funcs);
+	ret = drm_connector_init(drm, &sdp->connector, &sdp_drm_conn_funcs,
+				 DRM_MODE_CONNECTOR_Unknown);
+	if (ret)
+		return ret;
+
+	ret = drm_simple_display_pipe_init(drm, &sdp->pipe, &sdp_drm_pipe_funcs,
+					   sdp_drm_formats,
+					   ARRAY_SIZE(sdp_drm_formats), NULL,
+					   &sdp->connector);
+	if (ret)
+		return ret;
+
+	drm_mode_config_reset(drm);
+
+	ret = drm_dev_register(drm, 0);
+	if (ret)
+		return ret;
+
+	drm_fbdev_dma_setup(drm, 32);
+	return 0;
+}
+
+static int sdp_drm_remove(struct platform_device *pdev)
+{
+	struct drm_device *drm = platform_get_drvdata(pdev);
+
+	drm_dev_unregister(drm);
+	drm_atomic_helper_shutdown(drm);
+	return 0;
+}
+
+static const struct of_device_id sdp_drm_of_match[] = {
+	{ .compatible = "samsung,sdp-drm" },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, sdp_drm_of_match);
+
+static struct platform_driver sdp_drm_platform_driver = {
+	.probe = sdp_drm_probe,
+	.remove = sdp_drm_remove,
+	.driver = {
+		.name = "sdp-drm",
+		.of_match_table = sdp_drm_of_match,
+	},
+};
+module_platform_driver(sdp_drm_platform_driver);
+
+MODULE_DESCRIPTION("Samsung SDP Nike-L display DRM/KMS skeleton (compile-only)");
+MODULE_LICENSE("GPL");

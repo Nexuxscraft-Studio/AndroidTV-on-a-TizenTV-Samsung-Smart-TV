@@ -1,0 +1,41 @@
+/dts-v1/;
+
+/*
+ * BUILD 063: Panfrost GPU reference fixture; NOT a real board DT, NOT bootable.
+ * Extends the Build 056 node with the clock/reset/power links that Panfrost
+ * needs, referencing the Build 058 gpu-clkrst controller. Every phandle target
+ * and the IRQ trigger flags are UNVERIFIED placeholders. status = "disabled".
+ * The original firmware DT advertises "arm,mali-midgard"; independent Q60T
+ * research reports Mali-G51 (Bifrost). Confirm the real GPU ID on the device
+ * before trusting "arm,mali-bifrost". Never flash or boot this.
+ */
+/ {
+	compatible = "nover,nikel-build063-gpu-reference-only";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	gpu_clkrst: gpu-clkrst@f50000 {
+		/* Build 058 experimental gate/reset provider (read-only verified). */
+		compatible = "nover,sdp-nikel-gpu-clkrst-experimental";
+		reg = <0x00f50000 0x3000>;
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+		status = "disabled";
+	};
+
+	gpu@500000 {
+		/* Panfrost binding. Confirm real model/ID on device first. */
+		compatible = "arm,mali-bifrost";
+		reg = <0x00500000 0x00004000>;
+		interrupts = <0 0x70 4>, <0 0x71 4>, <0 0x72 4>;
+		interrupt-names = "gpu", "mmu", "job";
+
+		/* TODO: real interrupt-parent (GIC) phandle. */
+		clocks = <&gpu_clkrst 0>;
+		clock-names = "core";
+		resets = <&gpu_clkrst 0>, <&gpu_clkrst 1>;
+		reset-names = "busif", "core";
+		/* TODO: power-domains, mali-supply, operating-points-v2 (devfreq). */
+		status = "disabled";
+	};
+};

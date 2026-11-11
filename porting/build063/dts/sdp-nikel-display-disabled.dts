@@ -1,0 +1,24 @@
+/dts-v1/;
+
+/*
+ * BUILD 063: standalone compile/reference fixture; NOT a real Samsung board DT,
+ * NOT a bootable overlay. The display controller MMIO base/size and the panel
+ * timing are UNVERIFIED placeholders and MUST be taken from the Nike-L vendor
+ * DT/sources before any use. No consumer is enabled (status = "disabled").
+ * This region may overlap the sdp1804 clock/display mapping; a future DT must
+ * have ONE coordinated owner. Never flash or boot this.
+ */
+/ {
+	compatible = "nover,nikel-build063-display-reference-only";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	display@c00000 {
+		compatible = "samsung,sdp-drm";
+		/* TODO: real reg base/size from Nike-L DTB (placeholder below). */
+		reg = <0x00c00000 0x10000>;
+		/* TODO: interrupt-parent + display IRQ, clocks, resets, panel,
+		 * memory-region (CMA) from verified vendor data. */
+		status = "disabled";
+	};
+};

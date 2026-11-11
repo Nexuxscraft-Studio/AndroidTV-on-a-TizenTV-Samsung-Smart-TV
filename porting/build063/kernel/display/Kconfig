@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config DRM_SDP
+	tristate "Samsung SDP Nike-L display (skeleton, compile-only)"
+	depends on DRM && OF
+	depends on ARCH_SDP || COMPILE_TEST
+	select DRM_KMS_HELPER
+	select DRM_GEM_DMA_HELPER
+	help
+	  Build 063 compile-only DRM/KMS skeleton for the Samsung SDP Nike-L
+	  (Q60T) display controller (samsung,sdp-drm). This does NOT drive the
+	  panel; modeset, plane programming, VSync and panel init are TODO.
+	  Say M here only for compile coverage on a build host. Never flash.
