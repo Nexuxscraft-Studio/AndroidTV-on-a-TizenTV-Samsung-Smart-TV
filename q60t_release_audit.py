@@ -70,6 +70,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build059/kernel/configs/nikel-arm.config",
     "porting/build059/kernel/configs/nikel-arm64.config",
     "porting/build059/kernel/configs/nikel-common.config",
+    "porting/build059/kernel/configs/nikel-android.config",
     "porting/build059/kernel/configs/required-symbols.txt",
     # Build 063: driver bring-up scaffolds (text only, compile-gated in CI)
     "porting/build063/build.sh",

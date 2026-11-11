@@ -39,4 +39,20 @@ Vorlage für `device/samsung/nikel` ist.
 
 ## Ergebnisse
 
-(werden nach dem Runner-Lauf eingetragen)
+### Lauf M1-a (11.11.2026, Run 43052983486)
+
+- Kernel 6.6.162 ARM32 `android` + QEMU-virtio gebaut in ~3 min (LLVM 19
+  aus `prebuilts/clang/.../clang-r536225`); `android-base.config` 249/259
+  (offen u. a. `ASHMEM` – upstream seit 5.18 entfernt, Android nutzt memfd).
+- `system.img` = ext4, als `vda` erkannt; GSI-Ramdisk = gzip, 12 Einträge
+  (`init`, keine `first_stage_ramdisk`), `fstab.qemuarm` ergänzt.
+- **Erreicht: Kernel → `Run /init as init process`.** Android-`init`
+  (first stage) bricht nach 0,82 s ab:
+  `mount("selinuxfs", "/sys/fs/selinux", …) failed Invalid argument` →
+  `InitFatalReboot`.
+- **Ursache:** `CONFIG_LSM` aus `multi_v7_defconfig` ohne `selinux` –
+  SELinux einkompiliert, aber nie initialisiert. Betrifft auch den TV-Kernel
+  (Profil `android`). **Fix:** neues Fragment
+  `porting/build059/kernel/configs/nikel-android.config`
+  (`CONFIG_LSM=…selinux…`, `DEFAULT_SECURITY_SELINUX`), automatisch im
+  Profil `android`.

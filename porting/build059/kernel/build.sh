@@ -79,6 +79,7 @@ fi
 
 # 2. configuration -------------------------------------------------------------
 FRAGS=("$HERE/configs/nikel-common.config" "$HERE/configs/nikel-$ARCH_NAME.config")
+[ "$PROFILE" = android ] && FRAGS+=("$HERE/configs/nikel-android.config")
 # Optional extra fragments (colon-separated paths), e.g. Build 069 QEMU virtio.
 if [ -n "${EXTRA_FRAGMENTS:-}" ]; then
   IFS=: read -r -a _extra <<< "$EXTRA_FRAGMENTS"
