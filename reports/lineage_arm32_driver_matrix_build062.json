@@ -1,0 +1,50 @@
+{
+  "type": "lineage_arm32_driver_matrix_build062",
+  "target": "LineageOS 22.2 (Android 15) ARM32 Android TV / Samsung Nike-L (Q60T)",
+  "disclaimer": "Planungs-/Verifikationsanalyse. Kein TV-Zugriff, kein Build auf Hardware, kein Flash. Status beschreibt Portierbarkeit, nicht funktionierende Treiber.",
+  "architecture": {
+    "decision": "ARM 32-bit (AArch32) for kernel AND userspace",
+    "reason": "Build 061: EL3/secure monitor is AArch32 -> SCR_EL3.RW not settable -> arm64 not bootable",
+    "kernel": "Build 059 Linux 6.6.162 ARM32 (CONFIG_ARM_LPAE, ARCH_MULTI_V7); NOT the 4.1.10 stock kernel",
+    "userspace_target": "TARGET_ARCH=arm, 32-bit binder (aosp_arm_ab style)"
+  },
+  "buildability": {
+    "los_22_2_arm32_atv_proven_by": "sabrina (Chromecast with Google TV): LOS 22.2, Android:arm (32-bit), Mali-G31",
+    "emulator_target_sdk_tv_arm": "UNVERIFIED - AOSP removed aosp_tv_arm (CTS bug 258197384); confirm against LineageOS 22.2 manifest",
+    "aosp_32bit_products_exist": true,
+    "constraints": ["4K pages only (16K is arm64-only)", "32-bit is maintained-but-deprioritized upstream", "thinning prebuilts"],
+    "host_gate": {"x86_64": true, "min_ram_gib": 64, "min_disk_gib": 400, "tools": ["git", "git-lfs", "repo"]}
+  },
+  "drivers": [
+    {"area": "binder/SELinux/dma-buf", "priority": "P0", "status": "RESOLVED_BY_KERNEL", "note": "upstream in Linux 6.6.162; 4.1.10-era gaps (Build 012-017) no longer apply"},
+    {"area": "GPU", "priority": "P0", "dt": "arm,mali-midgard (generic); external research: Mali-G51/Bifrost r11p0", "status": "OPEN_PATH_VIABLE", "open_driver": "Panfrost (Mesa) supports Mali-G51 Bifrost v7, GLES 3.1 / GL 3.1", "gralloc": "ARM Apache-licensed Bifrost Android gralloc module", "depends_on": "DRM/KMS display controller (kmsro)", "blocker": "real GPU ID unverified on device"},
+    {"area": "Display", "priority": "P0", "dt": "samsung,sdp-drm + samsung,sdp1202-panel", "status": "MAJOR_PORT_NEEDED", "note": "needs 6.6 DRM/KMS driver + drm_hwcomposer (AIDL HWC); Build 058 ported sdp_drm_util/fence as start; critical path because Panfrost depends on it"},
+    {"area": "CPU clk/DVFS/thermal", "priority": "P0", "status": "PROTOTYPE", "note": "Build 058 sdp_nikel_cpu_clk/cpufreq/thermal for 6.6.162 ARM32 (DTS disabled)"},
+    {"area": "Core SoC (UART/clocks/GPIO/eMMC/USB)", "priority": "P0", "status": "PARTIAL_MOSTLY_DISABLED", "note": "Build 059: UART console, clk-sdp1804 (read-only), GPIO, eMMC node (dw_mmc-exynos, disabled), USB EHCI/OHCI (disabled), Q60T DTS 1.5G/2G; eMMC is P0 for a real boot target"},
+    {"area": "Video decoder (MFC)", "priority": "P1", "dt": "samsung,sdp-mfc", "status": "NODE_ONLY", "note": "needs MediaCodec/Codec2 + V4L2"},
+    {"area": "Audio", "priority": "P1", "dt": "samsung,sdp-audio", "status": "NODE_ONLY", "note": "needs Android audio HAL"},
+    {"area": "HDMI/CEC", "priority": "P1", "dt": "samsung,sdp-hdmi; cecif disabled in both reference DTBs", "status": "NODE_ONLY"},
+    {"area": "IR remote", "priority": "P1", "dt": "samsung,sdp-mc-irb/irs (okay)", "status": "NODE_ONLY", "note": "verify real input events + keylayout"},
+    {"area": "Ethernet", "priority": "P2", "dt": "samsung,sdp-mac", "status": "NODE_ONLY"},
+    {"area": "WLAN/BT", "priority": "P2", "status": "UNKNOWN", "note": "chipset not clearly mapped in static DTB"},
+    {"area": "DRM/Widevine streaming", "priority": "P2", "status": "NOT_GUARANTEED", "note": "no confirmed Android hardware-DRM HAL; not guaranteed even after a successful boot"}
+  ],
+  "milestone_order": [
+    "1. 32-bit ARM Android 15 userspace in emulator/QEMU (no Samsung drivers)",
+    "2. Linux 6.6.162 ARM32 kernel on device (bootchain/signature = separate gate, Build 061)",
+    "3. Display KMS + Panfrost + gralloc -> first picture",
+    "4. Input/Audio/Video",
+    "5. Network/DRM"
+  ],
+  "open_verifications": [
+    "sdk_tv_arm presence in LineageOS 22.2 manifest",
+    "real GPU model ID on the device",
+    "32-bit binder transaction ABI on 6.6.162"
+  ],
+  "sources": [
+    "LineageOS wiki device page: sabrina",
+    "AOSP CTS commit removing arm7 TV emulator targets (bug 258197384)",
+    "docs.mesa3d.org/drivers/panfrost.html",
+    "developer.arm.com/downloads/-/mali-drivers/android-gralloc-module"
+  ]
+}
