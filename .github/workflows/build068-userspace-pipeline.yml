@@ -1,0 +1,44 @@
+name: Build068 Android userspace pipeline (offline checks)
+
+# Tests the pipeline logic and the artifact verifier only. It does NOT
+# download LineageOS, build Android, access the TV or alter firmware.
+on:
+  push:
+    paths:
+      - 'porting/build068/**'
+      - 'porting/build060/host_preflight.py'
+      - '.github/workflows/build068-userspace-pipeline.yml'
+  pull_request:
+    paths:
+      - 'porting/build068/**'
+      - 'porting/build060/host_preflight.py'
+      - '.github/workflows/build068-userspace-pipeline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pipeline-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax + shellcheck
+        run: |
+          bash -n porting/build068/userspace_pipeline.sh
+          shellcheck -S warning porting/build068/userspace_pipeline.sh
+      - name: Unit + stage tests (fake LineageOS tree)
+        run: python3 -m unittest discover -s porting/build068/tests -v
+      - name: Dry run changes nothing
+        run: |
+          porting/build068/userspace_pipeline.sh --dry-run \
+            --los-dir "$RUNNER_TEMP/los" --work-dir "$RUNNER_TEMP/w"
+          test ! -e "$RUNNER_TEMP/los" && test ! -e "$RUNNER_TEMP/w"
+      - name: Host gate reports this runner as NOT READY (expected)
+        run: |
+          set +e
+          python3 porting/build060/host_preflight.py --build-dir "$RUNNER_TEMP"
+          rc=$?
+          echo "host_preflight exit $rc (2 = NOT READY, expected on a CI runner)"
+          test "$rc" -eq 2
