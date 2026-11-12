@@ -1,0 +1,587 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 10:30:48 +0100
+Subject: [PATCH 14/14] media: cec: add Samsung SDP (Nike-L) Micom HDMI-CEC
+ interface
+
+Build 070 (CEC, P1): Linux 6.6 port of linux-4.1.10/drivers/soc/sdp/
+sdp_micom_cecif.c (Dongseok Lee, Samsung, GPL) from Samsung's GPL package
+20_DTV_NikeL, in its cec-framework variant
+(CONFIG_SDP_MICOM_CECIF_SUPPORT_SUBSYSTEM). The controller in the Micom
+block ("samsung,sdp-mc-cecif") is shared with the Micom; the driver keeps
+the bit timing the Micom programmed and refuses to enable while the Micom
+still owns it.
+
+Changes: kfifo, timer_setup(), IRQF_NO_AUTOEN, physical address 0.0.0.0
+(TV). Not ported yet: the Micom firmware version check (needs the
+samsung,sdp-micom-ctrl driver), debugfs.
+
+DT: mccmu syscon and cec nodes from the firmware DT (status disabled).
+Compile-only: nothing was run on a TV.
+---
+ .../arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi |  23 +
+ drivers/media/cec/platform/Kconfig            |  11 +
+ drivers/media/cec/platform/Makefile           |   1 +
+ drivers/media/cec/platform/sdp/Makefile       |   2 +
+ drivers/media/cec/platform/sdp/sdp-cecif.c    | 475 ++++++++++++++++++
+ 5 files changed, 512 insertions(+)
+ create mode 100644 drivers/media/cec/platform/sdp/Makefile
+ create mode 100644 drivers/media/cec/platform/sdp/sdp-cecif.c
+
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+index 0f53c81c3..3ef68cc59 100644
+--- a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+@@ -293,6 +293,29 @@ msgbox: mailbox@9c0400 {
+ 			interrupts = <GIC_SPI 34 IRQ_TYPE_NONE>;
+ 			status = "disabled";
+ 		};
++
++		/*
++		 * Micom clock/reset unit (firmware /soc/mccmu: compatible
++		 * "samsung,sdp-mc-cmu", "syscon", reg <0x9c0300 0x30>).
++		 * Offset 0x20 bit 1 resets the CEC controller.
++		 */
++		mccmu: syscon@9c0300 {
++			compatible = "samsung,sdp-mc-cmu", "syscon";
++			reg = <0x009c0300 0x30>;
++		};
++
++		/*
++		 * HDMI-CEC controller shared with the Micom (firmware
++		 * /soc/cecif: reg <0x9c0f00 0x48>, interrupts <0 0x27 0>,
++		 * samsung,mccmu; disabled in the firmware DT as well).
++		 */
++		cec@9c0f00 {
++			compatible = "samsung,sdp-mc-cecif";
++			reg = <0x009c0f00 0x48>;
++			interrupts = <GIC_SPI 39 IRQ_TYPE_NONE>;
++			samsung,mccmu = <&mccmu>;
++			status = "disabled";
++		};
+ 	};
+ 
+ 	/*
+diff --git a/drivers/media/cec/platform/Kconfig b/drivers/media/cec/platform/Kconfig
+index b672d3142..9a7bc59d3 100644
+--- a/drivers/media/cec/platform/Kconfig
++++ b/drivers/media/cec/platform/Kconfig
+@@ -52,6 +52,17 @@ config CEC_GPIO
+ 	  The CEC bus is present in the HDMI connector and enables communication
+ 	  between compatible devices.
+ 
++config CEC_SDP_CECIF
++	tristate "Samsung SDP (Nike-L) HDMI-CEC interface"
++	depends on ARCH_SDP || COMPILE_TEST
++	depends on OF
++	select CEC_CORE
++	select MFD_SYSCON
++	help
++	  HDMI-CEC controller in the Micom block of Samsung SDP (Nike-L) TV
++	  SoCs ("samsung,sdp-mc-cecif"), shared with the Micom standby
++	  controller. It uses the generic CEC framework interface.
++
+ config CEC_SAMSUNG_S5P
+ 	tristate "Samsung S5P CEC driver"
+ 	depends on ARCH_EXYNOS || COMPILE_TEST
+diff --git a/drivers/media/cec/platform/Makefile b/drivers/media/cec/platform/Makefile
+index a51e98ab4..26d98ae70 100644
+--- a/drivers/media/cec/platform/Makefile
++++ b/drivers/media/cec/platform/Makefile
+@@ -8,6 +8,7 @@ obj-$(CONFIG_CEC_CROS_EC) += cros-ec/
+ obj-$(CONFIG_CEC_GPIO) += cec-gpio/
+ obj-y += meson/
+ obj-$(CONFIG_CEC_SAMSUNG_S5P) += s5p/
++obj-$(CONFIG_CEC_SDP_CECIF) += sdp/
+ obj-$(CONFIG_CEC_SECO) += seco/
+ obj-$(CONFIG_CEC_STI) += sti/
+ obj-$(CONFIG_CEC_STM32) += stm32/
+diff --git a/drivers/media/cec/platform/sdp/Makefile b/drivers/media/cec/platform/sdp/Makefile
+new file mode 100644
+index 000000000..9c2cf9ef6
+--- /dev/null
++++ b/drivers/media/cec/platform/sdp/Makefile
+@@ -0,0 +1,2 @@
++# SPDX-License-Identifier: GPL-2.0-only
++obj-$(CONFIG_CEC_SDP_CECIF) += sdp-cecif.o
+diff --git a/drivers/media/cec/platform/sdp/sdp-cecif.c b/drivers/media/cec/platform/sdp/sdp-cecif.c
+new file mode 100644
+index 000000000..de97f579d
+--- /dev/null
++++ b/drivers/media/cec/platform/sdp/sdp-cecif.c
+@@ -0,0 +1,475 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Samsung SDP (Nike-L) HDMI-CEC interface (shared with the Micom).
++ *
++ * The CEC controller sits in the Micom block ("samsung,sdp-mc-cecif"). The
++ * Micom programs the bit timing and owns the bus while the main CPU is in
++ * standby; the main CPU takes the controller over when the CEC adapter is
++ * enabled, keeping the Micom's timing configuration.
++ *
++ * Linux 6.6 port of linux-4.1.10/drivers/soc/sdp/sdp_micom_cecif.c
++ * (Copyright (C) 2017 Dongseok Lee <drain.lee@samsung.com>, GPL, version
++ * "0.1(20170725 create driver)") from Samsung's GPL package 20_DTV_NikeL,
++ * in its CONFIG_SDP_MICOM_CECIF_SUPPORT_SUBSYSTEM (cec framework) variant.
++ * Changes: kfifo instead of the open-coded ring, timer_setup(),
++ * IRQF_NO_AUTOEN, physical address 0.0.0.0 (TV). Not ported yet: the Micom
++ * firmware version check (sdp_mc_ctrl_syscall_get_version(), needs the
++ * "samsung,sdp-micom-ctrl" driver), the debugfs entry.
++ */
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/kfifo.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++#include <linux/spinlock.h>
++#include <linux/timer.h>
++#include <media/cec.h>
++
++#define CEC_INT			0x00
++#define CEC_CTRL		0x04
++#define CEC_RXSTAT		0x08
++#define CEC_TXSTAT		0x0c
++#define CEC_RXFIFO		0x10
++#define CEC_TXFIFO		0x14
++/* 0x18..0x44: bit timing / margins / free time, programmed by the Micom */
++#define CEC_CONFIG_START	0x18
++#define CEC_CONFIG_END		0x44
++#define CEC_CONFIG_WORDS	((CEC_CONFIG_END - CEC_CONFIG_START) / 4 + 1)
++
++#define INT_RX_NOACK		BIT(17)
++#define INT_RX_ERROR		BIT(16)
++#define INT_RX_ACK_BUS_FREE	BIT(15)
++#define INT_RX_DATA_BUS_FREE	BIT(14)
++#define INT_RX_HEADER_BUS_FREE	BIT(13)
++#define INT_RX_DONE		BIT(12)
++#define INT_RX_ALL		GENMASK(17, 12)
++#define INT_RX_INT_EN		BIT(9)
++#define INT_TX_INT_EN		BIT(8)
++#define INT_TX_DONE		BIT(4)
++#define INT_RX_CLR		BIT(1)
++#define INT_TX_CLR		BIT(0)
++
++#define CTRL_LOGICAL_ADDR_MASK	GENMASK(19, 16)
++#define CTRL_LOGICAL_ADDR(a)	(((a) & 0xf) << 16)
++#define CTRL_RX_ENABLE		BIT(12)
++#define CTRL_SEND_MESSAGE	BIT(8)
++
++#define RXSTAT_BUSY		BIT(16)
++#define RXSTAT_EMPTY		BIT(8)
++
++#define TXSTAT_BUSY		BIT(24)
++#define TXSTAT_ERROR		BIT(20)
++#define TXSTAT_NOACK		BIT(16)
++#define TXSTAT_POINTER(v)	((v) & 0x1f)
++
++#define RXFIFO_ERROR		BIT(9)
++#define RXFIFO_HEAD		BIT(8)
++#define RXFIFO_DATA(v)		((v) & 0xff)
++
++/* mccmu (syscon) software reset register: CEC reset is bit 1, active low */
++#define MCCMU_SW_RESET		0x20
++#define MCCMU_CEC_RESET_N	BIT(1)
++
++#define TX_POLL_MS		30	/* one frame time */
++#define TX_START_WAIT_MS	3000
++#define RX_FIFO_WORDS		128
++
++struct sdp_cecif {
++	struct device *dev;
++	void __iomem *base;
++	int irq;
++	struct regmap *mccmu;
++	struct cec_adapter *adap;
++	bool enabled;
++
++	spinlock_t rx_lock;
++	DECLARE_KFIFO(rx_fifo, u32, RX_FIFO_WORDS);
++	struct cec_msg rxmsg;
++
++	/* tx state, shared by hard IRQ, IRQ thread and timeout timer */
++	bool tx_busy, tx_done, tx_noack, tx_arb_lost;
++	struct cec_msg txmsg;
++	struct timer_list tx_timer;
++	s8 tx_cnt;		/* -1: waiting for the bus, else bytes sent */
++	u32 tx_ideal_ms;
++	u32 tx_timeout_ms;
++	unsigned long tx_start;	/* jiffies */
++
++	bool config_valid;
++	u32 config[CEC_CONFIG_WORDS];
++};
++
++static u32 cecif_read(struct sdp_cecif *c, u32 off)
++{
++	return readl(c->base + off);
++}
++
++static void cecif_write(struct sdp_cecif *c, u32 val, u32 off)
++{
++	writel(val, c->base + off);
++}
++
++static void cecif_set(struct sdp_cecif *c, u32 bits, u32 off)
++{
++	writel(readl(c->base + off) | bits, c->base + off);
++}
++
++static void cecif_clr(struct sdp_cecif *c, u32 bits, u32 off)
++{
++	writel(readl(c->base + off) & ~bits, c->base + off);
++}
++
++static void cecif_save_config(struct sdp_cecif *c)
++{
++	int i;
++
++	if (c->config_valid)
++		return;
++	for (i = 0; i < CEC_CONFIG_WORDS; i++)
++		c->config[i] = cecif_read(c, CEC_CONFIG_START + 4 * i);
++	c->config_valid = true;
++}
++
++static void cecif_hwreset(struct sdp_cecif *c)
++{
++	u32 ctrl = cecif_read(c, CEC_CTRL);
++	u32 intr = cecif_read(c, CEC_INT);
++	int i;
++
++	dev_err(c->dev, "resetting CEC controller\n");
++	regmap_update_bits(c->mccmu, MCCMU_SW_RESET, MCCMU_CEC_RESET_N, 0);
++	regmap_update_bits(c->mccmu, MCCMU_SW_RESET, MCCMU_CEC_RESET_N,
++			   MCCMU_CEC_RESET_N);
++
++	if (c->config_valid)
++		for (i = 0; i < CEC_CONFIG_WORDS; i++)
++			cecif_write(c, c->config[i], CEC_CONFIG_START + 4 * i);
++	else
++		dev_err(c->dev, "no saved timing configuration\n");
++	cecif_write(c, ctrl, CEC_CTRL);
++	cecif_write(c, intr, CEC_INT);
++}
++
++static void cecif_tx_finish(struct sdp_cecif *c)
++{
++	if (c->tx_arb_lost)
++		cec_transmit_done(c->adap, CEC_TX_STATUS_ARB_LOST, 1, 0, 0, 0);
++	else if (c->tx_noack)
++		cec_transmit_done(c->adap, CEC_TX_STATUS_NACK, 0, 1, 0, 0);
++	else
++		cec_transmit_done(c->adap, CEC_TX_STATUS_OK, 0, 0, 0, 0);
++
++	c->tx_busy = false;
++	c->tx_done = false;
++	c->tx_noack = false;
++	c->tx_arb_lost = false;
++}
++
++static irqreturn_t sdp_cecif_irq(int irq, void *data)
++{
++	struct sdp_cecif *c = data;
++	u32 pend = cecif_read(c, CEC_INT);
++	irqreturn_t ret = IRQ_NONE;
++	u32 rx;
++	int n;
++
++	if (pend & INT_RX_ALL) {
++		if (pend & (INT_RX_DONE | INT_RX_NOACK)) {
++			spin_lock(&c->rx_lock);
++			for (n = 0; n < CEC_MAX_MSG_SIZE * 2; n++) {
++				if (cecif_read(c, CEC_RXSTAT) & RXSTAT_EMPTY)
++					break;
++				rx = cecif_read(c, CEC_RXFIFO);
++				if (!kfifo_put(&c->rx_fifo, rx))
++					dev_err_ratelimited(c->dev,
++							    "rx fifo full, dropped 0x%x\n",
++							    rx);
++			}
++			spin_unlock(&c->rx_lock);
++			if (pend & INT_RX_NOACK)
++				dev_err_ratelimited(c->dev, "rx no-ack\n");
++			ret = IRQ_WAKE_THREAD;
++		} else {
++			/* bus error: drain and drop the broken frame */
++			for (n = 0; n < CEC_MAX_MSG_SIZE; n++) {
++				if (cecif_read(c, CEC_RXSTAT) & RXSTAT_EMPTY)
++					break;
++				cecif_read(c, CEC_RXFIFO);
++			}
++			dev_err_ratelimited(c->dev, "rx error, pend 0x%08x\n",
++					    pend);
++			ret = IRQ_HANDLED;
++		}
++		cecif_set(c, INT_RX_CLR, CEC_INT);
++	}
++
++	if (pend & INT_TX_DONE) {
++		u32 txstat = cecif_read(c, CEC_TXSTAT);
++
++		if (!c->tx_busy) {
++			dev_err_ratelimited(c->dev, "tx interrupt while idle\n");
++		} else {
++			c->tx_arb_lost = !!(txstat & TXSTAT_ERROR);
++			c->tx_noack = !!(txstat & TXSTAT_NOACK);
++			c->tx_done = true;
++			ret = IRQ_WAKE_THREAD;
++		}
++		cecif_set(c, INT_TX_CLR, CEC_INT);
++		if (ret == IRQ_NONE)
++			ret = IRQ_HANDLED;
++	}
++
++	return ret;
++}
++
++static void sdp_cecif_deliver(struct sdp_cecif *c, bool broken)
++{
++	if (c->rxmsg.len && !broken)
++		cec_received_msg(c->adap, &c->rxmsg);
++	memset(&c->rxmsg, 0, sizeof(c->rxmsg));
++}
++
++static irqreturn_t sdp_cecif_thread(int irq, void *data)
++{
++	struct sdp_cecif *c = data;
++	struct cec_msg *msg = &c->rxmsg;
++	bool broken = false;
++	unsigned long flags;
++	u32 rx;
++
++	if (c->tx_busy && c->tx_done) {
++		del_timer_sync(&c->tx_timer);
++		cecif_tx_finish(c);
++	}
++
++	memset(msg, 0, sizeof(*msg));
++	for (;;) {
++		spin_lock_irqsave(&c->rx_lock, flags);
++		if (!kfifo_get(&c->rx_fifo, &rx)) {
++			spin_unlock_irqrestore(&c->rx_lock, flags);
++			break;
++		}
++		spin_unlock_irqrestore(&c->rx_lock, flags);
++
++		if (rx & RXFIFO_HEAD) {
++			sdp_cecif_deliver(c, broken);	/* previous frame */
++			broken = false;
++		} else if (!msg->len) {
++			dev_err_ratelimited(c->dev, "frame without header 0x%08x\n",
++					    rx);
++			broken = true;
++		}
++		if (rx & RXFIFO_ERROR)
++			broken = true;
++		if (msg->len < CEC_MAX_MSG_SIZE)
++			msg->msg[msg->len++] = RXFIFO_DATA(rx);
++		else
++			broken = true;
++	}
++	sdp_cecif_deliver(c, broken);
++
++	return IRQ_HANDLED;
++}
++
++/* software transmit watchdog, polls once per frame time */
++static void sdp_cecif_tx_timer(struct timer_list *t)
++{
++	struct sdp_cecif *c = from_timer(c, t, tx_timer);
++	u32 txstat = cecif_read(c, CEC_TXSTAT);
++	s8 cnt;
++
++	if (TXSTAT_POINTER(txstat) == c->txmsg.len) {
++		/* still waiting for a free bus */
++		if (time_after(jiffies, c->tx_start +
++			       msecs_to_jiffies(TX_START_WAIT_MS))) {
++			dev_err(c->dev, "tx: bus not free for %u ms\n",
++				TX_START_WAIT_MS);
++			goto abort;
++		}
++	} else if (TXSTAT_POINTER(txstat) < c->txmsg.len) {
++		cnt = c->txmsg.len - TXSTAT_POINTER(txstat) -
++		      ((txstat & TXSTAT_BUSY) ? 1 : 0);
++		if (c->tx_cnt != -1 && c->tx_cnt == cnt) {
++			dev_err(c->dev, "tx stuck after %d of %u bytes\n", cnt,
++				c->txmsg.len);
++			goto abort;
++		}
++		c->tx_cnt = cnt;
++	}
++	mod_timer(&c->tx_timer, jiffies + msecs_to_jiffies(TX_POLL_MS));
++	return;
++
++abort:
++	cecif_hwreset(c);
++	c->tx_arb_lost = true;
++	c->tx_done = true;
++	irq_wake_thread(c->irq, c);
++}
++
++static int sdp_cecif_adap_enable(struct cec_adapter *adap, bool enable)
++{
++	struct sdp_cecif *c = cec_get_drvdata(adap);
++
++	if (c->enabled == enable)
++		return 0;
++
++	if (enable) {
++		/* the Micom must have set the controller up and released it */
++		if (!(cecif_read(c, CEC_CTRL) & CTRL_RX_ENABLE) ||
++		    (cecif_read(c, CEC_INT) & (INT_RX_INT_EN | INT_TX_INT_EN))) {
++			dev_err(c->dev, "controller still owned by the Micom (ctrl 0x%08x, int 0x%08x)\n",
++				cecif_read(c, CEC_CTRL), cecif_read(c, CEC_INT));
++			return -EBUSY;
++		}
++		cecif_save_config(c);
++		cecif_set(c, INT_RX_CLR | INT_TX_CLR, CEC_INT);
++		cecif_set(c, INT_RX_INT_EN | INT_TX_INT_EN, CEC_INT);
++		c->enabled = true;
++		enable_irq(c->irq);
++	} else {
++		c->enabled = false;
++		disable_irq(c->irq);
++		del_timer_sync(&c->tx_timer);
++		cecif_set(c, INT_RX_CLR | INT_TX_CLR, CEC_INT);
++		cecif_clr(c, INT_RX_INT_EN | INT_TX_INT_EN, CEC_INT);
++		c->tx_busy = c->tx_done = c->tx_noack = c->tx_arb_lost = false;
++	}
++	return 0;
++}
++
++static int sdp_cecif_adap_log_addr(struct cec_adapter *adap, u8 addr)
++{
++	struct sdp_cecif *c = cec_get_drvdata(adap);
++	u32 ctrl;
++
++	if ((cecif_read(c, CEC_TXSTAT) & TXSTAT_BUSY) ||
++	    (cecif_read(c, CEC_RXSTAT) & RXSTAT_BUSY))
++		return -EBUSY;
++
++	/* CEC_LOG_ADDR_INVALID (0xff) -> 0xf, the broadcast/unregistered LA */
++	ctrl = cecif_read(c, CEC_CTRL);
++	cecif_clr(c, CTRL_RX_ENABLE, CEC_CTRL);
++	cecif_clr(c, CTRL_LOGICAL_ADDR_MASK, CEC_CTRL);
++	cecif_set(c, CTRL_LOGICAL_ADDR(addr), CEC_CTRL);
++	if (ctrl & CTRL_RX_ENABLE)
++		cecif_set(c, CTRL_RX_ENABLE, CEC_CTRL);
++	return 0;
++}
++
++static int sdp_cecif_adap_transmit(struct cec_adapter *adap, u8 attempts,
++				   u32 signal_free_time, struct cec_msg *msg)
++{
++	struct sdp_cecif *c = cec_get_drvdata(adap);
++	int i;
++
++	if (c->tx_busy || (cecif_read(c, CEC_TXSTAT) & TXSTAT_BUSY))
++		return -EBUSY;
++	if (!msg->len || msg->len > CEC_MAX_MSG_SIZE)
++		return -EINVAL;
++
++	c->tx_busy = true;
++	for (i = 0; i < msg->len; i++)
++		cecif_write(c, msg->msg[i], CEC_TXFIFO);
++	c->txmsg = *msg;
++	c->tx_start = jiffies;
++	c->tx_cnt = -1;
++	/* start bit 4 ms + (frame 27.5 ms + margin 2.5 ms) per byte */
++	c->tx_ideal_ms = 4 + msg->len * 30;
++	c->tx_timeout_ms = msg->timeout;
++	cecif_set(c, CTRL_SEND_MESSAGE, CEC_CTRL);
++	mod_timer(&c->tx_timer, jiffies +
++		  msecs_to_jiffies(max(c->tx_ideal_ms, c->tx_timeout_ms)));
++	return 0;
++}
++
++static const struct cec_adap_ops sdp_cecif_ops = {
++	.adap_enable = sdp_cecif_adap_enable,
++	.adap_log_addr = sdp_cecif_adap_log_addr,
++	.adap_transmit = sdp_cecif_adap_transmit,
++};
++
++static int sdp_cecif_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct sdp_cecif *c;
++	int ret;
++
++	c = devm_kzalloc(dev, sizeof(*c), GFP_KERNEL);
++	if (!c)
++		return -ENOMEM;
++
++	c->dev = dev;
++	spin_lock_init(&c->rx_lock);
++	INIT_KFIFO(c->rx_fifo);
++	timer_setup(&c->tx_timer, sdp_cecif_tx_timer, 0);
++
++	c->mccmu = syscon_regmap_lookup_by_phandle(dev->of_node,
++						   "samsung,mccmu");
++	if (IS_ERR(c->mccmu))
++		return dev_err_probe(dev, PTR_ERR(c->mccmu),
++				     "no samsung,mccmu syscon\n");
++
++	c->base = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(c->base))
++		return PTR_ERR(c->base);
++
++	cecif_set(c, INT_RX_CLR | INT_TX_CLR, CEC_INT);
++
++	c->irq = platform_get_irq(pdev, 0);
++	if (c->irq < 0)
++		return c->irq;
++	ret = devm_request_threaded_irq(dev, c->irq, sdp_cecif_irq,
++					sdp_cecif_thread, IRQF_NO_AUTOEN,
++					dev_name(dev), c);
++	if (ret)
++		return ret;
++
++	c->adap = cec_allocate_adapter(&sdp_cecif_ops, c, dev_name(dev),
++				       CEC_CAP_LOG_ADDRS | CEC_CAP_TRANSMIT |
++				       CEC_CAP_PASSTHROUGH | CEC_CAP_RC, 1);
++	if (IS_ERR(c->adap))
++		return PTR_ERR(c->adap);
++
++	ret = cec_register_adapter(c->adap, dev);
++	if (ret) {
++		cec_delete_adapter(c->adap);
++		return ret;
++	}
++	/* the TV is the root of the HDMI tree */
++	cec_s_phys_addr(c->adap, 0, false);
++
++	platform_set_drvdata(pdev, c);
++	dev_info(dev, "CEC adapter registered, irq %d\n", c->irq);
++	return 0;
++}
++
++static void sdp_cecif_remove(struct platform_device *pdev)
++{
++	struct sdp_cecif *c = platform_get_drvdata(pdev);
++
++	cec_unregister_adapter(c->adap);
++	del_timer_sync(&c->tx_timer);
++}
++
++static const struct of_device_id sdp_cecif_of_match[] = {
++	{ .compatible = "samsung,sdp-mc-cecif" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, sdp_cecif_of_match);
++
++static struct platform_driver sdp_cecif_driver = {
++	.probe = sdp_cecif_probe,
++	.remove_new = sdp_cecif_remove,
++	.driver = {
++		.name = "sdp-mc-cecif",
++		.of_match_table = sdp_cecif_of_match,
++	},
++};
++module_platform_driver(sdp_cecif_driver);
++
++MODULE_AUTHOR("Dongseok Lee <drain.lee@samsung.com>");
++MODULE_DESCRIPTION("Samsung SDP Micom HDMI-CEC interface");
++MODULE_LICENSE("GPL");

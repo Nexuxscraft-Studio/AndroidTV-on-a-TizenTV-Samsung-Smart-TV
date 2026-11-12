@@ -78,7 +78,7 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 13)
+        self.assertEqual(len(names), 14)
         self.assertTrue(names[0].startswith("0001-serial"))
         # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
         # upstream df0cb5cb50bd
@@ -89,6 +89,17 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertTrue(names[11].startswith("0012-drm-add-Samsung-SDP-Nike-L-display"))
         # 0013 (Build 070): Micom message box + protocol + remote control
         self.assertTrue(names[12].startswith("0013-soc-sdp-add-Micom"))
+        # 0014 (Build 070): Micom HDMI-CEC controller (cec framework)
+        self.assertTrue(names[13].startswith("0014-media-cec-add-Samsung-SDP"))
+
+    def test_cecif_patch_uses_firmware_values(self):
+        txt = self._patch_text("0014-media-cec")
+        # firmware DT /soc/cecif: reg <0x9c0f00 0x48>, interrupts <0 0x27 0>;
+        # /soc/mccmu: reg <0x9c0300 0x30>
+        self.assertIn("+\t\t\treg = <0x009c0f00 0x48>;", txt)
+        self.assertIn("+\t\t\tinterrupts = <GIC_SPI 39 IRQ_TYPE_NONE>;", txt)
+        self.assertIn("+\t\t\treg = <0x009c0300 0x30>;", txt)
+        self.assertIn("cec_s_phys_addr(c->adap, 0, false);", txt)
 
     def test_micom_patch_uses_firmware_values(self):
         txt = self._patch_text("0013-soc")
