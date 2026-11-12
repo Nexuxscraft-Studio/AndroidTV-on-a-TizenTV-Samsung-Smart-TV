@@ -49,6 +49,12 @@ jobs:
           for v in "$INSTALL_DEPS" "$ALLOW_UNDERSIZED" "$FORCE"; do
             case "$v" in 0|1) ;; *) echo "flags must be 0/1"; exit 1 ;; esac
           done
+          # The re-registered runner service (12.11.) starts without HOME;
+          # repo/soong/ccache need it, so derive it from the passwd entry.
+          if [ -z "${HOME:-}" ]; then
+            HOME="$(getent passwd "$(id -un)" | cut -d: -f6)"; export HOME
+            echo "HOME=$HOME" >> "$GITHUB_ENV"
+          fi
           LOS_DIR="${LOS_DIR/#\~/$HOME}"
           [[ "$LOS_DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "bad LOS_DIR"; exit 1; }
           WORK_DIR="$(realpath -m "$WORK_DIR")"
