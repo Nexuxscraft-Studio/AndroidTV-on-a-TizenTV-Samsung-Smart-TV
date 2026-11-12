@@ -181,6 +181,25 @@ class RunnerContractTest(unittest.TestCase):
         for s in ("kernel_build.sh", "tools/gpl_inventory.sh"):
             subprocess.run(["bash", "-n", str(B070 / s)], check=True)
 
+    def test_inventory_survives_missing_markers_and_media(self):
+        """Run 43178928484: grep without match + pipefail ended the script."""
+        import tarfile
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "mk" / "linux-4.1.10"
+            (root / "drivers" / "clk").mkdir(parents=True)
+            (root / "MAINTAINERS").write_text("x\n")
+            (root / "drivers" / "clk" / "clk-sdp.c").write_text("int a;\n")   # no license marker
+            with tarfile.open(Path(d) / "linux-4.1.10-tizen5.5.tgz", "w:gz") as t:
+                t.add(Path(d) / "mk" / "linux-4.1.10", arcname="linux-4.1.10")
+            r = subprocess.run(["bash", str(B070 / "tools" / "gpl_inventory.sh"), d],
+                               capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("tztv-media-nike.tgz: not on the runner yet", r.stdout)
+            self.assertIn("clk-sdp.c", r.stdout)
+            self.assertIn("(no marker)", r.stdout)
+            self.assertIn("===== done", r.stdout)
+
     def test_kernel_build_uses_shared_profile(self):
         txt = (B070 / "kernel_build.sh").read_text()
         self.assertIn('build059/kernel/build.sh" "$KSRC" arm android', txt)

@@ -33,15 +33,15 @@ echo "I> kernel root: ${LIN#"$SRC"/}"
 # license marker of one source file: MODULE_LICENSE / SPDX / first copyright
 lic() {
   local f="$1" m
-  m="$(grep -h -o -E 'MODULE_LICENSE\("[^"]*"\)|SPDX-License-Identifier: *[^ */]+' "$f" 2>/dev/null | sort -u | tr '\n' ' ')"
-  [ -n "$m" ] || m="$(grep -h -m1 -i -E 'GNU General Public License|GPL|proprietary|confidential' "$f" 2>/dev/null | cut -c1-100)"
+  m="$(grep -h -o -E 'MODULE_LICENSE\("[^"]*"\)|SPDX-License-Identifier: *[^ */]+' "$f" 2>/dev/null | sort -u | tr '\n' ' ' || true)"
+  [ -n "$m" ] || m="$(grep -h -m1 -i -E 'GNU General Public License|GPL|proprietary|confidential' "$f" 2>/dev/null | cut -c1-100 || true)"
   printf 'I> %7d lines  %-60s %s\n' "$(wc -l < "$f")" "${f#"$SRC"/}" "${m:-(no marker)}"
 }
 
 echo "===== media modules (tztv-media-nike): files + MODULE_LICENSE per module"
 for d in $(find "$SRC/media" -mindepth 1 -maxdepth 3 -type d -name 'sdp_*' | sort); do
   n_c="$(find "$d" -name '*.c' | wc -l)"
-  lics="$(grep -rh -o -E 'MODULE_LICENSE\("[^"]*"\)' "$d" 2>/dev/null | sort | uniq -c | tr -s ' ' | tr '\n' ';')"
+  lics="$(grep -rh -o -E 'MODULE_LICENSE\("[^"]*"\)' "$d" 2>/dev/null | sort | uniq -c | tr -s ' ' | tr '\n' ';' || true)"
   echo "I> ${d#"$SRC"/}: ${n_c} .c files; ${lics:-no MODULE_LICENSE}"
 done
 
@@ -58,7 +58,7 @@ echo "===== where are the DT compatibles implemented (both trees)"
 for c in samsung,sdp-drm samsung,sdp1202-panel samsung,tztv-tcon samsung,sdp-frc \
          samsung,sdp-mc-irb samsung,sdp-mc-irs samsung,sdp-mc-cecif samsung,sdp-mac \
          samsung,sdp-hdmi samsung,sdp-mfc arm,mali-midgard samsung,sdp-audio; do
-  hits="$(grep -rl --include='*.c' -F "\"$c" "$LIN/drivers" "$LIN/sound" "$SRC/media" 2>/dev/null | head -6)"
+  hits="$(grep -rl --include='*.c' -F "\"$c" "$LIN/drivers" "$LIN/sound" "$SRC/media" 2>/dev/null | head -6 || true)"
   if [ -z "$hits" ]; then echo "I> $c: no .c file"; continue; fi
   echo "I> $c:"
   while read -r f; do lic "$f"; done <<< "$hits"
@@ -79,5 +79,5 @@ for f in arch/arm/mach-sdp/board-nike-dt.c drivers/clk/clk-sdp.c \
          arch/arm/configs/Nike.M-Tizen_release_defconfig; do
   if [ -f "$LIN/$f" ]; then lic "$LIN/$f"; else echo "I> linux/$f: not found"; fi
 done
-ls "$LIN/arch/arm/boot/dts" 2>/dev/null | grep -i -E 'sdp|nike' | sed 's/^/I> dts: /' | head -40
+ls "$LIN/arch/arm/boot/dts" 2>/dev/null | grep -i -E 'sdp|nike' | sed 's/^/I> dts: /' | head -40 || true
 echo "===== done"
