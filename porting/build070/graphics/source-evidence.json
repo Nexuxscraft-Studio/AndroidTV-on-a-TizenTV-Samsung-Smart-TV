@@ -1,0 +1,33 @@
+{
+  "firmware_dtb0_sha256": "0189cc94fe8dd7d016462f22e9f8e965fe328cbc901066c8955f26130f86ab61",
+  "firmware_nodes": {
+    "/soc/sdpgpu@00500000": {
+      "compatible": "\"arm,mali-midgard\"",
+      "reg": "<0x500000 0x4000>",
+      "interrupts": "<0x0 0x72 0x0 0x0 0x71 0x0 0x0 0x70 0x0>",
+      "interrupt-names": "\"JOB\", \"MMU\", \"GPU\""
+    },
+    "/soc/clock-controller@00F50000": {
+      "compatible": "\"samsung,sdp1804-clock\"",
+      "reg": "<0xf50000 0x3000>"
+    },
+    "/soc/bootlogo": {
+      "compatible": "\"samsung,sdp-bootlogo\"",
+      "reg": "<0x5d0000 0x4000 0x5d4000 0x4000 0x5d8000 0x4000 0x5dc000 0x40000 0x580000 0x4000 0x700000 0xd000 0xc00000 0x20000>",
+      "interrupts": "<0x0 0x2f 0x0 0x0 0x66 0x0>"
+    }
+  },
+  "source_sha256": {
+    "linux-4.1.10/drivers/clk/clk-sdp.c": "8699f4aeb5913fceb7947bcc611eb97ce50680802ffa5e5e3efd06b32f1a5793",
+    "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/platform/sdp/mali_kbase_platform_sdp.c": "5b1f5a748854b4ce48dfd13ed7d2f2ef779001bb781765cf719c3b4bdeeb621d",
+    "tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/platform/sdp/mali_kbase_config_platform.h": "021b5cf2ca2c87bda2c1a3c8938319deb487d0ba600d1585dfd93ea0ec7ed0b6",
+    "tztv-media-nike/sdp_logo_nike/nikem/sdp_logo.c": "65aacf3a8aa3f739d3cc27e28cf92d105107fef45da41707e3d570d35c6231cd",
+    "tztv-media-nike/sdp_logo_nike/nikem/inc/sdp_logo_chip.h": "3dd76e4f9324c8c67aad9e330e830c7860d42c09daca505802d107de118bf685",
+    "tztv-media-nike/sdp_logo_nike/nikem/sdp_logo_gfx.c": "d39c3e7ea301f97ce74e580bed75f1a968225ab73d1f93b9af49e557766214d2",
+    "tztv-media-nike/sdp_drm_nike/sdp_hw_plane.c": "3979bc00c5ac1e83240cd329130c692943ee9d1fc0e62528916046a44ef473b8",
+    "tztv-media-nike/sdp_drm_nike/gfx/nikel/sdp_mixer.c": "07d16ababfa9bd9a3bc06bd4ef6099019014f504a1375800ca418209822f018a"
+  },
+  "kernel_commit": "5139929c698c273e07cb0635732f6a918a7b8e78",
+  "hardware_tested": false,
+  "runner_run_id": null
+}

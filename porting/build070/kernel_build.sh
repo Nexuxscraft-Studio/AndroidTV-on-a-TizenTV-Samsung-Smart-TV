@@ -83,6 +83,8 @@ for d in sdp-nikel-q60t-1g5 sdp-nikel-q60t-2g; do
   sed 's/^/  /' "$WORK/dtc-$d.log" >&2
 done
 
+[ "$dtc_warn" = 0 ] || die "dtc W=1 produced $dtc_warn warnings"
+
 # 6. summary into the log ---------------------------------------------------
 {
   echo "===== BUILD_INFO"; cat "$ART/BUILD_INFO.txt"

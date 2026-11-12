@@ -9,7 +9,7 @@ name: Build070 Q60T drivers on 6.6.162 ARM32 (self-hosted)
 # branch (or workflow_dispatch once on the default branch).
 on:
   push:
-    branches: ['claude/build070-*']
+    branches: ['claude/build070-*', 'codex/graphics']
     paths: ['porting/build070/runner/request.env']
   workflow_dispatch:
 

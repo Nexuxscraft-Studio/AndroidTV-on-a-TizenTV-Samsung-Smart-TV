@@ -37,8 +37,8 @@ DT-Knoten erst mit Werten aus der Firmware-`dtb.bin`. Details: `porting/build070
 | --- | --- | --- | --- | --- |
 | Core-SoC (UART/Clk/GPIO) | P0 | eigen (6.6) | `board-nike-dt.c`, `sdp_uart` | 059: gebaut |
 | eMMC | P0 | `dw_mmc-exynos` | `samsung,sdp-mmc` | 063: config/enable |
-| **Display** | **P0** | **eigen `sdp-drm`** | `sdp_drm_nike` | **063: KMS-Skelett (CI-grün); 070: Patch 0012 im gemeinsamen Kernel, kompiliert (W=1), noch kein Modeset** |
-| GPU | P0 | Panfrost (Upstream) | — (DT: mali) | 063: config/DT/plan; 070: `=y` im gemeinsamen Kernel |
+| **Display** | **P0** | **eigen `sdp-drm`** | `sdp_drm_nike` | **070 codex/graphics: 0015 + 0023 Scanout-/VBlank-Kandidat, lokal ARM32-GCC kompiliert; DT disabled, ABGR/Timings UNBELEGT, kein Gerätetest** |
+| GPU | P0 | Panfrost (Upstream) | — (DT: mali) | 070 codex/graphics: disabled DT + genpd, ARM32-GCC compile; Parent/Rate/Supply UNBELEGT; Runner ausstehend |
 | CPU-DVFS/Thermal | P0 | `cpufreq-dt`/`thermal-of` | — | 063: config/DT/plan; 070: im gemeinsamen Kernel |
 | Video-Decode (MFC) | P1 | V4L2-m2m | `sdp_codec_nike` | 064: config/DT/plan |
 | Audio | P1 | ASoC | `sdp_alsa_nike` | 064: config/DT/plan |

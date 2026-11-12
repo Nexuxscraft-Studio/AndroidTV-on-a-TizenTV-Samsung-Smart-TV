@@ -4,6 +4,20 @@
 Basis: Branch `claude/build069-android-qemu-boot` (ce5bf49). Am TV wird nichts
 getestet, geflasht oder geladen; die Gates aus Build 061/065 bleiben.
 
+## Grafik – codex/graphics (12.11.2026)
+
+Aktueller Grafikstand und G1–G6: [graphics/README.md](graphics/README.md).
+Patches 0021 (GPU-DT), 0022 (genpd), 0023 (Scanout/VBlank); GPU, Domain und
+Display bleiben disabled. Lokaler ARM32-GCC-Compile mit W=1 -Werror für
+sdp-drm/Panfrost/Clock-Domain und beide DTs bestanden; sämtliche gesetzten
+Projekt-Fragmentwerte überleben das Android-Profil. **Kein neuer Runnerlauf,
+Run-ID: keine; LineageOS-LLVM und vollständiger Kernelbuild noch ausstehend.**
+GPU-Parent/Rate/Supply, ABGR8888 und genaue Panel-Timings: **UNBELEGT**.
+Andere Subsysteme unverändert, ausgenommen Build-Blocker in Patch 0019:
+`CONFIG_ARCH_SAMSUNG_SDP` → `CONFIG_ARCH_SDP`. Hunkgröße/Config-Hunk waren
+im übernommenen Basisstand bereits bereinigt. Patch 0016 fehlt und wurde
+nicht zur Aktivierung ergänzt.
+
 ## Was in diesem Build „getestet“ heißt
 
 | Prüfung | Wo | Stand |
