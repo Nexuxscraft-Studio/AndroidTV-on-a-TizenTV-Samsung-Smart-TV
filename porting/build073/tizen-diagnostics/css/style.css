@@ -1,0 +1,26 @@
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #080e1d; color: #e8eefb; font-family: "Samsung One", Arial, sans-serif; }
+body { overflow-y: auto; }
+.shell { max-width: 1850px; margin: 0 auto; padding: 52px 64px 38px; }
+.topbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 28px; border-bottom: 1px solid #273855; padding-bottom: 30px; }
+.eyebrow { color: #77a6ff; font-size: 19px; font-weight: 700; letter-spacing: 3px; }
+h1 { margin: 12px 0 10px; font-size: 53px; letter-spacing: -1px; }
+h1 span { color: #74aeff; }
+p { margin: 0; font-size: 21px; color: #b7c5df; }
+.status-block { display: flex; gap: 16px; align-items: center; }
+.pill { border: 1px solid #4c6287; border-radius: 20px; padding: 13px 22px; background: #162643; color: #b6d6ff; font-size: 20px; }
+button { border: 2px solid #6eaeff; padding: 16px 22px; font-size: 21px; border-radius: 9px; background: #2865ba; color: white; cursor: pointer; }
+button:focus { outline: 4px solid #fff; outline-offset: 5px; }
+.hint { margin: 27px 0; padding: 18px 24px; border-left: 5px solid #5ea6ff; border-radius: 5px; color: #d5e1f6; background: #152440; font-size: 20px; }
+.columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.card { background: #111d33; border: 1px solid #2c405d; border-radius: 12px; padding: 24px; min-width: 0; }
+.card h2 { font-size: 28px; margin: 0 0 18px; color: #b8d4ff; }
+.kv { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; border-top: 1px solid #243651; padding: 12px 0; }
+.kv .label { font-size: 21px; color: #aebfdb; }
+.kv .value { font-size: 22px; text-align: right; overflow-wrap: anywhere; max-width: 60%; font-weight: 600; }
+.muted { color: #8295b3; font-style: italic; }
+.error { color: #ffbcb6; }
+.placeholder { font-size: 25px; padding: 40px; }
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; margin-top: 28px; color: #98aeca; font-size: 17px; }
+@media (max-width: 1100px) { .shell { padding: 28px; } .columns { grid-template-columns: 1fr; } h1 { font-size: 40px; } .kv .label, .kv .value { font-size: 19px; } }
