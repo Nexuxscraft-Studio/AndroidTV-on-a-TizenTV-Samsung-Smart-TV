@@ -29,23 +29,23 @@ evidence, not proof of installed first-stage/second-stage bootloaders.
 
 From a repository checkout:
 
-\`\`\`bash
+```bash
 python3 porting/build071/bootloader_research.py
 python3 -m unittest discover -s porting/build071/tests -v
-\`\`\`
+```
 
 If **original files already exist on the development host**, optionally
 include the original extracted kernel and a saved, passively obtained UART
 capture (not a live serial device):
 
-\`\`\`bash
+```bash
 python3 porting/build071/bootloader_research.py \
     --uimage /path/to/original/decrypted/uImage \
     --uart-log /path/to/saved/passive-uart-capture.txt \
     --output /tmp/q60t-build071-bootchain.json
-\`\`\`
+```
 
-The analyzer reuses the repository's CRC-checked, bounded \`inspect_uimage\`
+The analyzer reuses the repository's CRC-checked, bounded `inspect_uimage`
 implementation, reads only local files and writes only a new JSON report when
 requested. It excludes raw serial text, which may contain serial numbers or
 other sensitive data. A matching bootloader **banner is only a candidate**:
@@ -70,7 +70,7 @@ Never publish or commit the raw UART capture or firmware binaries.
 
 - **Now:** Leave Samsung's stock boot chain untouched and continue offline
   ARM32 porting / independent QEMU tests.
-- **Simulation concept:** Experiment with a U-Boot \`extlinux.conf\` Tizen /
+- **Simulation concept:** Experiment with a U-Boot `extlinux.conf` Tizen /
   LineageOS *mock* boot menu on a separate QEMU virtual machine. This does
   not demonstrate compatibility with Samsung's BootROM or firmware.
 - **Not ready:** Replacing the bootloader or installing GRUB on the retail TV.
