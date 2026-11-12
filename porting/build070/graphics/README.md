@@ -215,6 +215,15 @@ Artefakt `13947050571`, SHA-256
 `7a754e286d75b05148893c5c7a8be7085b9e8c2eaab72ac55fe88e4e750da655`.
 Keine Hardware-/Boot-/Userspace-Validierung; `drm@5d0000` bleibt disabled.
 
+Patch 0024 ergänzt eine zweite, softwareseitige Sicherung für den späteren
+Displayversuch: Selbst bei `status = "okay"` beendet `sdp-drm` die Probe vor
+dem ersten MMIO-Mapping mit `-EPERM`, solange nicht zusätzlich
+`samsung,enable-experimental-kms` im selben Knoten steht. Das Property ist
+als Projekt-Sicherheitsinterlock im neuen DT-Binding dokumentiert, nicht als
+behauptete Hardwarefunktion. GPU und Display sind im ausgelieferten DT weiter
+`disabled`; 0024 wurde nur mit `patch --dry-run` auf dem vollständigen
+Patchstand 0023 geprüft, noch nicht im Runner gebaut.
+
 Nächste fachliche Arbeit: belegten GPU-Mux-/Parent-Readback erarbeiten;
 danach ABGR/Allocator und reale Display-Timings, weiterhin ohne
 TV-Aktivierung. Für einen weiteren Kernelauftrag wieder mit dem

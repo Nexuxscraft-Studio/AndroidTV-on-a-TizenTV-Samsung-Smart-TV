@@ -1,0 +1,101 @@
+From: Codex <noreply@openai.com>
+Subject: [PATCH] drm: sdp: require explicit experimental enable property
+
+The firmware-derived SDP DRM node is deliberately disabled. Keep an
+additional software interlock when a developer later changes status to
+"okay": the driver must not map display MMIO or request its IRQ unless the
+same DT node has samsung,enable-experimental-kms.
+
+This is a project safety policy, not a hardware property. It makes a future
+hardware trial a conscious, reviewable DT change and leaves disabled nodes
+entirely inert. It neither establishes panel timing, IRQ polarity, nor the
+GPU clock/supply path. No hardware tests.
+
+Signed-off-by: Codex <noreply@openai.com>
+---
+ .../bindings/display/samsung,sdp-drm.yaml          | 52 +++++++++++++++++++++
+ drivers/gpu/drm/sdp/sdp_drm.c                       |  9 ++++
+ 2 files changed, 61 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/display/samsung,sdp-drm.yaml b/Documentation/devicetree/bindings/display/samsung,sdp-drm.yaml
+new file mode 100644
+index 000000000000..1f4fabb9e812
+--- /dev/null
++++ b/Documentation/devicetree/bindings/display/samsung,sdp-drm.yaml
+@@ -0,0 +1,52 @@
++# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/display/samsung,sdp-drm.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Samsung SDP Nike-L GP-plane DRM/KMS controller
++
++maintainers:
++  - Q60T Linux porting project <noreply@example.invalid>
++
++description: |
++  The Samsung SDP Nike-L boot-logo pipeline exposes OSD, GP, mixer, QE, GA,
++  POST and TMG MMIO regions. The runtime driver currently owns only the GP
++  scanout plane and mixer VBlank path. It is experimental and requires an
++  explicit software interlock in addition to status = "okay".
++
++properties:
++  compatible:
++    const: samsung,sdp-drm
++
++  reg:
++    minItems: 7
++    maxItems: 7
++
++  interrupts:
++    minItems: 2
++    maxItems: 2
++
++  samsung,enable-experimental-kms:
++    type: boolean
++    description: |
++      Required by the Linux driver before it maps MMIO or requests the VBlank
++      IRQ. This is a project safety interlock, not a hardware description.
++
++required:
++  - compatible
++  - reg
++  - interrupts
++
++additionalProperties: true
++
++examples:
++  - |
++    drm@5d0000 {
++        compatible = "samsung,sdp-drm";
++        reg = <0x5d0000 0x4000>, <0x5d4000 0x4000>,
++              <0x5d8000 0x4000>, <0x5dc000 0x40000>,
++              <0x580000 0x4000>, <0x700000 0xd000>,
++              <0xc00000 0x20000>;
++        interrupts = <0 47 0>, <0 102 0>;
++        status = "disabled";
++    };
++...
+diff --git a/drivers/gpu/drm/sdp/sdp_drm.c b/drivers/gpu/drm/sdp/sdp_drm.c
+index a08d908f0b4c..6029053e8072 100644
+--- a/drivers/gpu/drm/sdp/sdp_drm.c
++++ b/drivers/gpu/drm/sdp/sdp_drm.c
+@@ -519,6 +519,15 @@ static int sdp_drm_probe(struct platform_device *pdev)
+ 	struct resource *res;
+ 	int irq, ret, i;
+ 
++	/*
++	 * status = "okay" alone must never turn an experimental display path
++	 * into a hardware trial. Keep this interlock before any MMIO mapping.
++	 */
++	if (!of_property_read_bool(pdev->dev.of_node,
++				   "samsung,enable-experimental-kms"))
++		return dev_err_probe(&pdev->dev, -EPERM,
++			"experimental KMS is not explicitly enabled in DT\n");
++
+ 	sdp = devm_drm_dev_alloc(&pdev->dev, &sdp_drm_driver,
+ 				 struct sdp_drm_device, drm);
+ 	if (IS_ERR(sdp))
+-- 
+2.43.0
