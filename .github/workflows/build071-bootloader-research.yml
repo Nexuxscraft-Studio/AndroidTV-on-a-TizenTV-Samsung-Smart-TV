@@ -1,0 +1,39 @@
+name: Build071 bootchain research (offline)
+
+on:
+  push:
+    branches: ["feature/build071-*"]
+    paths:
+      - "porting/build071/**"
+      - ".github/workflows/build071-bootloader-research.yml"
+  pull_request:
+    paths:
+      - "porting/build071/**"
+      - ".github/workflows/build071-bootloader-research.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax and synthetic-only tests
+        run: |
+          python3 -m py_compile porting/build071/bootloader_research.py
+          python3 -m unittest discover -s porting/build071/tests -v
+      - name: Existing boot-safety gates remain blocked
+        run: |
+          python3 porting/build071/bootloader_research.py > /tmp/build071-report.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/build071-report.json', encoding='utf-8') as f:
+              r = json.load(f)
+          assert r['boot_safety']['status'] == 'BLOCKED'
+          assert r['bootloader_identity'] == 'UNVERIFIED'
+          assert r['flash_authorized'] is False
+          print('Fail-closed checks passed; TV untouched.')
+          PY
