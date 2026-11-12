@@ -110,6 +110,12 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build069/device/qemu_arm_tv/audio_policy_configuration.xml",
     "porting/build069/device/qemu_arm_tv/qemu_logcat_kmsg.sh",
     "porting/build069/runner/request.env",
+    # Build 070: shared Q60T kernel (driver set), runner tooling, nikel init
+    "porting/build059/kernel/configs/nikel-drivers.config",
+    "porting/build070/kernel_build.sh",
+    "porting/build070/runner/request.env",
+    "porting/build070/tools/gpl_inventory.sh",
+    "porting/device/samsung/nikel/init.nikel.rc",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES
