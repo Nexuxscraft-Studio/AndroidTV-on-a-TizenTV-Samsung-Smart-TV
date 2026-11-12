@@ -97,6 +97,17 @@ Gate und Resets unverändert. Anders als eine `clk_ops.disable`-Funktion kann
 Timeoutgrenze, **keine** gemessene Hardwareanforderung. Samsung nutzt dort
 eine unbegrenzte Schleife mit logischem statt bitweisem AND (:479).
 
+**REA-Binärbeleg:** Das original ausgelieferte ARM-Modul `sdp_gpu.ko`
+(SHA-256 `115aadc5b2874cc4210f9b6c58bf2b4e09abadfe84fe7ad217f17770b21ecf29`)
+wurde mit Ghidra 12.1.4 statisch dekompiliert. Die Funktion
+`kbase_platform_sdp_gpu_power_control` bestätigt die implementierte Ordnung:
+an: Gate `f5088c` Bit 12 setzen, Bus-/Core-Reset `f507f8` Bit 24/28 lösen,
+Idle-Request `f50a10` Bit 0 löschen; aus: Idle-Request setzen, auf einen
+nichtnull Idle-Ack bei `f50a14` warten, Bus-/Core-Reset setzen, Gate löschen.
+REA-Evidenz-ID `ev_e7d3cf333f091591153e14731a5328ea3458e09414afe05aa9a96ca93f284cec`.
+Das ist statischer Codebeleg, kein Hardwarelauf. Insbesondere belegt er
+weder Clock-Parent/-Rate, `mali-supply`, IRQ-Polarität noch MMIO-Nebenwirkungen.
+
 **Takt-Parent und Rate: für einen aktivierbaren Panfrost-Knoten weiter
 UNBELEGT.** Die echte SDP1804-Tabelle in
 `linux-4.1.10/drivers/clk/clk-sdp.c:1505–1545` beschreibt die PLLs und

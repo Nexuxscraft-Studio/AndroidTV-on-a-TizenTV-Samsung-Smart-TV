@@ -39,6 +39,16 @@
     "activation_status": "unproven: firmware DT has no GPU clock child and no live MMIO readback was taken"
   },
   "gpu_power_and_irq_evidence": {
+    "rea_shipped_module_power_control": {
+      "module": "sdp_gpu.ko",
+      "module_sha256": "115aadc5b2874cc4210f9b6c58bf2b4e09abadfe84fe7ad217f17770b21ecf29",
+      "tool": "REA/Ghidra 12.1.4",
+      "function": "kbase_platform_sdp_gpu_power_control",
+      "evidence_id": "ev_e7d3cf333f091591153e14731a5328ea3458e09414afe05aa9a96ca93f284cec",
+      "observed_off_order": "idle request f50a10 bit 0 set; poll f50a14 until nonzero; clear f507f8 bits 24 then 28; clear f5088c bit 12",
+      "observed_on_order": "set f5088c bit 12; set f507f8 bit 24 then 28; clear f50a10 bit 0",
+      "limitations": "Static decompiler pseudocode only; it does not establish clock parent/rate, regulator supply, IRQ polarity, MMIO side effects, or successful hardware execution."
+    },
     "vendor_regulator_lookup": "mali_kbase_core_linux.c:3508-3543: regulator_get_optional(dev, \"mali\"); probe continues without it",
     "firmware_regulators": "dtb0.dts lines 2070-2078 (CPU_PW) and 2323-2345 (CPU_PW/CORE_PW); no GPU consumer link",
     "irq_trigger": "dtb0 /soc/sdpgpu@00500000 interrupt cells have flags zero; no electrical trigger type is encoded",
