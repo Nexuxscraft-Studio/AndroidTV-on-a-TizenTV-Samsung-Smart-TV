@@ -22,6 +22,7 @@ import json
 import os
 import struct
 import sys
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -29,8 +30,29 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 FDT_MAGIC = b"\xd0\x0d\xfe\xed"
 GPL_OUTER_SIZE = 743308262          # claude/samsung-gpl-20_DTV_NikeL.md
+# noverhost.de answers the default "Python-urllib/x.y" agent with HTTP 403
+# (Build 070 run 43174876384); identify like a regular download tool.
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) q60t-build070-fetch/1.0"
 GPL_MEMBERS = ("linux-4.1.10-tizen5.5.tgz", "tztv-media-nike.tgz")
 DTB_MEMBER = "decrypted/dtb.bin"
+
+
+def request(url, headers=None):
+    h = {"User-Agent": USER_AGENT}
+    h.update(headers or {})
+    return urllib.request.Request(url, headers=h)
+
+
+def urlopen_verbose(req, timeout):
+    """urlopen that prints status and headers of an HTTP error before raising."""
+    try:
+        return urllib.request.urlopen(req, timeout=timeout)
+    except urllib.error.HTTPError as e:
+        print("HTTP %d for %s" % (e.code, req.full_url), file=sys.stderr)
+        for k, v in e.headers.items():
+            print("  %s: %s" % (k, v), file=sys.stderr)
+        print("  body: %r" % e.read(300), file=sys.stderr)
+        raise
 
 
 class HttpRangeFile(io.RawIOBase):
@@ -41,11 +63,11 @@ class HttpRangeFile(io.RawIOBase):
     def __init__(self, url, opener=None):
         super().__init__()
         self.url = url
-        self.open = opener or urllib.request.urlopen
+        self.open = opener or urlopen_verbose
         self.pos = 0
         self.cache = {}
         # total size from a one-byte range request ("Content-Range: bytes 0-0/N")
-        req = urllib.request.Request(url, headers={"Range": "bytes=0-0"})
+        req = request(url, {"Range": "bytes=0-0"})
         with self.open(req, timeout=60) as r:
             if r.status != 206:
                 raise IOError("server does not support Range requests (HTTP %d)" % r.status)
@@ -69,7 +91,7 @@ class HttpRangeFile(io.RawIOBase):
         if n not in self.cache:
             start = n * self.BLOCK
             end = min(self.size, start + self.BLOCK) - 1
-            req = urllib.request.Request(self.url, headers={"Range": "bytes=%d-%d" % (start, end)})
+            req = request(self.url, {"Range": "bytes=%d-%d" % (start, end)})
             with self.open(req, timeout=120) as r:
                 if r.status != 206:
                     raise IOError("server ignored Range request (HTTP %d)" % r.status)
@@ -160,7 +182,7 @@ def download(url, dest, size):
         print("cached %s (%d bytes)" % (dest, size))
         return
     tmp = dest.with_suffix(".part")
-    with urllib.request.urlopen(url, timeout=120) as r, open(tmp, "wb") as f:
+    with urlopen_verbose(request(url), timeout=120) as r, open(tmp, "wb") as f:
         done = 0
         while True:
             chunk = r.read(8 << 20)
