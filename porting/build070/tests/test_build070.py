@@ -127,6 +127,39 @@ class DtbTest(unittest.TestCase):
             self.assertEqual(z.read("decrypted/dtb.bin"), make_dtb(SAMPLE))
 
 
+class DownloadTest(unittest.TestCase):
+    def test_resumes_after_short_reads(self):
+        import tempfile
+        payload = bytes(range(256)) * 400          # 102400 bytes
+        calls = []
+
+        class Resp(io.BytesIO):
+            status = 206
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        def fake(req, timeout=None):
+            s, e = map(int, re.match(r"bytes=(\d+)-(\d+)", req.headers["Range"]).groups())
+            calls.append(s)
+            # every response is cut short after 30000 bytes, like run 43177164692
+            return Resp(payload[s:min(e + 1, s + 30000)])
+
+        orig = fetch_sources.urlopen_verbose
+        fetch_sources.urlopen_verbose = fake
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                dest = Path(d) / "x.tgz"
+                fetch_sources.download("https://example.invalid/x.tgz", dest, len(payload), chunk=50000)
+                self.assertEqual(dest.read_bytes(), payload)
+        finally:
+            fetch_sources.urlopen_verbose = orig
+        self.assertEqual(calls[:3], [0, 30000, 60000])
+
+
 class RunnerContractTest(unittest.TestCase):
     def test_request_env(self):
         txt = (B070 / "runner" / "request.env").read_text()

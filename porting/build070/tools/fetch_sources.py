@@ -216,21 +216,42 @@ def cmd_get(url, out):
     print("%s: %d bytes sha256 %s" % (name, size, manifest[name]["sha256"]))
 
 
-def download(url, dest, size):
+def download(url, dest, size, chunk=16 << 20, retries=8):
+    """Download in range chunks, resuming after dropped connections.
+
+    Run 43177164692: a single GET of the 134 MB tarball stopped after
+    20.4 MB, so every chunk is requested separately and retried.
+    """
     if dest.exists() and dest.stat().st_size == size:
         print("cached %s (%d bytes)" % (dest, size))
         return
-    tmp = dest.with_suffix(".part")
-    with urlopen_verbose(request(url), timeout=120) as r, open(tmp, "wb") as f:
-        done = 0
-        while True:
-            chunk = r.read(8 << 20)
-            if not chunk:
-                break
-            f.write(chunk)
-            done += len(chunk)
-            if done % (128 << 20) < (8 << 20):
-                print("  %d MiB" % (done >> 20), flush=True)
+    tmp = dest.with_suffix(dest.suffix + ".part")
+    have = tmp.stat().st_size if tmp.exists() else 0
+    if have > size:
+        tmp.unlink()
+        have = 0
+    with open(tmp, "ab") as f:
+        while have < size:
+            end = min(size, have + chunk) - 1
+            for attempt in range(1, retries + 1):
+                try:
+                    req = request(url, {"Range": "bytes=%d-%d" % (have, end)})
+                    with urlopen_verbose(req, timeout=120) as r:
+                        if r.status != 206:
+                            raise IOError("HTTP %d instead of 206" % r.status)
+                        data = r.read()
+                    if not data:
+                        raise IOError("empty range response")
+                    f.write(data)
+                    f.flush()
+                    have += len(data)
+                    break
+                except (IOError, OSError) as e:
+                    print("  range %d-%d attempt %d failed: %s" % (have, end, attempt, e), flush=True)
+                    if attempt == retries:
+                        raise SystemExit("download aborted at %d of %d bytes" % (have, size))
+            if have % (64 << 20) < chunk or have == size:
+                print("  %d / %d MiB" % (have >> 20, size >> 20), flush=True)
     if tmp.stat().st_size != size:
         raise SystemExit("download size %d, expected %d" % (tmp.stat().st_size, size))
     tmp.rename(dest)
