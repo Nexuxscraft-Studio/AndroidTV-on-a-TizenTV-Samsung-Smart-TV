@@ -134,6 +134,23 @@ class PipelineTests(unittest.TestCase):
             '        ALOGE_IF(status != NO_ERROR, "Unable to query width (%d)", status);',
             "// end"]
         sf.write_text("\n".join(lines) + "\n")
+        rs = proj / "services/surfaceflinger/CompositionEngine/src/RenderSurface.cpp"
+        rs.parent.mkdir(parents=True, exist_ok=True)
+        rs_lines = ["// l%d" % i for i in range(1, 17)] + [
+            "", "#define ATRACE_TAG ATRACE_TAG_GRAPHICS", "",
+            "#include <android-base/stringprintf.h>", "#include <android/native_window.h>",
+            "#include <common/trace.h>"] + ["// l%d" % i for i in range(23, 83)] + [
+            "void RenderSurface::initialize() {",
+            "    ANativeWindow* const window = mNativeWindow.get();",
+            "",
+            "    int status = native_window_api_connect(window, NATIVE_WINDOW_API_EGL);",
+            '    ALOGE_IF(status != NO_ERROR, "Unable to connect BQ producer: %d", status);',
+            "    status = native_window_set_buffers_format(window, HAL_PIXEL_FORMAT_RGBA_8888);",
+            '    ALOGE_IF(status != NO_ERROR, "Unable to set BQ format to RGBA888: %d", status);',
+            "    status = native_window_set_usage(window, DEFAULT_USAGE);",
+            '    ALOGE_IF(status != NO_ERROR, "Unable to set BQ usage bits for GPU rendering: %d", status);',
+            "}"]
+        rs.write_text("\n".join(rs_lines) + "\n")
         subprocess.run(["git", "init", "-q", str(proj)], check=True)
         return sf
 
@@ -143,6 +160,8 @@ class PipelineTests(unittest.TestCase):
         r = self.run_pipeline("--only", "check-target", "--target", "qemu_arm_tv")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("pixelFormat = defaultCompositionPixelFormat;", sf.read_text())
+        rs = self.los / "frameworks/native/services/surfaceflinger/CompositionEngine/src/RenderSurface.cpp"
+        self.assertIn("ro.surface_flinger.default_composition_pixel_format", rs.read_text())
         self.assertIn("los-patch applied", r.stderr)
         # second run: patch is recognised as applied, not applied twice
         r = self.run_pipeline("--only", "check-target", "--target", "qemu_arm_tv", "--force")
