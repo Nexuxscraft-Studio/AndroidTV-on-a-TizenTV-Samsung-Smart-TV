@@ -171,6 +171,15 @@ ist ARM/Linux-4.1.10, unkomprimiert, SHA-256
 Kernel-Payload und originale Mali-/Display-Module lagen der REA-Native-
 Analyse nicht vor.
 
+Der anschließende Stock-Kernel-Payload liegt jetzt vor (SHA-256
+`88cfa2ecb7e8f6b6507e6651b7569d3fd77c9cc0c1ea60c17fb48fa517c182d0`,
+7.040.960 Byte). Er ist ein rohes ARM32-Image, kein ELF, und ist der
+uImage-Payload ab Offset 64. Statisch auffindbar sind DRM-VBlank-Helfer sowie
+`sdp_gpu_hwmem_{flush,clean,inv}_range`. Das beweist nur ihre Einbindung.
+Für belastbare Funktions- und MMIO-Befunde muss REA/Ghidra das Raw-Image mit
+der uImage-Load-/Entry-Adresse `0x80008000` als ARM32 analysieren; es wird
+nicht ausgeführt.
+
 ## G5: Displaybefunde und Änderung 0023
 
 Fundstellen unter `tztv-media-nike/`:

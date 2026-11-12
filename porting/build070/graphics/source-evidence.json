@@ -31,6 +31,18 @@
     "tztv-media-nike/sdp_drm_nike/sdp_hw_plane.c": "3979bc00c5ac1e83240cd329130c692943ee9d1fc0e62528916046a44ef473b8",
     "tztv-media-nike/sdp_drm_nike/gfx/nikel/sdp_mixer.c": "07d16ababfa9bd9a3bc06bd4ef6099019014f504a1375800ca418209822f018a"
   },
+  "stock_kernel_payload": {
+    "sha256": "88cfa2ecb7e8f6b6507e6651b7569d3fd77c9cc0c1ea60c17fb48fa517c182d0",
+    "size_bytes": 7040960,
+    "container": "uImage payload at offset 64 of stock Linux-4.1.10 uImage",
+    "load_and_entry_address": "0x80008000",
+    "format": "raw ARM32 kernel image; not ELF",
+    "static_string_observations": [
+      "DRM vblank helper symbols and diagnostics are present",
+      "sdp_gpu_hwmem_flush_range, sdp_gpu_hwmem_clean_range, and sdp_gpu_hwmem_inv_range are present"
+    ],
+    "limitations": "Strings establish inclusion only. No function boundary, call graph, MMIO write, load address mapping, or runtime behavior is inferred."
+  },
   "gpu_clock_evidence": {
     "vendor_dvfs_frequency_table": "mali_kbase_platform_sdp.c:42-52",
     "vendor_mux_sequence": "mali_kbase_platform_sdp.c:188-324",
