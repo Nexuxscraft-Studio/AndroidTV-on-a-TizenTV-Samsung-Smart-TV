@@ -18,6 +18,22 @@ fi
 
 mkdir -p "$OUT_DIR"
 
+connection=$(
+	"$SDB_BIN" -s "$SDB_SERIAL" shell id 2>&1
+) || {
+	printf '%s\n' "$connection" >"$OUT_DIR/connection.txt"
+	echo "SDB shell preflight failed; see $OUT_DIR/connection.txt" >&2
+	exit 1
+}
+
+if [[ $connection != *uid=* ]]; then
+	printf '%s\n' "$connection" >"$OUT_DIR/connection.txt"
+	echo "SDB shell preflight did not return an identity; see $OUT_DIR/connection.txt" >&2
+	exit 1
+fi
+
+printf '%s\n' "$connection" >"$OUT_DIR/connection.txt"
+
 collect() {
 	local name=$1
 	local command=$2

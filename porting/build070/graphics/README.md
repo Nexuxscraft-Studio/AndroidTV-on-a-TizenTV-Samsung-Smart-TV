@@ -237,3 +237,17 @@ SDB_SERIAL='HOST:PORT' OUT_DIR=./q60t-stock-evidence \
 Das Ergebnisarchiv ist die Eingabe für Clock-Parent/Rate, IRQ-Typ,
 `mali-supply` und den echten Display-Bootmodus. Fehlende Debugfs-Dateien
 sind ein Befund, kein Fehler des Collectors.
+
+Der Collector prüft vor den Abfragen mit `sdb shell id`, ob der Ziel-Shell
+tatsächlich offen ist. Bei einem Fehler wie `closed` wird nur
+`connection.txt` geschrieben und der Lauf beendet; ein solches Archiv enthält
+keine verwertbaren TV-Daten. Vor einem erneuten Lauf auf dem Mac daher:
+
+```sh
+sdb connect 192.168.178.20:26101
+sdb devices
+sdb -s 192.168.178.20:26101 shell id
+```
+
+Erst wenn der letzte Befehl eine `uid=...`-Zeile ausgibt, den Collector
+ausführen.
