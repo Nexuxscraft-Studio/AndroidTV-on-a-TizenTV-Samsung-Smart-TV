@@ -137,6 +137,29 @@ lauffähig. Der nächste sichere Nachweis ist ein reiner Register-Readback
 eines laufenden Originalsystems für die Mux- und PLL-Register – ohne
 Schreibzugriff.
 
+### REA-Statischer Abgleich (12.11.2026)
+
+Ein REA-Bericht über die bereitgestellten Device-Tree-Auszüge bestätigt nur
+die bereits verwendeten Ressourcen: GPU-Fenster `0x00500000`,
+Clock-Controller `0x00f50000`, GP `0x005d4000` und Mixer `0x005d8000` im
+Bootlogo-Knoten. Die zwei Bootlogo-IRQ-Spezifizierer sind als DT-Daten
+vorhanden, aber keiner ist dadurch als VBlank-IRQ zugeordnet.
+
+Der Bericht findet `0x00f507f8` in einer `dmic`-Eigenschaft; für
+`0x00f5088c` ergibt der DT-Auszug keine Registerfunktion. Das widerlegt nicht
+die Kbase-Quellreferenzen oben, bestätigt sie aber auch nicht: DT-Daten
+beschreiben Ressourcen, keine MMIO-Schreibsequenz. Clock-, Reset- und
+Idle-Semantik bleiben daher **UNBELEGT**.
+
+REA identifizierte außerdem eine ARM32-Userspace-`libmali.so` und
+Suchkandidaten für `mali`/`gpu` sowie 35 Little-Endian-Folgen für
+`0x00f50000`. Ohne Code-Xrefs oder bestätigte MMIO-Zugriffe sind das keine
+Treiberwerte und werden nicht übernommen. Der analysierte uImage-Container
+ist ARM/Linux-4.1.10, unkomprimiert, SHA-256
+`6603f3f5082d6ef74471f9233ce17063658daf10e1d9440a8a9c75749a5e72b2`;
+Kernel-Payload und originale Mali-/Display-Module lagen der REA-Native-
+Analyse nicht vor.
+
 ## G5: Displaybefunde und Änderung 0023
 
 Fundstellen unter `tztv-media-nike/`:
@@ -173,6 +196,10 @@ Die Vendor-GP-Formatliste ist auf XRGB8888 und ARGB8888 begrenzt
 (`sdp_drm_nike/sdp_hw_plane.c:13–17`); XRGB8888/ARGB8888 sind damit
 Quellbefunde, aber keine Messung korrekter Farben. Weder die G2D-RGBA-Enums
 noch Androids Formatwunsch beweisen einen GP-ABGR-Swizzle.
+
+Der REA-DT-Abgleich bestätigt nur `hactive = 1920` und `vactive = 1080` im
+Dummy-Panel-Knoten. Pixeltakt, Porch- und Sync-Werte sind dort null; daraus
+wird ausdrücklich kein vollständiger DRM-Modus abgeleitet.
 
 ## G6: Mesa-Panfrost / drm_hwcomposer für LineageOS 22.2
 
