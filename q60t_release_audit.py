@@ -112,6 +112,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build069/runner/request.env",
     "porting/build069/probe_audio.sh",
     "porting/build069/probe_graphics4.sh",
+    "porting/build069/probe_graphics5.sh",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES
