@@ -1,0 +1,137 @@
+name: Build074 REA offline Samsung evidence (self-hosted, manual)
+
+# Manual-only: no PR, push, fork or unreviewed branch execution.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Read-only source type'
+        required: true
+        type: choice
+        default: uimage
+        options:
+          - uimage
+          - dtb
+      dtb_filename:
+        description: 'For DTB only: a .dtb file already in the evidence directory'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build068-selfhosted-v2
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    steps:
+      - name: Create private temporary report directory
+        id: prep
+        shell: bash
+        run: |
+          set -euo pipefail
+          report_dir="$(mktemp -d "${RUNNER_TEMP:?}/build074.XXXXXXXX")"
+          chmod 700 "$report_dir"
+          printf 'directory=%s\n' "$report_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout reviewed project files
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Temporary Node.js for REA (not a system upgrade)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.22.1'
+
+      - name: Install REA in runner temp (not globally)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          npm install --prefix "${RUNNER_TEMP:?}/build074-rea-tool" \
+            --no-audit --no-fund --ignore-scripts --save-exact rea-agents@6.9.0
+
+      - name: Run offline structural tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s porting/build074/tests -v
+          python3 -m py_compile porting/build074/rea_ci.py
+
+      - name: Select explicitly allowed existing evidence file
+        id: target
+        shell: bash
+        env:
+          TARGET_KIND: ${{ inputs.target }}
+          DTB_FILENAME: ${{ inputs.dtb_filename }}
+        run: |
+          set -euo pipefail
+          root="/opt/samsung-atv-lab/samsung/firmware-2743/decrypted"
+          test -d "$root" || { echo "Evidence directory unavailable to runner."; exit 2; }
+          case "$TARGET_KIND" in
+            uimage) file="$root/uImage" ;;
+            dtb)
+              [[ "$DTB_FILENAME" =~ ^[A-Za-z0-9_-]+\.dtb$ ]] || {
+                echo "Supply a simple .dtb filename from the evidence directory."
+                exit 2
+              }
+              file="$root/$DTB_FILENAME"
+              ;;
+            *) echo "Unsupported input type"; exit 2 ;;
+          esac
+          test -f "$file" && test -r "$file" || {
+            echo "Local evidence file missing or unreadable to runner user."
+            exit 2
+          }
+          printf 'kind=%s\n' "$TARGET_KIND" >> "$GITHUB_OUTPUT"
+          printf 'source=%s\n' "$file" >> "$GITHUB_OUTPUT"
+          printf 'root=%s\n' "$root" >> "$GITHUB_OUTPUT"
+          echo "Local evidence preflight passed; no source bytes are uploaded."
+
+      - name: REA static analysis with sanitized report only
+        shell: bash
+        env:
+          INPUT_KIND: ${{ steps.target.outputs.kind }}
+          INPUT_SOURCE: ${{ steps.target.outputs.source }}
+          INPUT_ROOT: ${{ steps.target.outputs.root }}
+          OUTPUT_DIR: ${{ steps.prep.outputs.directory }}
+        run: |
+          set -euo pipefail
+          python3 porting/build074/rea_ci.py \
+            --kind "$INPUT_KIND" \
+            --source "$INPUT_SOURCE" \
+            --allowed-root "$INPUT_ROOT" \
+            --rea "${RUNNER_TEMP:?}/build074-rea-tool/node_modules/.bin/rea" \
+            --output "$OUTPUT_DIR/sanitized-report.json"
+          python3 - "$OUTPUT_DIR/sanitized-report.json" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json, sys
+          from pathlib import Path
+          r=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print("## Build 074 — Read-only Samsung Q60T firmware analysis")
+          print(f"- Status: **{r['status']}**")
+          print(f"- Format: **{r['type']}**")
+          print(f"- SHA-256: {r['input_sha256']}")
+          print(f"- Size: {r['input_bytes']} bytes")
+          if r["type"] == "uimage":
+              h=r["uimage"]
+              print(f"- Load address (header only): {h['load_address']}")
+              print(f"- Entry point (header only): {h['entry_point']}")
+              print(f"- Verified uImage CRCs: {h['crc_verified']}")
+              print(f"- Extra bytes outside declared payload: {h['extra_bytes_after_payload']} (unknown)")
+          print("- Bootloader and RAM boot: NOT DEMONSTRATED. Flash: NOT AUTHORIZED.")
+          PY
+
+      - name: Upload only sanitized summary after successful analysis
+        if: ${{ always() && steps.prep.outputs.directory != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build074-rea-summary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.prep.outputs.directory }}/sanitized-report.json
+          if-no-files-found: warn
+          retention-days: 7

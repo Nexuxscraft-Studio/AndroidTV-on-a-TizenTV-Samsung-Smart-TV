@@ -1,0 +1,42 @@
+name: Build074 source-only CI checks (GitHub hosted)
+
+on:
+  push:
+    branches: ['feature/build074-rea-ci']
+    paths:
+      - 'porting/build074/**'
+      - '.github/workflows/build074-rea-offline.yml'
+      - '.github/workflows/build074-source-checks.yml'
+  pull_request:
+    paths:
+      - 'porting/build074/**'
+      - '.github/workflows/build074-rea-offline.yml'
+      - '.github/workflows/build074-source-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Offline unit tests (no REA, no firmware, no self-hosted runner)
+        run: |
+          python3 -m unittest discover -s porting/build074/tests -v
+          python3 -m py_compile porting/build074/rea_ci.py
+      - name: Fail if workflow has unexpected event triggers
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s = Path(".github/workflows/build074-rea-offline.yml").read_text()
+          assert "  workflow_dispatch:" in s
+          assert "\n  pull_request:" not in s
+          assert "\n  push:" not in s
+          assert "github.ref == 'refs/heads/main'" in s
+          assert "runs-on: [self-hosted, Linux, X64]" in s
+          print("Manual-only self-hosted execution guarded on main.")
+          PY
