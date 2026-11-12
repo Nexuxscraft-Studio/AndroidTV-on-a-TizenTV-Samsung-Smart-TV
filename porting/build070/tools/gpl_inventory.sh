@@ -25,6 +25,21 @@ unpack() {  # <tgz> <dest>
 }
 unpack linux-4.1.10-tizen5.5.tgz linux
 unpack tztv-media-nike.tgz media
+unpack tztv-micom.tgz micom
+# tztv-frc-tcon.zip (panel timing): unpack with Python, refuse absolute/.. paths
+if [ -f "$GPL/tztv-frc-tcon.zip" ] && [ ! -f "$SRC/frc-tcon/.unpacked" ]; then
+  rm -rf "$SRC/frc-tcon" && mkdir -p "$SRC/frc-tcon"
+  python3 -I - "$GPL/tztv-frc-tcon.zip" "$SRC/frc-tcon" <<'PY'
+import sys, zipfile, os
+z = zipfile.ZipFile(sys.argv[1])
+for n in z.namelist():
+    if n.startswith("/") or ".." in n.split("/"):
+        raise SystemExit("unsafe path in zip: " + n)
+z.extractall(sys.argv[2])
+PY
+  touch "$SRC/frc-tcon/.unpacked"
+fi
+[ -d "$SRC/frc-tcon" ] && echo "I> frc-tcon: $(find "$SRC/frc-tcon" -type f | wc -l) files"
 # the kernel tarball may carry a top-level directory
 LIN="$(dirname "$(find "$SRC/linux" -maxdepth 3 -name MAINTAINERS -type f | head -1)")"
 [ -d "$LIN/drivers" ] || { echo "no kernel tree under $SRC/linux" >&2; exit 1; }
@@ -58,7 +73,7 @@ echo "===== where are the DT compatibles implemented (both trees)"
 for c in samsung,sdp-drm samsung,sdp1202-panel samsung,tztv-tcon samsung,sdp-frc \
          samsung,sdp-mc-irb samsung,sdp-mc-irs samsung,sdp-mc-cecif samsung,sdp-mac \
          samsung,sdp-hdmi samsung,sdp-mfc arm,mali-midgard samsung,sdp-audio; do
-  hits="$(grep -rl --include='*.c' -F "\"$c" "$LIN/drivers" "$LIN/sound" "$SRC/media" 2>/dev/null | head -6 || true)"
+  hits="$(grep -rl --include='*.c' -F "\"$c" "$LIN/drivers" "$LIN/sound" "$SRC/media" "$SRC/micom" "$SRC/frc-tcon" 2>/dev/null | head -6 || true)"
   if [ -z "$hits" ]; then echo "I> $c: no .c file"; continue; fi
   echo "I> $c:"
   while read -r f; do lic "$f"; done <<< "$hits"
@@ -72,6 +87,13 @@ for pat in 'sdp_alsa_nike' 'sdp_hdmi_nike'; do
 done
 for f in $(find "$LIN/drivers" -type f -name '*.c' \( -path '*micom*' -o -name '*sdp*mac*' -o -name '*sdp_mac*' -o -name '*irb*' -o -name '*cec*sdp*' \) | sort | head -40); do
   lic "$f"
+done
+
+echo "===== micom (IR/CEC transport) and frc-tcon (panel timing)"
+for d in "$SRC/micom" "$SRC/frc-tcon"; do
+  [ -d "$d" ] || continue
+  find "$d" -type f \( -name '*.c' -o -name '*.h' -o -name 'Makefile' -o -name 'Kbuild' \) | sort | head -60 \
+    | while read -r f; do lic "$f"; done
 done
 
 echo "===== GPL board/clock/DT sources referenced by the kickoff"

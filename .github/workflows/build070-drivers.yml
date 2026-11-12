@@ -24,6 +24,8 @@ env:
   # Team file share (12.11.2026). The old noverhost.de URLs answer 404.
   # Files that are not uploaded yet are skipped, never guessed.
   SRC_BASE: https://testpaymenter.noverhost.de/sehrwichtig
+  # contents of the inner 20_DTV_NikeL.zip (uploaded 12.11., 09:00)
+  GPL_BASE: https://testpaymenter.noverhost.de/sehrwichtig/inner
 
 jobs:
   offline-tests:
@@ -77,8 +79,8 @@ jobs:
         run: |
           set -uo pipefail
           f=porting/build070/tools/fetch_sources.py
-          for n in linux-4.1.10-tizen5.5.tgz tztv-media-nike.tgz; do
-            rc=0; python3 -I "$f" get "$SRC_BASE/$n" "$GPL_DIR" || rc=$?   # step runs with bash -e
+          for n in linux-4.1.10-tizen5.5.tgz tztv-media-nike.tgz tztv-micom.tgz tztv-frc-tcon.zip; do
+            rc=0; python3 -I "$f" get "$GPL_BASE/$n" "$GPL_DIR" || rc=$?   # step runs with bash -e
             [ "$rc" = 0 ] || [ "$rc" = 3 ] || exit "$rc"
           done
           bash porting/build070/tools/gpl_inventory.sh "$GPL_DIR"
