@@ -113,6 +113,11 @@ class AudioPolicyContractTests(unittest.TestCase):
         for inc in includes:
             self.assertIn("$(TARGET_COPY_OUT_VENDOR)/etc/%s" % inc, mk, inc)
 
+    def test_client_target_format_scanout_capable(self):
+        mk = (self.DEV / "lineage_qemu_arm_tv.mk").read_text()
+        # virtio-gpu only scans out XRGB/ARGB8888 -> HAL BGRA_8888 (5)
+        self.assertIn("ro.surface_flinger.default_composition_pixel_format=5", mk)
+
     def test_bootanimation_allowed(self):
         lines = (self.DEV / "lineage_qemu_arm_tv.mk").read_text().splitlines()
         active = [l for l in lines if not l.lstrip().startswith("#")]

@@ -45,6 +45,15 @@ PRODUCT_PACKAGES += \
     libGLESv1_CM_angle \
     libGLESv2_angle
 
+# Boot 11: virtio-gpu (Linux 6.6, virtgpu_display.c) accepts only
+# XRGB8888/ARGB8888 KMS framebuffers and returns -ENOENT for anything else;
+# SurfaceFlinger composes the client target in RGBA_8888 (DRM ABGR8888) by
+# default, so drm_hwcomposer failed with "could not create drm fb -2" and no
+# frame was ever shown. Compose in BGRA_8888 (HAL 5 = DRM ARGB8888) instead
+# (sysprop ro.surface_flinger.default_composition_pixel_format, probe 5).
+PRODUCT_VENDOR_PROPERTIES += \
+    ro.surface_flinger.default_composition_pixel_format=5
+
 PRODUCT_VENDOR_PROPERTIES += \
     ro.hardware.egl=angle \
     ro.hardware.vulkan=pastel \
