@@ -114,6 +114,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build069/probe_graphics4.sh",
     "porting/build069/probe_graphics5.sh",
     "porting/build069/probe_graphics6.sh",
+    "porting/build069/probe_graphics7.sh",
     "porting/build069/los-patches/frameworks/native/0001-surfaceflinger-physical-display-default-composition-format.patch",
 }
 
