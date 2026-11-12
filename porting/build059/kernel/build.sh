@@ -21,8 +21,10 @@
 # Profiles:
 #   tiny  allnoconfig + configs/nikel-*.config  (small, serial console only)
 #   full     defconfig / multi_v7_defconfig + configs/nikel-*.config
-#   android  like full, plus AOSP android-base.config; writes a coverage
-#            report (android-coverage.txt) of the Android requirements
+#   android  like full, plus AOSP android-base.config, nikel-android.config
+#            and nikel-drivers.config (Build 070: the shared Q60T kernel);
+#            writes a coverage report (android-coverage.txt) of the Android
+#            requirements
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -92,7 +94,9 @@ done
 
 # 2. configuration -------------------------------------------------------------
 FRAGS=("$HERE/configs/nikel-common.config" "$HERE/configs/nikel-$ARCH_NAME.config")
-[ "$PROFILE" = android ] && FRAGS+=("$HERE/configs/nikel-android.config")
+# android = the shared Q60T kernel (Build 070): Android fixes + Q60T driver set
+[ "$PROFILE" = android ] && FRAGS+=("$HERE/configs/nikel-android.config" \
+                                    "$HERE/configs/nikel-drivers.config")
 # Optional extra fragments (colon-separated paths), e.g. Build 069 QEMU virtio.
 if [ -n "${EXTRA_FRAGMENTS:-}" ]; then
   IFS=: read -r -a _extra <<< "$EXTRA_FRAGMENTS"
@@ -188,8 +192,11 @@ fi
 cp "$KOUT/.config" "$ART/config"
 
 # 3. the new drivers with extra warnings, as an error gate ---------------------
-make "${MAKEARGS[@]}" W=1 KCFLAGS=-Werror \
-  drivers/tty/serial/sdp_uart.o drivers/clk/clk-sdp1804.o drivers/gpio/gpio-sdp.o
+GATE_OBJS=(drivers/tty/serial/sdp_uart.o drivers/clk/clk-sdp1804.o drivers/gpio/gpio-sdp.o)
+# Build 070: own driver ports of the shared Q60T kernel (android profile)
+[ "$PROFILE" = android ] && GATE_OBJS+=(drivers/gpu/drm/sdp/sdp_drm.o)
+make "${MAKEARGS[@]}" W=1 KCFLAGS=-Werror "${GATE_OBJS[@]}"
+log "W=1 -Werror gate passed: ${GATE_OBJS[*]}"
 
 # 4. kernel image and device trees ---------------------------------------------
 make "${MAKEARGS[@]}" $IMAGES dtbs

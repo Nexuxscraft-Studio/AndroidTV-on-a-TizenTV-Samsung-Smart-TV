@@ -29,13 +29,17 @@ ist der eigentliche Engpass und braucht die Nike-L-Vendor-Quellen.
 
 ## Subsystem-Matrix
 
+Build 070: Alle Kconfig-Symbole der Tabelle stecken in
+`porting/build059/kernel/configs/nikel-drivers.config` (Profil `android`);
+DT-Knoten erst mit Werten aus der Firmware-`dtb.bin`. Details: `porting/build070/README.md`.
+
 | Subsystem | Prio | Zielreiber | Samsung-Quelle (GPL) | Status (Build) |
 | --- | --- | --- | --- | --- |
 | Core-SoC (UART/Clk/GPIO) | P0 | eigen (6.6) | `board-nike-dt.c`, `sdp_uart` | 059: gebaut |
 | eMMC | P0 | `dw_mmc-exynos` | `samsung,sdp-mmc` | 063: config/enable |
-| **Display** | **P0** | **eigen `sdp-drm`** | `sdp_drm_nike` | **063: KMS-Skelett (CI-grün)** |
-| GPU | P0 | Panfrost (Upstream) | — (DT: mali) | 063: config/DT/plan |
-| CPU-DVFS/Thermal | P0 | `cpufreq-dt`/`thermal-of` | — | 063: config/DT/plan |
+| **Display** | **P0** | **eigen `sdp-drm`** | `sdp_drm_nike` | **063: KMS-Skelett (CI-grün); 070: Patch 0012 im gemeinsamen Kernel, Runner-Build ausstehend** |
+| GPU | P0 | Panfrost (Upstream) | — (DT: mali) | 063: config/DT/plan; 070: `=y` im gemeinsamen Kernel |
+| CPU-DVFS/Thermal | P0 | `cpufreq-dt`/`thermal-of` | — | 063: config/DT/plan; 070: im gemeinsamen Kernel |
 | Video-Decode (MFC) | P1 | V4L2-m2m | `sdp_codec_nike` | 064: config/DT/plan |
 | Audio | P1 | ASoC | `sdp_alsa_nike` | 064: config/DT/plan |
 | HDMI | P1 | drm-bridge/eigen | `samsung,sdp-hdmi` | 064: DT/plan |

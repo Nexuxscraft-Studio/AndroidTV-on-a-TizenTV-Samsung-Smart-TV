@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# Samsung Q60T (Nike-L) - vendor init, research target only (never flashed).
+# Contains only fixes that were measured under QEMU on the same Linux 6.6.162
+# ARM32 kernel (Build 069) and therefore apply to the TV kernel as well.
+
+# Build 069 Boot 6 / Build 070: Linux 6.6 has no ashmem driver (CONFIG_ASHMEM
+# is ACK-only), so system_server dies with "Failed to create ashmem".
+# libcutils uses memfd only when sys.use_memfd=true; system/core/rootdir/init.rc
+# sets it to false, so force it back on whenever that happens.
+on early-init
+    setprop sys.use_memfd true
+
+on property:sys.use_memfd=false
+    setprop sys.use_memfd true

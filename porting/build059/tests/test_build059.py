@@ -78,13 +78,39 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 11)
+        self.assertEqual(len(names), 12)
         self.assertTrue(names[0].startswith("0001-serial"))
         # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
         # upstream df0cb5cb50bd
         self.assertTrue(names[9].startswith("0010-bpf-restore-interpreter-fallback"))
         # 0011 (Build 069 M3): ACK-equivalent dumb ioctls on render nodes
         self.assertTrue(names[10].startswith("0011-drm-allow-dumb-buffer-ioctls"))
+        # 0012 (Build 070): sdp-drm display KMS skeleton in the shared kernel
+        self.assertTrue(names[11].startswith("0012-drm-add-Samsung-SDP-Nike-L-display"))
+
+    def test_sdp_drm_patch(self):
+        txt = self._patch_text("0012-drm")
+        self.assertIn('+source "drivers/gpu/drm/sdp/Kconfig"', txt)
+        self.assertIn("+obj-$(CONFIG_DRM_SDP) += sdp/", txt)
+        self.assertIn('+\t{ .compatible = "samsung,sdp-drm" },', txt)
+        self.assertIn("+\t.remove_new = sdp_drm_remove,", txt)
+
+    def test_android_profile_merges_driver_set(self):
+        build = (B059 / "kernel" / "build.sh").read_text()
+        self.assertIn('"$HERE/configs/nikel-drivers.config"', build)
+        self.assertIn("drivers/gpu/drm/sdp/sdp_drm.o", build)
+        frag = (B059 / "kernel" / "configs" / "nikel-drivers.config").read_text()
+        lines = [l for l in frag.splitlines() if l and not l.startswith("#")]
+        names = [l.split("=")[0] for l in lines]
+        self.assertEqual(len(names), len(set(names)), "duplicate symbol")
+        self.assertIn("CONFIG_DRM_SDP=y", lines)
+        self.assertIn("CONFIG_DRM_SIMPLEDRM=y", lines)
+        self.assertIn("CONFIG_DRM_PANFROST=y", lines)
+        # no compile-test-only or non-visible helper symbols in a real kernel
+        for bad in ("CONFIG_COMPILE_TEST", "CONFIG_DRM_KMS_HELPER", "CONFIG_SYSFB",
+                    "CONFIG_DRM_GEM_DMA_HELPER", "CONFIG_PM_OPP", "CONFIG_DRM_SCHED"):
+            self.assertFalse([n for n in names if n.startswith(bad)], bad)
+        self.assertTrue(all(l.endswith("=y") for l in lines), "everything built in")
 
     def test_drm_dumb_render_patch(self):
         txt = self._patch_text("0011-drm")
