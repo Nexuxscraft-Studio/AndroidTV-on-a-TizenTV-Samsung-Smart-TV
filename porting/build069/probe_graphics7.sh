@@ -11,4 +11,7 @@ sec "processDisplayAdded: every use of pixelFormat"; awk '/^void SurfaceFlinger:
 sec "FramebufferSurface: buffer format"; grep -n -E 'setDefaultBufferFormat|PIXEL_FORMAT|getFormat|setDefaultBufferSize' $S/DisplayHardware/FramebufferSurface.cpp
 sec "RenderSurface: window format"; grep -rn -E 'native_window_set_buffers_format|mFormat|getPixelFormat|setPixelFormat' $S/CompositionEngine/src/RenderSurface.cpp $S/CompositionEngine/include/compositionengine/RenderSurfaceCreationArgs.h | head -20
 sec "setupNewDisplayDeviceInternal: format"; grep -n -B2 -A6 'setPixelFormat\|PixelFormat format' $S/SurfaceFlinger.cpp | sed -n 1,80p
+sec "7b: RenderSurface.cpp 1-120"; sed -n 1,120p $S/CompositionEngine/src/RenderSurface.cpp
+sec "7b: compositionengine shared_libs"; grep -n -A30 'name: "libcompositionengine_defaults"' $S/CompositionEngine/Android.bp | head -45
+sec "7b: callers of setBufferPixelFormat"; grep -rn 'setBufferPixelFormat' $S --include='*.cpp' | grep -v test | head
 echo "(done)"
