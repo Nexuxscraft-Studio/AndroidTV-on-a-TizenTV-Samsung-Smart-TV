@@ -110,6 +110,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build069/device/qemu_arm_tv/audio_policy_configuration.xml",
     "porting/build069/device/qemu_arm_tv/qemu_logcat_kmsg.sh",
     "porting/build069/runner/request.env",
+    "porting/build069/probe_audio.sh",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES
