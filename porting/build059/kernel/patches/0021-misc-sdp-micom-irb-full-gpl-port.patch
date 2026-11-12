@@ -34,7 +34,7 @@ diff --git a/drivers/misc/sdp-micom/Kconfig b/drivers/misc/sdp-micom/Kconfig
 -	depends on OF && HAS_IOMEM
 +	tristate "Samsung SDP Nike-L Micom IR Blaster/Receiver"
 +	depends on OF && HAS_IOMEM && RC_CORE
-+	depends on SDP_MICOM_MSGBOX
++	depends on SDP_MSGBOX
  	help
 -	  Probe skeleton for the Samsung SDP Nike-L Micom IR Blaster/Receiver
 -	  (IRB) at MMIO 0x9c1300.  Full implementation requires the GPL source
