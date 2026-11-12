@@ -78,7 +78,7 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 15)
+        self.assertEqual(len(names), 16)
         self.assertTrue(names[0].startswith("0001-serial"))
         # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
         # upstream df0cb5cb50bd
@@ -93,6 +93,8 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertTrue(names[13].startswith("0014-media-cec-add-Samsung-SDP"))
         # 0015 (Build 070): Nike-L minimal DRM/KMS display driver (GP plane)
         self.assertTrue(names[14].startswith("0015-drm-sdp-nikel-minimal-kms"))
+        # 0017 (Build 070): SDP1412 EMAC probe skeleton + DT node
+        self.assertTrue(names[15].startswith("0017-net-sdp-mac-emac-probe-skeleton"))
 
     def test_cecif_patch_uses_firmware_values(self):
         txt = self._patch_text("0014-media-cec")
@@ -140,6 +142,30 @@ class PatchSeriesTest(unittest.TestCase):
         # drm_fb_dma_helper included for drm_fb_dma_get_gem_obj
         self.assertIn("+#include <drm/drm_fb_dma_helper.h>", txt)
 
+    def test_sdp_mac_emac_patch(self):
+        """0017: EMAC skeleton – all addresses from firmware dtb0 sha256 0189cc94."""
+        txt = self._patch_text("0017-net")
+        # DT node is inside soc@0 so properties have 3 tabs of indent
+        self.assertIn('+\t\t\tcompatible = "samsung,sdp-mac";', txt)
+        # DT: reg block 0 (MAC core, 0x120000 / 0x100)
+        self.assertIn("+\t\t\treg = <0x00120000 0x100>,", txt)
+        # DT: reg block 1 (0x120100 / 0x300)
+        self.assertIn("+\t\t\t      <0x00120100 0x300>,", txt)
+        # DT: IRQ GIC SPI 7 from firmware <0x0 0x7 0x0>
+        self.assertIn("+\t\t\tinterrupts = <GIC_SPI 7 IRQ_TYPE_NONE>;", txt)
+        # DT: pad-ctrl and phy-sel from firmware
+        self.assertIn("+\t\t\tsamsung,pad-ctrl-reg = <0x130000 0x1 0x1>;", txt)
+        self.assertIn("+\t\t\tsamsung,phy-sel-reg = <0x140000 0x1 0x1>;", txt)
+        # DT: bus-width and napi-weight from firmware (0x40 = 64)
+        self.assertIn("+\t\t\tsamsung,bus-width = <64>;", txt)
+        self.assertIn("+\t\t\tnapi-weight = <64>;", txt)
+        # Driver: maps SDP_MAC_NUM_REGIONS (5) regions
+        self.assertIn("+#define SDP_MAC_NUM_REGIONS\t5", txt)
+        # Driver: uses clk_get_optional (no invented clock index)
+        self.assertIn("+\tpriv->clk = devm_clk_get_optional(&pdev->dev, \"emac_clk\");", txt)
+        # Driver: of_device_id uses exact firmware compatible string
+        self.assertIn('+\t{ .compatible = "samsung,sdp-mac" },', txt)
+
     def test_android_profile_merges_driver_set(self):
         build = (B059 / "kernel" / "build.sh").read_text()
         self.assertIn('"$HERE/configs/nikel-drivers.config"', build)
@@ -155,7 +181,10 @@ class PatchSeriesTest(unittest.TestCase):
         for bad in ("CONFIG_COMPILE_TEST", "CONFIG_DRM_KMS_HELPER", "CONFIG_SYSFB",
                     "CONFIG_DRM_GEM_DMA_HELPER", "CONFIG_PM_OPP", "CONFIG_DRM_SCHED"):
             self.assertFalse([n for n in names if n.startswith(bad)], bad)
-        self.assertTrue(all(l.endswith("=y") for l in lines), "everything built in")
+        # SDP_MAC is built as module (=m) to allow probe testing without loading
+        # on the TV; everything else is built in (=y).
+        for l in lines:
+            self.assertRegex(l, r"=(?:y|m)$", "unexpected value: %s" % l)
 
     def test_drm_dumb_render_patch(self):
         txt = self._patch_text("0011-drm")

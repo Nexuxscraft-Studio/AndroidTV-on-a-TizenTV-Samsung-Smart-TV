@@ -1,0 +1,296 @@
+From ca949677539e5635beac8e4cbf68aa3856e0951d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 13:10:08 +0100
+Subject: [PATCH] net/ethernet/sdp: add SDP1412 EMAC probe skeleton (patch
+ 0017)
+
+Add a probe-only skeleton for the Samsung SDP1412 (Nike-L) EMAC
+controller and its DT node.  All hardware values come from the
+firmware dtb0 (T-NKLDEUC 2743.0 dtb.bin, nikel-2G, sha256 0189cc94,
+node /soc/emac) with the locations noted in comments.
+
+DT node emac@120000 in sdp-nikel.dtsi:
+  - reg: 5 blocks (0x120000/0x100, 0x120100/0x300, 0x120700/0x100,
+    0x120800/0x100, 0x121000/0x100)
+  - interrupts: GIC SPI 7
+  - clock-names: "emac_clk" (phandle index TBD pending sdp_mac.c import)
+  - samsung,pad-ctrl-reg / samsung,phy-sel-reg: firmware values
+  - samsung,bus-width = 64, napi-weight = 64, phy-mask = 0
+  - status = "disabled"
+
+drivers/net/ethernet/sdp/sdp_mac.c:
+  - Maps 5 MMIO regions, gets optional "emac_clk"
+  - Returns 0 from probe (skeleton; MAC implementation TBD)
+  - clk_get_optional() so it probes in QEMU without a clock provider
+
+Kconfig/Makefile: NET_VENDOR_SDP + SDP_MAC tristate, wired into
+drivers/net/ethernet/{Kconfig,Makefile} alphabetically.
+
+No register offsets invented.  Full MAC implementation will follow
+after sdp_mac.c (4870 lines, MODULE_LICENSE("GPL")) is imported via
+a MODE=show runner run.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01HFSjk2L7MPX5r9CMRGhqwJ
+---
+ .../arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi |  43 +++++++
+ drivers/net/ethernet/Kconfig                  |   1 +
+ drivers/net/ethernet/Makefile                 |   1 +
+ drivers/net/ethernet/sdp/Kconfig              |  28 ++++
+ drivers/net/ethernet/sdp/Makefile             |   2 +
+ drivers/net/ethernet/sdp/sdp_mac.c            | 121 ++++++++++++++++++
+ 6 files changed, 196 insertions(+)
+ create mode 100644 drivers/net/ethernet/sdp/Kconfig
+ create mode 100644 drivers/net/ethernet/sdp/Makefile
+ create mode 100644 drivers/net/ethernet/sdp/sdp_mac.c
+
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+index fc472833b..82dc0e5ca 100644
+--- a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+@@ -339,6 +339,49 @@ drm@5d0000 {
+ 				     <GIC_SPI 102 IRQ_TYPE_NONE>;
+ 			status = "disabled";
+ 		};
++
++		/*
++		 * Ethernet MAC.  All values from firmware dtb0
++		 * (T-NKLDEUC 2743.0 dtb.bin, nikel-2G, sha256 0189cc94,
++		 * node /soc/emac).
++		 *
++		 * reg: five consecutive blocks (firmware gives them as
++		 * 10 u32 pairs):
++		 *   0x120000 0x100  – MAC core registers
++		 *   0x120100 0x300  – MAC registers block 1
++		 *   0x120700 0x100  – MAC registers block 2
++		 *   0x120800 0x100  – MAC registers block 3
++		 *   0x121000 0x100  – MAC registers block 4
++		 *
++		 * interrupts: GIC SPI 7 (firmware <0x0 0x7 0x0>).
++		 *
++		 * clock-names: "emac_clk" (firmware clock-names property).
++		 * clocks phandle index TBD: not derivable without sdp_mac.c
++		 * GPL source (project rule: keine erfundenen Hardware-Werte).
++		 * Will be filled after MODE=show run reads sdp_mac.c.
++		 *
++		 * samsung,pad-ctrl-reg / samsung,phy-sel-reg: firmware
++		 * pad_ctrl_reg = <0x130000 0x1 0x1>,
++		 * phy_sel_reg   = <0x140000 0x1 0x1>.
++		 * bus-width, phy-mask, napi-weight: direct from firmware.
++		 */
++		emac: ethernet@120000 {
++			compatible = "samsung,sdp-mac";
++			reg = <0x00120000 0x100>,	/* MAC core */
++			      <0x00120100 0x300>,	/* block 1  */
++			      <0x00120700 0x100>,	/* block 2  */
++			      <0x00120800 0x100>,	/* block 3  */
++			      <0x00121000 0x100>;	/* block 4  */
++			interrupts = <GIC_SPI 7 IRQ_TYPE_NONE>;
++			/* clocks: TBD after sdp_mac.c MODE=show */
++			clock-names = "emac_clk";
++			samsung,pad-ctrl-reg = <0x130000 0x1 0x1>;
++			samsung,phy-sel-reg = <0x140000 0x1 0x1>;
++			samsung,bus-width = <64>;
++			phy-mask = <0x0>;
++			napi-weight = <64>;
++			status = "disabled";
++		};
+ 	};
+ 
+ 	/*
+diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
+index 5a274b99f..470320f86 100644
+--- a/drivers/net/ethernet/Kconfig
++++ b/drivers/net/ethernet/Kconfig
+@@ -171,6 +171,7 @@ source "drivers/net/ethernet/realtek/Kconfig"
+ source "drivers/net/ethernet/renesas/Kconfig"
+ source "drivers/net/ethernet/rocker/Kconfig"
+ source "drivers/net/ethernet/samsung/Kconfig"
++source "drivers/net/ethernet/sdp/Kconfig"
+ source "drivers/net/ethernet/seeq/Kconfig"
+ source "drivers/net/ethernet/sgi/Kconfig"
+ source "drivers/net/ethernet/silan/Kconfig"
+diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
+index 0d872d4ef..da916af2c 100644
+--- a/drivers/net/ethernet/Makefile
++++ b/drivers/net/ethernet/Makefile
+@@ -82,6 +82,7 @@ obj-$(CONFIG_NET_VENDOR_RENESAS) += renesas/
+ obj-$(CONFIG_NET_VENDOR_RDC) += rdc/
+ obj-$(CONFIG_NET_VENDOR_ROCKER) += rocker/
+ obj-$(CONFIG_NET_VENDOR_SAMSUNG) += samsung/
++obj-$(CONFIG_NET_VENDOR_SDP) += sdp/
+ obj-$(CONFIG_NET_VENDOR_SEEQ) += seeq/
+ obj-$(CONFIG_NET_VENDOR_SILAN) += silan/
+ obj-$(CONFIG_NET_VENDOR_SIS) += sis/
+diff --git a/drivers/net/ethernet/sdp/Kconfig b/drivers/net/ethernet/sdp/Kconfig
+new file mode 100644
+index 000000000..567e8f144
+--- /dev/null
++++ b/drivers/net/ethernet/sdp/Kconfig
+@@ -0,0 +1,28 @@
++# SPDX-License-Identifier: GPL-2.0
++# Samsung SDP (Smart Display Platform) Ethernet driver
++
++config NET_VENDOR_SDP
++	bool "Samsung SDP Ethernet devices"
++	default y if ARCH_SAMSUNG_SDP
++	help
++	  Enable support for Samsung SDP (Smart Display Platform) on-chip
++	  Ethernet controllers.
++
++	  If unsure, say N.
++
++if NET_VENDOR_SDP
++
++config SDP_MAC
++	tristate "Samsung SDP EMAC (sdp_mac) driver"
++	depends on OF && HAS_IOMEM
++	select PHYLIB
++	help
++	  Probe-only skeleton for the Samsung SDP1412 (Nike-L) EMAC
++	  controller.  Hardware register layout and MAC programming will be
++	  filled in after GPL source (sdp_mac.c) is imported.
++
++	  Device-tree compatible: "samsung,sdp-mac".
++
++	  If unsure, say N.
++
++endif # NET_VENDOR_SDP
+diff --git a/drivers/net/ethernet/sdp/Makefile b/drivers/net/ethernet/sdp/Makefile
+new file mode 100644
+index 000000000..ccf8bab0f
+--- /dev/null
++++ b/drivers/net/ethernet/sdp/Makefile
+@@ -0,0 +1,2 @@
++# SPDX-License-Identifier: GPL-2.0
++obj-$(CONFIG_SDP_MAC)		+= sdp_mac.o
+diff --git a/drivers/net/ethernet/sdp/sdp_mac.c b/drivers/net/ethernet/sdp/sdp_mac.c
+new file mode 100644
+index 000000000..543b468df
+--- /dev/null
++++ b/drivers/net/ethernet/sdp/sdp_mac.c
+@@ -0,0 +1,121 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Samsung SDP EMAC – probe-only skeleton
++ *
++ * Target SoC  : SDP1412 "Nike-L" (Samsung Q60T / Tizen 5.5)
++ * DT-compat   : "samsung,sdp-mac"
++ * GPL source  : sdp_mac.c (4870 lines), sdp_mac_phy.c (2371 lines)
++ *               – not yet imported, pending MODE=show runner run.
++ *
++ * Hardware addresses from firmware dtb0
++ * (T-NKLDEUC 2743.0 dtb.bin, nikel-2G, sha256 0189cc94,
++ * node /soc/emac):
++ *
++ *   reg block 0  0x00120000  0x100   MAC core
++ *   reg block 1  0x00120100  0x300   MAC regs
++ *   reg block 2  0x00120700  0x100   MAC regs
++ *   reg block 3  0x00120800  0x100   MAC regs
++ *   reg block 4  0x00121000  0x100   MAC regs
++ *   IRQ          GIC SPI 7
++ *   clock-names  "emac_clk"  (clock index TBD from sdp_mac.c)
++ *   bus_width    64
++ *   napi_weight  64
++ *   pad_ctrl_reg 0x130000 1 1
++ *   phy_sel_reg  0x140000 1 1
++ *
++ * Project rule: keine erfundenen Hardware-/ABI-Werte.
++ * Register offsets and MAC programming sequence must come from the
++ * GPL source; this skeleton returns -EPROBE_DEFER until that is done.
++ *
++ * TODO (after sdp_mac.c import):
++ *   1. Add SDP1804_EMAC_CLK to include/dt-bindings/clock/samsung,sdp1804-clk.h
++ *      (value from sdp_mac.c clock registration).
++ *   2. Implement ndo_open / ndo_stop / ndo_start_xmit using sdp_mac.c.
++ *   3. Add MDIO bus & PHY support (sdp_mac_phy.c).
++ *   4. Enable emac node in sdp-nikel-q60t-2g.dts.
++ */
++
++#include <linux/clk.h>
++#include <linux/io.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/platform_device.h>
++
++/* Number of MMIO regions listed in the DT node. */
++#define SDP_MAC_NUM_REGIONS	5
++
++/**
++ * struct sdp_mac_priv - driver private data
++ * @base:   mapped MMIO regions [0..SDP_MAC_NUM_REGIONS-1]
++ * @clk:    "emac_clk" gate clock
++ */
++struct sdp_mac_priv {
++	void __iomem	*base[SDP_MAC_NUM_REGIONS];
++	struct clk	*clk;
++};
++
++static int sdp_mac_probe(struct platform_device *pdev)
++{
++	struct sdp_mac_priv *priv;
++	int i;
++
++	priv = devm_kzalloc(&pdev->dev, sizeof(*priv), GFP_KERNEL);
++	if (!priv)
++		return -ENOMEM;
++
++	for (i = 0; i < SDP_MAC_NUM_REGIONS; i++) {
++		priv->base[i] = devm_platform_ioremap_resource(pdev, i);
++		if (IS_ERR(priv->base[i]))
++			return dev_err_probe(&pdev->dev, PTR_ERR(priv->base[i]),
++					     "failed to map MMIO region %d\n", i);
++	}
++
++	/*
++	 * Clock: the firmware DT node has a clock phandle but the
++	 * SDP1804 clock-binding header has no EMAC clock index yet.
++	 * Use clk_get_optional() so the driver still probes (and can
++	 * be tested in QEMU where there is no clock provider) while
++	 * the real hardware path will get the proper clock once the
++	 * index is added after sdp_mac.c import.
++	 */
++	priv->clk = devm_clk_get_optional(&pdev->dev, "emac_clk");
++	if (IS_ERR(priv->clk))
++		return dev_err_probe(&pdev->dev, PTR_ERR(priv->clk),
++				     "failed to get emac_clk\n");
++
++	platform_set_drvdata(pdev, priv);
++
++	/*
++	 * TODO: implement net_device allocation and registration once
++	 * sdp_mac.c GPL source is imported.  For now, return success so
++	 * the driver attaches and the DT node is claimed.
++	 */
++	dev_info(&pdev->dev, "sdp_mac: probe OK (skeleton, MAC not yet implemented)\n");
++	return 0;
++}
++
++static void sdp_mac_remove(struct platform_device *pdev)
++{
++	/* TODO: unregister netdev */
++}
++
++static const struct of_device_id sdp_mac_of_match[] = {
++	{ .compatible = "samsung,sdp-mac" },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, sdp_mac_of_match);
++
++static struct platform_driver sdp_mac_driver = {
++	.probe	= sdp_mac_probe,
++	.remove	= sdp_mac_remove,
++	.driver	= {
++		.name		= "sdp-mac",
++		.of_match_table	= sdp_mac_of_match,
++	},
++};
++module_platform_driver(sdp_mac_driver);
++
++MODULE_AUTHOR("Claude Sonnet 4.6 (skeleton)");
++MODULE_DESCRIPTION("Samsung SDP EMAC probe skeleton (Nike-L / SDP1412)");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+
