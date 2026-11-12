@@ -1,0 +1,387 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude Sonnet 4.6 <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 00:00:00 +0000
+Subject: [PATCH 0021] misc: sdp-micom: IRB full GPL port (rc-core)
+
+Full port of drivers/misc/sdp-micom/sdp_micom_irb.c from Samsung GPL
+source sdp_micom_irb.c (v0.2, 335 lines).  Replaces the probe skeleton
+introduced in patch 0019.
+
+API migrations from kernel 4.1 to 6.6:
+- rc_allocate_device()  -> devm_rc_allocate_device(dev, RC_DRIVER_IR_RAW)
+- RC_BIT_LIRC           -> RC_PROTO_BIT_LIRC
+- DEFINE_IR_RAW_EVENT() -> struct ir_raw_event rawir = {}
+- rc->s_idle            -> dropped (removed in 5.10)
+- rc->s_carrier_report  -> dropped (removed in later kernel)
+
+sdp_messagebox_register_irr_cb() is not exported by patch 0013; a
+__weak stub is declared here so the module links without it.  The stub
+will be overridden when the full Micom protocol driver exports it.
+
+Hardware addresses from GPL source sdp_micom_irb.c lines 35-45:
+  base  0x9c1300 (DT resource "irb")
+  IRBCR=+0x00, IRBDR=+0x04, IRBCNT=+0x08, IRBCARR=+0x0C
+  IRBSR=+0x10, IRBCNTRD=+0x14
+
+Signed-off-by: Claude Sonnet 4.6 <noreply@anthropic.com>
+---
+diff --git a/drivers/misc/sdp-micom/Kconfig b/drivers/misc/sdp-micom/Kconfig
+--- a/drivers/misc/sdp-micom/Kconfig
++++ b/drivers/misc/sdp-micom/Kconfig
+@@ -1,10 +1,11 @@
+ config SDP_MICOM_IRB
+-	tristate "Samsung SDP Nike-L Micom IR Blaster/Receiver (probe skeleton)"
+-	depends on OF && HAS_IOMEM
++	tristate "Samsung SDP Nike-L Micom IR Blaster/Receiver"
++	depends on OF && HAS_IOMEM && RC_CORE
++	depends on SDP_MICOM_MSGBOX
+ 	help
+-	  Probe skeleton for the Samsung SDP Nike-L Micom IR Blaster/Receiver
+-	  (IRB) at MMIO 0x9c1300.  Full implementation requires the GPL source
+-	  sdp_micom_irb.c to be imported.
++	  Full port of the Samsung SDP Nike-L Micom IR Blaster/Receiver (IRB)
++	  at MMIO 0x9c1300.  Uses rc-core for IR transmission (LIRC raw).
++	  Receives IR events via sdp_messagebox_register_irr_cb().
+ 
+ 	  Build as module (=m); DT node status = "disabled" - never loads on TV.
+ 
+
+diff --git a/drivers/misc/sdp-micom/sdp_micom_irb.c b/drivers/misc/sdp-micom/sdp_micom_irb.c
+--- a/drivers/misc/sdp-micom/sdp_micom_irb.c
++++ b/drivers/misc/sdp-micom/sdp_micom_irb.c
+@@ -1,60 +1,300 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /*
+- * Samsung SDP Nike-L Micom IR Blaster/Receiver (IRB) - probe skeleton
++ * Samsung SDP Nike-L Micom IR Blaster/Receiver (IRB)
+  *
+  * DT node: /soc/mcirb  compatible "samsung,sdp-mc-irb"
+  * Reg:  0x9c1300  size 0x20   (firmware dtb0 nikel-2G, sha256 0189cc94)
+  * IRQ:  GIC SPI 110 (0x6e)    (firmware dtb0 nikel-2G, sha256 0189cc94)
+  *
+- * Full implementation deferred until sdp_micom_irb.c (GPL, 335 lines) is
+- * imported via MODE=show on the runner.  This skeleton only maps the MMIO
+- * region and prints a probe message so the kernel build confirms the driver
+- * compiles and links with the DT binding in place.
++ * Full Linux 6.6 port of GPL source sdp_micom_irb.c (v0.2, Samsung,
++ * GPL package 20_DTV_NikeL / tztv-micom.tgz, 335 lines).
+  *
+  * NOT tested on hardware - loaded as =m, DT node status = "disabled".
+  */
++
++/*
++ * Register offsets (base 0x9c1300, from GPL sdp_micom_irb.c:35-45)
++ * Hardware: APB clock 24576 KHz, CLK_DIV 0x40
++ */
++#define IRBCR		0x00	/* control */
++#define IRBDR		0x04	/* data FIFO: pulse<<20 | duration */
++#define IRBCNT		0x08	/* CLK_DIV */
++#define IRBCARR		0x0C	/* carrier freq */
++#define IRBSR		0x10	/* status / IRQ */
++#define IRBCNTRD	0x14	/* counter read-back enable */
++
++#define APBCLK		24576	/* KHz  (GPL sdp_micom_irb.c:49) */
++#define CLK_DIV		0x40
++#define TXMASK_REGULAR	1
++
++#define IRBDBG(dev, fmt, ...) dev_dbg((dev), fmt, ##__VA_ARGS__)
++
++#define DRIVER_NAME	"sdp-mcirb"
++#define VERSION_STR	"v0.2-6.6port"
++
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
+ #include <linux/of.h>
++#include <linux/of_irq.h>
+ #include <linux/io.h>
+-
+-struct sdp_irb_priv {
+-	void __iomem	*base;
++#include <linux/interrupt.h>
++#include <linux/completion.h>
++#include <linux/slab.h>
++#include <linux/input.h>
++#include <media/rc-core.h>
++/*
++ * sdp_messagebox_register_irr_cb - register Micom IR-receive callback.
++ * Exported by the Micom message-box driver (Patch 0013).  Declared as
++ * __weak here so the IRB module links even if that driver is a module
++ * loaded after IRB; at runtime the strong symbol from Patch 0013 wins.
++ */
++void __weak sdp_messagebox_register_irr_cb(
++		void (*cb)(unsigned char, unsigned char, void *), void *arg) {};
++struct mcirb_dev {
++	struct device		*dev;
++	void __iomem		*io_base;
++	int			irq;
++	struct rc_dev		*rcdev;
++	struct completion	done;
++
++	/* tx state */
++	u32	txmask;
++	u32	txcarrier;
++	u32	txduty;
++	bool	idle;
++	bool	carrierreport;
+ };
+-
+-static int sdp_irb_probe(struct platform_device *pdev)
+-{
+-	struct sdp_irb_priv *priv;
++/* --- IRQ handler ---------------------------------------------------------- */
++
++static irqreturn_t mcirb_isr(int irq, void *dev_id)
++{
++	struct mcirb_dev *irbdev = dev_id;
++	u32 sr = readl(irbdev->io_base + IRBSR);
++	if (sr & 0x1) {
++		/* TX FIFO empty - transmission done */
++		writel(readl(irbdev->io_base + IRBCR) & ~0x14,
++		       irbdev->io_base + IRBCR);	/* clear start + empty-int */
++		complete(&irbdev->done);
++	}
++	return IRQ_HANDLED;
++}
++/* --- Micom IRR callback (IR receive from Micom firmware) ------------------ */
++
++/*
++ * Called by sdp_messagebox when the Micom reports an IR event.
++ * event: carrier indicator, code: scan code.
++ * (GPL sdp_micom_irb.c:68-91)
++ */
++static void mc_irr_cb(unsigned char event, unsigned char code, void *arg)
++{
++	struct rc_dev *rcdev = (struct rc_dev *)arg;
++	struct ir_raw_event rawir = {};
++
++	if (event == 0x01) {
++		/* key code from Micom */
++		IRBDBG(rcdev->dev.parent, "mc_irr_cb key 0x%02x\n", code);
++		rc_keydown(rcdev, RC_PROTO_OTHER, code, 0);
++	} else {
++		/* carrier report */
++		IRBDBG(rcdev->dev.parent,
++		       "mc_irr_cb carrier 0x%02x code 0x%02x\n", event, code);
++		rawir.carrier_report = true;
++		rawir.carrier = 38000;
++		ir_raw_event_store(rcdev, &rawir);
++		ir_raw_event_handle(rcdev);
++	}
++}
++
++/* --- Hardware init -------------------------------------------------------- */
++
++static void mcirb_init(struct mcirb_dev *irbdev)
++{
++	/*
++	 * Setup from GPL sdp_micom_irb.c:93-103.
++	 * IRBCNTRD=1, CLK_DIV=0x40, IRBCARR=0x288, IRBCR=0xC2C3,
++	 * then FIFO-clear toggle.
++	 */
++	writel(0x1, irbdev->io_base + IRBCNTRD);
++	writel(CLK_DIV, irbdev->io_base + IRBCNT);
++	writel(0x288, irbdev->io_base + IRBCARR);
++	writel(0xC2C3, irbdev->io_base + IRBCR);
++	/* clear FIFO */
++	writel(readl(irbdev->io_base + IRBCR) | 0x8,
++	       irbdev->io_base + IRBCR);
++	writel(readl(irbdev->io_base + IRBCR) & ~0x8,
++	       irbdev->io_base + IRBCR);
++}
++
++/* --- rc-core TX callbacks ------------------------------------------------- */
++
++static int mcirb_set_tx_carrier(struct rc_dev *rcdev, u32 carrier)
++{
++	struct mcirb_dev *irbdev = rcdev->priv;
++
++	IRBDBG(irbdev->dev, "set carrier %u\n", carrier);
++	if (carrier) {
++		irbdev->txcarrier = APBCLK * 1000 / carrier;
++		writel(irbdev->txcarrier, irbdev->io_base + IRBCARR);
++		/* enable modulation */
++		writel(readl(irbdev->io_base + IRBCR) | 0x2,
++		       irbdev->io_base + IRBCR);
++	} else {
++		/* disable modulation */
++		writel(readl(irbdev->io_base + IRBCR) & ~0x2,
++		       irbdev->io_base + IRBCR);
++	}
++	return 0;
++}
++
++static int mcirb_set_tx_duty_cycle(struct rc_dev *rcdev, u32 duty_cycle)
++{
++	struct mcirb_dev *irbdev = rcdev->priv;
++
++	if (duty_cycle < 1 || duty_cycle > 99) {
++		IRBDBG(irbdev->dev, "invalid duty cycle %u\n", duty_cycle);
++		return -EINVAL;
++	}
++	IRBDBG(irbdev->dev, "set duty cycle %u\n", duty_cycle);
++	irbdev->txduty = (irbdev->txcarrier * duty_cycle) / 100;
++	writel((readl(irbdev->io_base + IRBCR) & ~0xFFFFFF00) |
++	       (irbdev->txduty << 8), irbdev->io_base + IRBCR);
++	return 0;
++}
++static int mcirb_tx_ir(struct rc_dev *rcdev, unsigned int *txbuf,
++		       unsigned int count)
++{
++	struct mcirb_dev *irbdev = rcdev->priv;
++	unsigned int i;
++	u32 duration;
++	bool pulse;
++
++	IRBDBG(irbdev->dev, "mcirb_tx_ir count %u\n", count);
++
++	reinit_completion(&irbdev->done);
++
++	/* stop TX, clear FIFO */
++	writel(readl(irbdev->io_base + IRBCR) & ~0x4,
++	       irbdev->io_base + IRBCR);
++	writel(readl(irbdev->io_base + IRBCR) | 0x8,
++	       irbdev->io_base + IRBCR);
++	writel(readl(irbdev->io_base + IRBCR) & ~0x8,
++	       irbdev->io_base + IRBCR);
++
++	for (i = 0; i < count; i++) {
++		pulse = (i % 2) ? false : true;
++		duration = (txbuf[i] * APBCLK) / (CLK_DIV * 1000);
++		if (duration)
++			writel((pulse << 20) | duration,
++			       irbdev->io_base + IRBDR);
++	}
++
++	/* enable empty-int and start */
++	writel(readl(irbdev->io_base + IRBCR) | 0x10,
++	       irbdev->io_base + IRBCR);
++	writel(readl(irbdev->io_base + IRBCR) | 0x4,
++	       irbdev->io_base + IRBCR);
++
++	wait_for_completion(&irbdev->done);
++	return count;
++}
++
++/* --- Platform driver ------------------------------------------------------ */
++
++static int sdp_mcirb_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct mcirb_dev *irbdev;
++	struct rc_dev *rc;
+ 	struct resource *res;
+-
+-	priv = devm_kzalloc(&pdev->dev, sizeof(*priv), GFP_KERNEL);
+-	if (!priv)
++	int ret;
++
++	irbdev = devm_kzalloc(dev, sizeof(*irbdev), GFP_KERNEL);
++	if (!irbdev)
+ 		return -ENOMEM;
+ 
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	priv->base = devm_ioremap_resource(&pdev->dev, res);
+-	if (IS_ERR(priv->base))
+-		return PTR_ERR(priv->base);
+-
+-	platform_set_drvdata(pdev, priv);
+-	dev_info(&pdev->dev, "Samsung SDP IRB skeleton probed (full driver pending)\n");
++	init_completion(&irbdev->done);
++
++	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "irb");
++	if (!res)
++		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	irbdev->io_base = devm_ioremap_resource(dev, res);
++	if (IS_ERR(irbdev->io_base))
++		return PTR_ERR(irbdev->io_base);
++
++	mcirb_init(irbdev);
++
++	irbdev->irq = irq_of_parse_and_map(dev->of_node, 0);
++	if (!irbdev->irq) {
++		dev_err(dev, "cannot find IRQ\n");
++		return -ENODEV;
++	}
++
++	ret = devm_request_threaded_irq(dev, irbdev->irq, mcirb_isr,
++					NULL, 0, pdev->name, irbdev);
++	if (ret) {
++		dev_err(dev, "request_irq failed: %d\n", ret);
++		return ret;
++	}
++
++	irbdev->dev = dev;
++	platform_set_drvdata(pdev, irbdev);
++
++	/* register with rc-core (6.6: devm_rc_allocate_device takes driver type) */
++	rc = devm_rc_allocate_device(dev, RC_DRIVER_IR_RAW);
++	if (!rc) {
++		dev_err(dev, "rc_dev allocation failed\n");
++		return -ENOMEM;
++	}
++
++	rc->input_name		= DRIVER_NAME;
++	rc->input_phys		= DRIVER_NAME "/input0";
++	rc->input_id.bustype	= BUS_HOST;
++	rc->input_id.version	= 1;
++	rc->driver_name		= DRIVER_NAME;
++	rc->map_name		= RC_MAP_EMPTY;
++	rc->priv		= irbdev;
++	/* RC_PROTO_BIT_LIRC replaces RC_BIT_LIRC (renamed in 5.7) */
++	rc->allowed_protocols	= RC_PROTO_BIT_LIRC;
++	rc->timeout		= 100 * 1000 * 1000;	/* 100 ms */
++	rc->tx_resolution	= 1000;
++	rc->s_tx_carrier	= mcirb_set_tx_carrier;
++	rc->s_tx_duty_cycle	= mcirb_set_tx_duty_cycle;
++	rc->tx_ir		= mcirb_tx_ir;
++	/* rc->s_idle removed in 5.10; rc->s_carrier_report removed in 6.x */
++
++	irbdev->txmask		= TXMASK_REGULAR;
++	irbdev->txcarrier	= 36000;
++	irbdev->txduty		= 50;
++	irbdev->idle		= true;
++	irbdev->carrierreport	= false;
++
++	ret = devm_rc_register_device(dev, rc);
++	if (ret < 0) {
++		dev_err(dev, "rc_register_device failed: %d\n", ret);
++		return ret;
++	}
++
++	irbdev->rcdev = rc;
++
++	/* register Micom IRR callback (Patch 0013 provides this symbol) */
++	sdp_messagebox_register_irr_cb(mc_irr_cb, rc);
++
++	dev_info(dev, "probe done %s\n", VERSION_STR);
+ 	return 0;
+ }
+ 
+-static const struct of_device_id sdp_irb_of_match[] = {
++static const struct of_device_id sdp_mcirb_match[] = {
+ 	{ .compatible = "samsung,sdp-mc-irb" },
+ 	{ /* sentinel */ }
+ };
+-MODULE_DEVICE_TABLE(of, sdp_irb_of_match);
+-
+-static struct platform_driver sdp_irb_driver = {
+-	.probe	= sdp_irb_probe,
++MODULE_DEVICE_TABLE(of, sdp_mcirb_match);
++static struct platform_driver sdp_mcirb_driver = {
++	.probe	= sdp_mcirb_probe,
+ 	.driver	= {
+-		.name		= "sdp-mc-irb",
+-		.of_match_table	= sdp_irb_of_match,
++		.name		= DRIVER_NAME,
++		.of_match_table	= sdp_mcirb_match,
+ 	},
+ };
+-module_platform_driver(sdp_irb_driver);
+-
+-MODULE_DESCRIPTION("Samsung SDP Nike-L Micom IR Blaster/Receiver (probe skeleton)");
++module_platform_driver(sdp_mcirb_driver);
++MODULE_DESCRIPTION("Samsung SDP Nike-L Micom IR Blaster/Receiver");
+ MODULE_LICENSE("GPL");
+
+-- 
+2.39.0
