@@ -1,0 +1,45 @@
+From: Codex <noreply@openai.com>
+Subject: [PATCH] ARM: dts: describe disabled Q60T Bifrost GPU from firmware
+
+Evidence: firmware dtb0 /soc/sdpgpu@00500000, SHA-256
+0189cc94fe8dd7d016462f22e9f8e965fe328cbc901066c8955f26130f86ab61.
+reg = <0x500000 0x4000>; raw interrupts = <0 0x72 0 0 0x71 0 0 0x70 0>.
+Normalize JOB/MMU/GPU names for Panfrost. Trigger flags are literally 0;
+electrical trigger polarity, clocks, supply and runtime remain UNBELEGT.
+No hardware tests. Keep the node disabled.
+
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+index 909fec152..ee7d693fe 100644
+--- a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+@@ -120,6 +120,22 @@ soc: soc@0 {
+ 		#size-cells = <1>;
+ 		ranges = <0x0 0x0 0x0 0xffffffff>;
+ 
++		/*
++		 * Firmware dtb0 /soc/sdpgpu@00500000, SHA-256
++		 * 0189cc94fe8dd7d016462f22e9f8e965fe328cbc901066c8955f26130f86ab61.
++		 * Raw flags are 0: polarity remains unverified. Do not invent it.
++		 * Clock rate/mux and mali-supply remain unresolved: NEVER enable yet.
++		 */
++		gpu: gpu@500000 {
++			compatible = "arm,mali-bifrost";
++			reg = <0x00500000 0x4000>;
++			interrupts = <GIC_SPI 0x72 IRQ_TYPE_NONE>,
++				     <GIC_SPI 0x71 IRQ_TYPE_NONE>,
++				     <GIC_SPI 0x70 IRQ_TYPE_NONE>;
++			interrupt-names = "job", "mmu", "gpu";
++			status = "disabled";
++		};
++
+ 		gic: interrupt-controller@431000 {
+ 			compatible = "arm,gic-400";
+ 			reg = <0x00431000 0x1000>,	/* GICD */
+@@ -152,6 +168,7 @@ clock: clock-controller@f50000 {
+ 			reg = <0x00f50000 0x3000>;
+ 			clocks = <&fin_pll>;
+ 			#clock-cells = <1>;
++
+ 		};
+ 
+ 		/*
