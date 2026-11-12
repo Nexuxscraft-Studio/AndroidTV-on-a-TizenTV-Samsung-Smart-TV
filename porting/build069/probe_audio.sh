@@ -22,4 +22,10 @@ sec "installed: VINTF fragments with audio.core in PRODUCT_OUT"; grep -rl "audio
 sec "installed: apexes with audio"; find $O -name '*hardware.audio*apex*' -o -name 'com.android.hardware.audio*' 2>/dev/null | head; ls $O/vendor/apex $O/system/apex 2>/dev/null | grep -i audio
 sec "installed: bluetooth audio HAL present?"; find $O/vendor $O/system -iname '*bluetooth.audio*' 2>/dev/null | head -20
 sec "cuttlefish: bluetooth audio / audio HAL packages"; grep -rn -E 'bluetooth.audio|hardware.audio|IModule' device/google/cuttlefish/shared/device.mk device/google/cuttlefish/shared/bluetooth/*.mk 2>/dev/null | head -30
+sec "2: bluetooth policy XML (module name, halVersion)"; f=frameworks/av/services/audiopolicy/config/bluetooth_audio_policy_configuration_7_0.xml; ls -l $f; cat $f
+sec "2: HAL Configuration for BLUETOOTH"; sed -n 680,730p $A/Configuration.cpp
+sec "2: XML converter: module name -> type"; sed -n 125,165p $A/Module.cpp
+sec "2: ModuleBluetooth: what it needs at construction/start"; grep -n -E 'ModuleBluetooth::|IBluetoothAudioProviderFactory|BluetoothAudioSession|waitForService|getService|checkService' $A/bluetooth/ModuleBluetooth.cpp $A/ModuleBluetooth.cpp 2>/dev/null | head -40
+sec "2: cuttlefish policy XML + where the BT XML gets installed"; grep -n -i 'include\|bluetooth' device/google/cuttlefish/shared/config/audio/policy/audio_policy_configuration.xml; grep -rn 'bluetooth_audio_policy_configuration' device/google/cuttlefish frameworks/av/services/audiopolicy/config/Android.bp 2>/dev/null | head
+sec "2: our installed policy XMLs"; ls -l $O/vendor/etc/*.xml | grep -i -E 'audio|volume'
 echo "(done)"
