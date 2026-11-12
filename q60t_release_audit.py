@@ -70,6 +70,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build059/kernel/configs/nikel-arm.config",
     "porting/build059/kernel/configs/nikel-arm64.config",
     "porting/build059/kernel/configs/nikel-common.config",
+    "porting/build059/kernel/configs/nikel-android.config",
     "porting/build059/kernel/configs/required-symbols.txt",
     # Build 063: driver bring-up scaffolds (text only, compile-gated in CI)
     "porting/build063/build.sh",
@@ -95,6 +96,27 @@ ALLOWED_PORTING_SOURCES = {
     # Build 068: Android userspace build pipeline (text only, host-side)
     "porting/build068/userspace_pipeline.sh",
     "porting/build068/runner/request.env",
+    # Build 069: Android GSI QEMU boot (host-side, text only)
+    "porting/build069/run_android_qemu.sh",
+    "porting/build069/probe_graphics.sh",
+    "porting/build069/probe_graphics2.sh",
+    "porting/build069/probe_graphics3.sh",
+    "porting/build069/extract_tombstones.sh",
+    "porting/build069/qemu-virt.config",
+    "porting/build069/device/qemu_arm_tv/fstab.qemuarm",
+    "porting/build069/device/qemu_arm_tv/init.qemuarm.rc",
+    "porting/build069/device/qemu_arm_tv/manifest.xml",
+    "porting/build069/device/qemu_arm_tv/qemu_display_diag.sh",
+    "porting/build069/device/qemu_arm_tv/audio_policy_configuration.xml",
+    "porting/build069/device/qemu_arm_tv/qemu_logcat_kmsg.sh",
+    "porting/build069/runner/request.env",
+    "porting/build069/probe_audio.sh",
+    "porting/build069/probe_graphics4.sh",
+    "porting/build069/probe_graphics5.sh",
+    "porting/build069/probe_graphics6.sh",
+    "porting/build069/probe_graphics7.sh",
+    "porting/build069/los-patches/frameworks/native/0001-surfaceflinger-physical-display-default-composition-format.patch",
+    "porting/build069/los-patches/frameworks/native/0002-compositionengine-client-target-default-composition-format.patch",
 }
 
 ALLOWED_EXPLICIT_SOURCES = ALLOWED_C_PROBES | ALLOWED_PORTING_SOURCES

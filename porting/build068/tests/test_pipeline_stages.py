@@ -29,6 +29,7 @@ PRODUCT_MAKEFILES := \\
 ENVSETUP = """\
 # stub envsetup for tests
 breakfast() { echo "lunch lineage_$1-bp1a-$2"; export T_PRODUCT="lineage_$1"; }
+lunch() { echo "lunch $1"; export T_PRODUCT="${1%%-*}"; }
 get_build_var() {
   case "$1" in
     TARGET_PRODUCT) echo "$T_PRODUCT" ;;
@@ -94,7 +95,7 @@ class PipelineTests(unittest.TestCase):
         r = self.run_pipeline("--dry-run")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("repo init", r.stderr.replace("'", ""))
-        self.assertIn("breakfast \"sdk_tv_arm\" \"eng\"", r.stderr)
+        self.assertIn('lunch "lineage_sdk_tv_arm-${release}-eng"', r.stderr)
         self.assertFalse(self.work.exists())
 
     def test_check_build_verify_emulator_handback(self) -> None:
@@ -116,6 +117,61 @@ class PipelineTests(unittest.TestCase):
         # stage markers -> rerun skips
         r = self.run_pipeline("--only", "build")
         self.assertIn("already done", r.stderr)
+
+    def _fake_surfaceflinger(self) -> Path:
+        """frameworks/native git project with the lines los-patch 0001 touches."""
+        import subprocess
+        proj = self.los / "frameworks/native"
+        sf = proj / "services/surfaceflinger/SurfaceFlinger.cpp"
+        sf.parent.mkdir(parents=True, exist_ok=True)
+        lines = ["// l%d" % i for i in range(1, 3817)] + [
+            "    ui::PixelFormat pixelFormat = static_cast<ui::PixelFormat>(PIXEL_FORMAT_UNKNOWN);",
+            "    if (state.physical) {",
+            "        resolution = state.physical->activeMode->getResolution();",
+            "        pixelFormat = static_cast<ui::PixelFormat>(PIXEL_FORMAT_RGBA_8888);",
+            "    } else if (state.surface != nullptr) {",
+            "        int status = state.surface->query(NATIVE_WINDOW_WIDTH, &resolution.width);",
+            '        ALOGE_IF(status != NO_ERROR, "Unable to query width (%d)", status);',
+            "// end"]
+        sf.write_text("\n".join(lines) + "\n")
+        rs = proj / "services/surfaceflinger/CompositionEngine/src/RenderSurface.cpp"
+        rs.parent.mkdir(parents=True, exist_ok=True)
+        rs_lines = ["// l%d" % i for i in range(1, 17)] + [
+            "", "#define ATRACE_TAG ATRACE_TAG_GRAPHICS", "",
+            "#include <android-base/stringprintf.h>", "#include <android/native_window.h>",
+            "#include <common/trace.h>"] + ["// l%d" % i for i in range(23, 83)] + [
+            "void RenderSurface::initialize() {",
+            "    ANativeWindow* const window = mNativeWindow.get();",
+            "",
+            "    int status = native_window_api_connect(window, NATIVE_WINDOW_API_EGL);",
+            '    ALOGE_IF(status != NO_ERROR, "Unable to connect BQ producer: %d", status);',
+            "    status = native_window_set_buffers_format(window, HAL_PIXEL_FORMAT_RGBA_8888);",
+            '    ALOGE_IF(status != NO_ERROR, "Unable to set BQ format to RGBA888: %d", status);',
+            "    status = native_window_set_usage(window, DEFAULT_USAGE);",
+            '    ALOGE_IF(status != NO_ERROR, "Unable to set BQ usage bits for GPU rendering: %d", status);',
+            "}"]
+        rs.write_text("\n".join(rs_lines) + "\n")
+        subprocess.run(["git", "init", "-q", str(proj)], check=True)
+        return sf
+
+    def test_qemu_arm_tv_device_is_installed_from_repo(self) -> None:
+        (self.los / "device/google/atv/products/atv_generic_system.mk").write_text("# stub\n")
+        sf = self._fake_surfaceflinger()
+        r = self.run_pipeline("--only", "check-target", "--target", "qemu_arm_tv")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("pixelFormat = defaultCompositionPixelFormat;", sf.read_text())
+        rs = self.los / "frameworks/native/services/surfaceflinger/CompositionEngine/src/RenderSurface.cpp"
+        self.assertIn("ro.surface_flinger.default_composition_pixel_format", rs.read_text())
+        self.assertIn("los-patch applied", r.stderr)
+        # second run: patch is recognised as applied, not applied twice
+        r = self.run_pipeline("--only", "check-target", "--target", "qemu_arm_tv", "--force")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("los-patch already applied", r.stderr)
+        dev = self.los / "device/nexuxscraft/qemu_arm_tv"
+        self.assertTrue((dev / "BoardConfig.mk").is_file())
+        self.assertIn("lineage_qemu_arm_tv.mk", (dev / "AndroidProducts.mk").read_text())
+        ct = (self.work / "check-target.json").read_text()
+        self.assertIn('"lunch": "lineage_qemu_arm_tv-bp1a-userdebug"', ct)
 
     def test_missing_target_is_rejected(self) -> None:
         (self.los / "vendor/lineage/build/target/product/AndroidProducts.mk").write_text(

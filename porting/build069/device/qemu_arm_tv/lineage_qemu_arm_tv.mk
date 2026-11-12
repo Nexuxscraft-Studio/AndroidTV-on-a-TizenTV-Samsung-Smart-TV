@@ -1,0 +1,111 @@
+# Build 069 M2: minimal ARM32 Android-TV device for QEMU 'virt'.
+# Same ATV system as lineage_gsi_tv_arm, plus a real vendor partition
+# (split SELinux policy, fstab, init, VINTF manifest). Emulation only;
+# template for device/samsung/nikel. Never flash this to a TV.
+
+LOCAL_PATH := device/nexuxscraft/qemu_arm_tv
+
+PRODUCT_SHIPPING_API_LEVEL := 35
+# Boot 4 / probe 3: PRODUCT_ENFORCE_VINTF_MANIFEST_OVERRIDE := false (M2)
+# silently turned PRODUCT_FULL_TREBLE off (build/make/core/config.mk:790),
+# giving ro.treble.enabled=false. linkerconfig then generated the legacy layout
+# without the exported "sphal" namespace, the Vulkan loader could not dlopen
+# /vendor/lib/hw/vulkan.pastel.so, ANGLE init failed and SurfaceFlinger aborted
+# with "no suitable EGLConfig found". Keep VINTF enforcement on (full Treble).
+
+$(call inherit-product, device/google/atv/products/atv_generic_system.mk)
+$(call inherit-product, device/google/atv/products/atv_system_ext.mk)
+$(call inherit-product, device/google/atv/products/atv_product.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/base_vendor.mk)
+$(call inherit-product, device/google/atv/products/atv_vendor.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/generic_ramdisk.mk)
+include vendor/lineage/build/target/product/lineage_generic_tv_target.mk
+
+PRODUCT_PACKAGES += \
+    LeanbackIME \
+    TvSampleLeanbackLauncher \
+    TvProvision
+
+# Software KeyMint (AOSP reference, in-process TA - emulation only, NOT secure).
+# Without any KeyMint HAL keystore2 aborts ("mandatory security level TEE")
+# and vold blocks on android.security.maintenance (Build 069 M2-Boot 2).
+PRODUCT_PACKAGES += \
+    android.hardware.security.keymint-service
+
+# Graphics (Build 069 M3), same architecture as AOSP Cuttlefish:
+# virtio-gpu (KMS) -> drm_hwcomposer (HWC3), minigbm (allocator + stable-C
+# mapper), SwiftShader Vulkan ("pastel") + ANGLE for GLES. Software
+# rendering, emulation only. On the TV: drm_hwcomposer + gbm with Mesa/Panfrost.
+PRODUCT_PACKAGES += \
+    android.hardware.composer.hwc3-service.drm \
+    android.hardware.graphics.allocator-service.minigbm \
+    mapper.minigbm \
+    vulkan.pastel \
+    libEGL_angle \
+    libGLESv1_CM_angle \
+    libGLESv2_angle
+
+# Boot 11: virtio-gpu (Linux 6.6, virtgpu_display.c) accepts only
+# XRGB8888/ARGB8888 KMS framebuffers and returns -ENOENT for anything else;
+# SurfaceFlinger composes the client target in RGBA_8888 (DRM ABGR8888) by
+# default, so drm_hwcomposer failed with "could not create drm fb -2" and no
+# frame was ever shown. Compose in BGRA_8888 (HAL 5 = DRM ARGB8888) instead
+# (sysprop ro.surface_flinger.default_composition_pixel_format, probe 5).
+PRODUCT_VENDOR_PROPERTIES += \
+    ro.surface_flinger.default_composition_pixel_format=5
+
+PRODUCT_VENDOR_PROPERTIES += \
+    ro.hardware.egl=angle \
+    ro.hardware.vulkan=pastel \
+    ro.hardware.gralloc=minigbm \
+    ro.opengles.version=196608
+
+# Audio: AOSP example AIDL core + effect HAL. The binaries are
+# installable:false and ship only inside the vendor APEX
+# com.android.hardware.audio (probe 3d); same set-up as Cuttlefish
+# (device/google/cuttlefish/shared/device.mk). Without it audioserver
+# segfaults in AudioFlinger::onFirstRef and init reverts/reboots (boot 7).
+# Emulation only, no real sound device.
+PRODUCT_PACKAGES += \
+    com.android.hardware.audio
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
+    device/google/cuttlefish/shared/config/audio/policy/primary_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/primary_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/r_submix_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/bluetooth_audio_policy_configuration_7_0.xml:$(TARGET_COPY_OUT_VENDOR)/etc/bluetooth_audio_policy_configuration_7_0.xml \
+    frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
+    frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
+    hardware/interfaces/audio/aidl/default/audio_effects_config.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects_config.xml
+
+# Minimal platform HALs system_server expects (AOSP examples).
+PRODUCT_PACKAGES += \
+    android.hardware.health-service.example \
+    android.hardware.power-service.example
+
+# 32-bit only product: no default zygote is set by core_64_bit*.mk.
+# Boot 10: SurfaceFlinger has a display (virtio-gpu, 1280x800), so the boot
+# animation is allowed again (debug.sf.nobootanimation=1 removed).
+PRODUCT_VENDOR_PROPERTIES += \
+    ro.zygote=zygote32 \
+    ro.sf.lcd_density=320
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/fstab.qemuarm:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.qemuarm \
+    $(LOCAL_PATH)/fstab.qemuarm:$(TARGET_COPY_OUT_RAMDISK)/fstab.qemuarm \
+    $(LOCAL_PATH)/init.qemuarm.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.qemuarm.rc \
+    $(LOCAL_PATH)/qemu_logcat_kmsg.sh:$(TARGET_COPY_OUT_VENDOR)/bin/qemu_logcat_kmsg.sh \
+    $(LOCAL_PATH)/qemu_display_diag.sh:$(TARGET_COPY_OUT_VENDOR)/bin/qemu_display_diag.sh
+
+# atv_generic_system.mk lists "android.hardware.wifi"; see Android.mk here
+# (empty phony package, QEMU has no Wi-Fi).
+
+TARGET_NO_KERNEL_OVERRIDE := true
+PRODUCT_ENFORCE_ARTIFACT_PATH_REQUIREMENTS := false
+PRODUCT_CHARACTERISTICS := tv
+
+PRODUCT_NAME := lineage_qemu_arm_tv
+PRODUCT_DEVICE := qemu_arm_tv
+PRODUCT_BRAND := Nexuxscraft
+PRODUCT_MANUFACTURER := Nexuxscraft
+PRODUCT_MODEL := Q60T-Port QEMU ARM32 TV (emulation)

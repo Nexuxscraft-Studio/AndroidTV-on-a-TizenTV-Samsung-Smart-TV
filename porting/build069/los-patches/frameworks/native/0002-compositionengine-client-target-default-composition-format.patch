@@ -1,0 +1,36 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] CompositionEngine: client target format from default_composition_pixel_format
+
+Build 069 (QEMU ARM32 ATV, emulation only): RenderSurface::initialize()
+hard-codes HAL_PIXEL_FORMAT_RGBA_8888 (DRM ABGR8888) for the client target of
+every display. virtio-gpu in Linux 6.6 accepts only XRGB8888/ARGB8888 KMS
+framebuffers (virtgpu_display.c) and drm_hwcomposer does not send a
+ClientTargetProperty, so no frame could ever be scanned out
+("could not create drm fb -2"). Use ro.surface_flinger.default_composition_pixel_format
+when set (unchanged RGBA_8888 otherwise). Patch 0001 alone had no effect
+(processDisplayAdded only uses pixelFormat for virtual displays).
+---
+diff --git a/services/surfaceflinger/CompositionEngine/src/RenderSurface.cpp b/services/surfaceflinger/CompositionEngine/src/RenderSurface.cpp
+--- a/services/surfaceflinger/CompositionEngine/src/RenderSurface.cpp
++++ b/services/surfaceflinger/CompositionEngine/src/RenderSurface.cpp
+@@ -16,6 +16,7 @@
+ 
+ #define ATRACE_TAG ATRACE_TAG_GRAPHICS
+ 
++#include <android-base/properties.h>
+ #include <android-base/stringprintf.h>
+ #include <android/native_window.h>
+ #include <common/trace.h>
+@@ -83,7 +84,11 @@ void RenderSurface::initialize() {
+ 
+     int status = native_window_api_connect(window, NATIVE_WINDOW_API_EGL);
+     ALOGE_IF(status != NO_ERROR, "Unable to connect BQ producer: %d", status);
+-    status = native_window_set_buffers_format(window, HAL_PIXEL_FORMAT_RGBA_8888);
++    // Build 069: e.g. BGRA_8888 (5) so virtio-gpu can scan the client target out.
++    const int32_t format =
++            android::base::GetIntProperty("ro.surface_flinger.default_composition_pixel_format",
++                                          static_cast<int32_t>(HAL_PIXEL_FORMAT_RGBA_8888));
++    status = native_window_set_buffers_format(window, format);
+     ALOGE_IF(status != NO_ERROR, "Unable to set BQ format to RGBA888: %d", status);
+     status = native_window_set_usage(window, DEFAULT_USAGE);
+     ALOGE_IF(status != NO_ERROR, "Unable to set BQ usage bits for GPU rendering: %d", status);

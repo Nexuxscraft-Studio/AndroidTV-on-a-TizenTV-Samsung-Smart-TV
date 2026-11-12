@@ -10,7 +10,7 @@
 #   init          repo init LineageOS lineage-22.2 (reuses an existing .repo)
 #   sync          repo sync (+ pinned manifest snapshot for reproducibility)
 #   check-target  verify the lunch target exists in THIS tree (no assumptions)
-#   build         breakfast <target> <variant>; assert TARGET_ARCH=arm; mka
+#   build         lunch lineage_<target>-<release>-<variant>; assert TARGET_ARCH=arm; mka
 #   verify        offline artifact check (verify_userspace_artifacts.py)
 #   emulator      only with --run-emulator AND an ARM32 emulator kernel present
 #   handback      small tar.gz with all results, to hand back for review
@@ -49,9 +49,11 @@ Usage: userspace_pipeline.sh [options]
                        An existing tree (e.g. an old lineage-22.1 checkout) is
                        re-initialised to lineage-22.2 and reuses its objects.
   --work-dir DIR       logs/state/results (default ~/build068-run)
-  --target T           sdk_tv_arm (default) | gsi_tv_arm  (both ARM32 TV)
+  --target T           sdk_tv_arm (default) | gsi_tv_arm | qemu_arm_tv
+                       (all ARM32 TV; qemu_arm_tv = Build-069 device with
+                       vendor partition, copied from porting/build069/device)
   --variant V          eng | userdebug (default: eng for sdk_tv_arm,
-                       userdebug for gsi_tv_arm)
+                       userdebug otherwise)
   --jobs N             mka parallelism (default: nproc). Lower it on small RAM.
   --sync-jobs N        repo sync parallelism (default 4)
   --shallow            repo init --depth=1 (saves disk, no git history)
@@ -97,8 +99,8 @@ done
 
 case "$TARGET" in
   sdk_tv_arm) : "${VARIANT:=eng}" ;;
-  gsi_tv_arm) : "${VARIANT:=userdebug}" ;;
-  *) echo "build068: --target must be sdk_tv_arm or gsi_tv_arm (ARM32 TV only)" >&2; exit 64 ;;
+  gsi_tv_arm|qemu_arm_tv) : "${VARIANT:=userdebug}" ;;
+  *) echo "build068: --target must be sdk_tv_arm, gsi_tv_arm or qemu_arm_tv (ARM32 TV only)" >&2; exit 64 ;;
 esac
 case "$VARIANT" in eng|userdebug) ;; *) echo "build068: bad --variant" >&2; exit 64 ;; esac
 [[ "$JOBS" =~ ^[0-9]+$ && "$JOBS" -ge 1 ]] || { echo "build068: bad --jobs" >&2; exit 64; }
@@ -230,15 +232,44 @@ stage_sync() {
 }
 
 # ---------------------------------------------------------------- check-target
+# Build 069: small source patches for the LOS tree, stored as
+# los-patches/<project path>/NNNN-*.patch. Idempotent: an already applied patch
+# (reverse check passes) is skipped; one that applies neither way stops the run.
+apply_los_patches() {
+  local root="$1" p proj
+  [ -d "$root" ] || return 0
+  while IFS= read -r p; do
+    proj="$(dirname "${p#"$root"/}")"
+    [ -d "$LOS_DIR/$proj" ] || die "los-patch $p: project $proj not in tree"
+    if git -C "$LOS_DIR/$proj" apply --check -R "$p" 2>/dev/null; then
+      log "check-target: los-patch already applied: $proj/$(basename "$p")"
+    elif git -C "$LOS_DIR/$proj" apply --check "$p"; then
+      git -C "$LOS_DIR/$proj" apply "$p"
+      log "check-target: los-patch applied: $proj/$(basename "$p")"
+    else
+      die "los-patch does not apply: $proj/$(basename "$p")"
+    fi
+  done < <(find "$root" -name '*.patch' | sort)
+}
+
 stage_check_target() {
   local prod="vendor/lineage/build/target/product"
   local atv_mk release emu_kernel qemu_arm
   case "$TARGET" in
     sdk_tv_arm) atv_mk="device/google/atv/products/sdk_atv_armv7.mk" ;;
     gsi_tv_arm) atv_mk="device/google/atv/products/aosp_tv_arm.mk" ;;
+    qemu_arm_tv) atv_mk="device/google/atv/products/atv_generic_system.mk"
+                 prod="device/nexuxscraft/qemu_arm_tv" ;;
   esac
   if [ "$DRY_RUN" -eq 1 ]; then log "DRY-RUN: would check $prod/lineage_$TARGET.mk, $atv_mk"; return 0; fi
   cd "$LOS_DIR" || die "cannot cd to $LOS_DIR"
+  if [ "$TARGET" = qemu_arm_tv ]; then
+    # Out-of-tree device from this repo -> LOS tree (replaced on every run).
+    rm -rf "$prod" && mkdir -p "$prod"
+    cp -a "$REPO_ROOT/porting/build069/device/qemu_arm_tv/." "$prod/"
+    log "check-target: installed $prod from porting/build069/device/qemu_arm_tv"
+    apply_los_patches "$REPO_ROOT/porting/build069/los-patches"
+  fi
   grep -q "lineage_${TARGET}\.mk" "$prod/AndroidProducts.mk" \
     || die "lineage_${TARGET} is NOT in $prod/AndroidProducts.mk of this tree"
   [ -f "$prod/lineage_${TARGET}.mk" ] || die "$prod/lineage_${TARGET}.mk missing"
@@ -282,7 +313,9 @@ else
   echo "ccache: off"
 fi
 source build/envsetup.sh >/dev/null || exit 91
-breakfast "$TARGET" "$VARIANT" || exit 92
+release="\$(sed -n 's/^aosp_target_release=//p' vendor/lineage/vars/aosp_target_release)"
+[ -n "\$release" ] || exit 92
+lunch "lineage_${TARGET}-\${release}-${VARIANT}" || exit 92
 vars="\$(get_build_var TARGET_PRODUCT); \$(get_build_var TARGET_RELEASE); \$(get_build_var TARGET_BUILD_VARIANT)"
 arch="\$(get_build_var TARGET_ARCH)"; arch2="\$(get_build_var TARGET_2ND_ARCH)"
 {
@@ -347,7 +380,7 @@ stage_emulator() {
     log "emulator: SKIPPED - no ARM32 emulator kernel in this tree"; return 0
   fi
   log "emulator: starting headless (TCG, ARM on x86 is slow; 30 min cap)"
-  ( cd "$LOS_DIR" && bash --noprofile --norc -c "source build/envsetup.sh >/dev/null; breakfast $TARGET $VARIANT >/dev/null; \
+  ( cd "$LOS_DIR" && bash --noprofile --norc -c "source build/envsetup.sh >/dev/null; lunch lineage_${TARGET}-\$(sed -n 's/^aosp_target_release=//p' vendor/lineage/vars/aosp_target_release)-$VARIANT >/dev/null; \
       timeout 1800 emulator -no-window -no-audio -no-snapshot -show-kernel" >"$LOG_DIR/emulator.log" 2>&1 & )
   local adb="$LOS_DIR/out/host/linux-x86/bin/adb"; command -v adb >/dev/null && adb="$(command -v adb)"
   if timeout 1500 "$adb" wait-for-device shell 'while [ "$(getprop sys.boot_completed)" != 1 ]; do sleep 5; done' 2>/dev/null; then

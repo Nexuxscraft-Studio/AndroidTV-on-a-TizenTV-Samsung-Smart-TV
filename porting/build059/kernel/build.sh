@@ -11,6 +11,8 @@
 #   DIAG_INITRAMFS=1 (default) | 0   embed initramfs/q60t-diag-init as /init
 #   ANDROID_BASE_CONFIG              path to AOSP android-6.6/android-base.config
 #                                    (required for the android profile)
+#   EXTRA_FRAGMENTS                  colon-separated extra config fragments
+#                                    (merged last, must survive like the others)
 #
 # The kernel tree must be a clean v6.6.162 checkout. The patches are applied
 # in place (once); use a dedicated tree for this. Nothing is installed,
@@ -66,17 +68,36 @@ else
 fi
 
 # 1. patches -----------------------------------------------------------------
-if [ -f "$KSRC/drivers/tty/serial/sdp_uart.c" ]; then
-  log "patches already applied"
-else
-  for p in "$HERE"/patches/*.patch; do
-    log "applying $(basename "$p")"
-    patch -d "$KSRC" -p1 --forward --batch < "$p" > /dev/null
-  done
+# Applied patches are recorded in $KSRC/.build059-patches-applied, so a tree
+# that already carries 0001..N gets newly added patches (e.g. 0010) applied.
+# (A reverse dry-run is not reliable: later patches modify files created by
+# earlier ones.) Legacy trees without the list but with the series applied
+# as a block (sdp_uart.c present) are recorded as 0001..0009.
+APPLIED="$KSRC/.build059-patches-applied"
+if [ ! -f "$APPLIED" ] && [ -f "$KSRC/drivers/tty/serial/sdp_uart.c" ]; then
+  for p in "$HERE"/patches/000[1-9]-*.patch; do basename "$p"; done > "$APPLIED"
+  log "legacy tree: recorded 0001..0009 as applied"
 fi
+touch "$APPLIED"
+for p in "$HERE"/patches/*.patch; do
+  n="$(basename "$p")"
+  if grep -qxF "$n" "$APPLIED"; then
+    log "already applied $n"
+    continue
+  fi
+  log "applying $n"
+  patch -d "$KSRC" -p1 --forward --batch < "$p" > /dev/null
+  echo "$n" >> "$APPLIED"
+done
 
 # 2. configuration -------------------------------------------------------------
 FRAGS=("$HERE/configs/nikel-common.config" "$HERE/configs/nikel-$ARCH_NAME.config")
+[ "$PROFILE" = android ] && FRAGS+=("$HERE/configs/nikel-android.config")
+# Optional extra fragments (colon-separated paths), e.g. Build 069 QEMU virtio.
+if [ -n "${EXTRA_FRAGMENTS:-}" ]; then
+  IFS=: read -r -a _extra <<< "$EXTRA_FRAGMENTS"
+  for f in "${_extra[@]}"; do [ -f "$f" ] || die "extra fragment not found: $f"; FRAGS+=("$f"); done
+fi
 MERGE_EXTRA=()
 [ "$PROFILE" = android ] && MERGE_EXTRA=("$ANDROID_BASE_CONFIG")
 if [ "$PROFILE" = tiny ]; then

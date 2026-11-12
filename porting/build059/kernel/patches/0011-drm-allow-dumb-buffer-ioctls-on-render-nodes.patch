@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 11 Nov 2026 20:30:00 +0100
+Subject: [PATCH 11/11] drm: allow dumb buffer ioctls on render nodes
+
+Android's minigbm gralloc opens the DRM render node and allocates with
+DRM_IOCTL_MODE_CREATE_DUMB when the GPU has no 3D path (virtio-gpu in 2D
+mode under QEMU; also a fallback for display-only KMS drivers). Upstream
+only allows the dumb ioctls on the primary node, so the allocator fails
+with EACCES and SurfaceFlinger aborts with "output buffer not gpu
+writeable" (Build 069 M3, boot 5).
+
+This is the same change the Android Common Kernel carries as
+"ANDROID: Allow DRM_IOCTL_MODE_*_DUMB for render clients" (b/123764798,
+used by Cuttlefish without 3D). Not suitable for upstream.
+
+Link: https://lore.kernel.org/lkml/20180724082213.25677-1-robert.foss@collabora.com/
+---
+ drivers/gpu/drm/drm_ioctl.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/drm_ioctl.c b/drivers/gpu/drm/drm_ioctl.c
+--- a/drivers/gpu/drm/drm_ioctl.c
++++ b/drivers/gpu/drm/drm_ioctl.c
+@@ -680,7 +680,7 @@
+	DRM_IOCTL_DEF(DRM_IOCTL_MODE_PAGE_FLIP, drm_mode_page_flip_ioctl, DRM_MASTER),
+	DRM_IOCTL_DEF(DRM_IOCTL_MODE_DIRTYFB, drm_mode_dirtyfb_ioctl, DRM_MASTER),
+-	DRM_IOCTL_DEF(DRM_IOCTL_MODE_CREATE_DUMB, drm_mode_create_dumb_ioctl, 0),
+-	DRM_IOCTL_DEF(DRM_IOCTL_MODE_MAP_DUMB, drm_mode_mmap_dumb_ioctl, 0),
+-	DRM_IOCTL_DEF(DRM_IOCTL_MODE_DESTROY_DUMB, drm_mode_destroy_dumb_ioctl, 0),
++	DRM_IOCTL_DEF(DRM_IOCTL_MODE_CREATE_DUMB, drm_mode_create_dumb_ioctl, DRM_RENDER_ALLOW),
++	DRM_IOCTL_DEF(DRM_IOCTL_MODE_MAP_DUMB, drm_mode_mmap_dumb_ioctl, DRM_RENDER_ALLOW),
++	DRM_IOCTL_DEF(DRM_IOCTL_MODE_DESTROY_DUMB, drm_mode_destroy_dumb_ioctl, DRM_RENDER_ALLOW),
+	DRM_IOCTL_DEF(DRM_IOCTL_MODE_OBJ_GETPROPERTIES, drm_mode_obj_get_properties_ioctl, 0),
+	DRM_IOCTL_DEF(DRM_IOCTL_MODE_OBJ_SETPROPERTY, drm_mode_obj_set_property_ioctl, DRM_MASTER),
+-- 
+2.47.3

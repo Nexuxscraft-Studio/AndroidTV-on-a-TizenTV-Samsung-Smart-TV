@@ -1,0 +1,165 @@
+name: Build069 Android GSI boot on 6.6.162 ARM32 (QEMU, self-hosted)
+
+# Boots the Build-068 LineageOS ARM32 ATV GSI (system.img + ramdisk.img) on the
+# Build-059 Linux 6.6.162 ARM32 kernel under qemu-system-arm -M virt on the
+# project's own runner. Emulation only: no TV, firmware or signature access.
+#
+# Trigger: push of porting/build069/runner/request.env on a claude/build069-*
+# branch (or workflow_dispatch once on the default branch).
+on:
+  push:
+    branches: ['claude/build069-*']
+    paths: ['porting/build069/runner/request.env']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build068-selfhosted-v2   # shares the runner/tree with the Build-068 builds
+  cancel-in-progress: false
+
+jobs:
+  offline-tests:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          bash -n porting/build069/run_android_qemu.sh
+          python3 -m unittest discover -s porting/build069/tests -v
+
+  qemu-boot:
+    needs: offline-tests
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 240
+    env:
+      WORK_DIR: ${{ github.workspace }}/../build069-run
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse and validate request.env
+        shell: bash
+        run: |
+          set -euo pipefail
+          f=porting/build069/runner/request.env
+          get() { sed -n "s/^$1=//p" "$f" | tail -1; }
+          LOS_DIR="$(get LOS_DIR)"; TIMEOUT="$(get TIMEOUT)"; SMP="$(get SMP)"
+          MEM="$(get MEM)"; HW="$(get HARDWARE)"; REBUILD="$(get REBUILD_KERNEL)"
+          EXTRA="$(get EXTRA_CMDLINE)"; PRODUCT_DIR="$(get PRODUCT_DIR)"
+          MODE="$(get MODE)"; MODE="${MODE:-boot}"
+          case "$MODE" in boot|probe|probe-audio|probe-graphics4|probe-graphics5|probe-graphics6|probe-graphics7|tombstones) ;; *) echo "bad MODE"; exit 1 ;; esac
+          case "$PRODUCT_DIR" in generic|qemu_arm_tv) ;; *) echo "bad PRODUCT_DIR"; exit 1 ;; esac
+          [[ "$LOS_DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "bad LOS_DIR"; exit 1; }
+          for v in "$TIMEOUT" "$SMP" "$MEM"; do [[ "$v" =~ ^[0-9]+$ ]] || { echo "bad number"; exit 1; }; done
+          [[ "$HW" =~ ^[a-z0-9_]+$ ]] || { echo "bad HARDWARE"; exit 1; }
+          case "$REBUILD" in 0|1) ;; *) echo "bad REBUILD_KERNEL"; exit 1 ;; esac
+          [[ "$EXTRA" =~ ^[A-Za-z0-9._=,:/\ -]*$ ]] || { echo "bad EXTRA_CMDLINE"; exit 1; }
+          {
+            echo "LOS_DIR=$LOS_DIR"; echo "TIMEOUT=$TIMEOUT"; echo "SMP=$SMP"; echo "MEM=$MEM"
+            echo "HW=$HW"; echo "REBUILD=$REBUILD"; echo "EXTRA=$EXTRA"; echo "PRODUCT_DIR=$PRODUCT_DIR"; echo "MODE=$MODE"
+            echo "WORK_DIR=$(realpath -m "$WORK_DIR")"
+          } | tee -a "$GITHUB_ENV"
+
+      - name: Read-only source probe (MODE=probe)
+        if: env.MODE == 'probe'
+        shell: bash
+        run: |
+          KCONFIG="$WORK_DIR/kernel/artifacts-arm-android/config" \
+            bash porting/build069/probe_graphics.sh "$LOS_DIR"
+          bash porting/build069/probe_graphics3.sh "$LOS_DIR" qemu_arm_tv
+
+      - name: Read-only audio probe (MODE=probe-audio)
+        if: env.MODE == 'probe-audio'
+        shell: bash
+        run: bash porting/build069/probe_audio.sh "$LOS_DIR"
+
+      - name: Read-only HWC/minigbm probe (MODE=probe-graphics4)
+        if: env.MODE == 'probe-graphics4'
+        shell: bash
+        run: bash porting/build069/probe_graphics4.sh "$LOS_DIR"
+
+      - name: Read-only SF client-target format probe (MODE=probe-graphics5)
+        if: env.MODE == 'probe-graphics5'
+        shell: bash
+        run: bash porting/build069/probe_graphics5.sh "$LOS_DIR"
+
+      - name: Read-only HWC client-layer probe (MODE=probe-graphics6)
+        if: env.MODE == 'probe-graphics6'
+        shell: bash
+        run: bash porting/build069/probe_graphics6.sh "$LOS_DIR"
+
+      - name: Read-only client-target format probe (MODE=probe-graphics7)
+        if: env.MODE == 'probe-graphics7'
+        shell: bash
+        run: bash porting/build069/probe_graphics7.sh "$LOS_DIR"
+
+      - name: Crash evidence from last guest userdata (MODE=tombstones)
+        if: env.MODE == 'tombstones'
+        shell: bash
+        run: bash porting/build069/extract_tombstones.sh "$WORK_DIR"
+
+      - name: Kernel + images + QEMU boot + milestone analysis
+        if: env.MODE == 'boot'
+        shell: bash
+        run: |
+          set -uo pipefail
+          args=(--los-dir "$LOS_DIR" --work-dir "$WORK_DIR" --timeout "$TIMEOUT"
+                --smp "$SMP" --mem "$MEM" --hardware "$HW"
+                --product-out "$LOS_DIR/out/target/product/$PRODUCT_DIR")
+          [ "$REBUILD" = 1 ] && args+=(--rebuild-kernel)
+          [ -n "$EXTRA" ] && args+=(--extra-cmdline "$EXTRA")
+          bash porting/build069/run_android_qemu.sh "${args[@]}"
+          echo "run_android_qemu exit $? (0 = second-stage init reached)"
+
+      - name: Print evidence into the job log
+        if: always() && env.MODE == 'boot'
+        shell: bash
+        run: |
+          w="$WORK_DIR"
+          for f in milestones.json qemu-exit.txt fstab.$HW; do [ -f "$w/$f" ] && { echo "===== $f"; cat "$w/$f"; }; done
+          [ -f "$w/kernel/artifacts-arm-android/android-coverage.txt" ] && { echo "===== android-coverage (head)"; head -40 "$w/kernel/artifacts-arm-android/android-coverage.txt"; }
+          [ -f "$w/ramdisk-listing.txt" ] && { echo "===== ramdisk listing"; cat "$w/ramdisk-listing.txt"; }
+          [ -f "$w/kernel-build.log" ] && { echo "===== kernel-build.log (tail 30)"; tail -n 30 "$w/kernel-build.log"; }
+          echo "===== tombstones (guest userdata)"
+          bash porting/build069/extract_tombstones.sh "$w" | head -400 || true
+          if [ -f "$w/qemu-android.log" ]; then
+            echo "===== qemu-android.log (init/fs/selinux lines)"
+            grep -a -n -E 'init:|Run /init|VFS|EXT4-fs|erofs|virtio|vda|SELinux|selinux|panic|Kernel panic|reboot:|binder|apexd|servicemanager|zygote' "$w/qemu-android.log" | grep -v 'avc:' | head -1500 || true
+            echo "===== NetBpfLoad / bpfloader (all lines)"
+            grep -a -E "NetBpfLoad|bpfloader|BpfLoader|libbpf" "$w/qemu-android.log" | tail -150 || true
+            echo "===== ARM32 BPF JIT messages"
+            grep -a -E "NOT YET: opcode|unknown opcode|bpf_jit|BPF JIT" "$w/qemu-android.log" || echo "(none)"
+            echo "===== kernel BPF/cgroup config"
+            grep -E "CONFIG_(BPF|CGROUP|NET_CLS_BPF|NET_ACT_BPF|BPF_JIT|SOCK_CGROUP|NETFILTER_XT_MATCH_BPF)" "$w/kernel/artifacts-arm-android/config" || true
+            echo "===== guest logcat via kmsg: graphics (L> lines)"
+            grep -a 'L> ' "$w/qemu-android.log" | grep -a -i -E 'surfaceflinger|SurfaceFlinger|EGL|angle|vulkan|swiftshader|pastel|RenderEngine|gralloc|minigbm|composer|hwc|drm|libEGL|GLES' | cut -c1-400 | head -400 || true
+            echo "===== guest display diagnostics (D> lines)"
+            grep -a 'D> ' "$w/qemu-android.log" | sed 's/^.*D> //' | cut -c1-300 | head -500 || true
+            echo "===== guest logcat via kmsg: all E/ and F/ (head 400)"
+            grep -a -E 'L> [EF]/' "$w/qemu-android.log" | grep -a -v 'F/DEBUG' | cut -c1-400 | head -400 || true
+            echo "===== graphics libraries in PRODUCT_OUT"
+            po="$LOS_DIR/out/target/product/$PRODUCT_DIR"
+            for d in vendor/lib/egl vendor/lib/hw system/lib/egl system/lib/hw vendor/etc/vintf/manifest; do
+              [ -d "$po/$d" ] && { echo "--- $d"; ls -1 "$po/$d" | grep -i -E 'egl|gles|vulkan|pastel|angle|gralloc|minigbm|mapper|composer|hwc' || true; }
+            done
+            echo "===== services started / died"
+            grep -a -E "starting service|exited with status|received signal|Kernel panic|boot_completed|sys.boot" "$w/qemu-android.log" | head -300 || true
+            echo "===== qemu-android.log (tail 120)"
+            tail -n 120 "$w/qemu-android.log" | cut -c1-300
+          fi
+          true
+
+      - name: Upload boot evidence
+        if: always() && env.MODE == 'boot'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build069-qemu-boot-${{ github.run_id }}
+          path: |
+            ${{ env.WORK_DIR }}/qemu-android.log
+            ${{ env.WORK_DIR }}/milestones.json
+            ${{ env.WORK_DIR }}/ramdisk-listing.txt
+            ${{ env.WORK_DIR }}/kernel/artifacts-arm-android/config
+            ${{ env.WORK_DIR }}/kernel/artifacts-arm-android/android-coverage.txt
+          if-no-files-found: warn
+          retention-days: 30
