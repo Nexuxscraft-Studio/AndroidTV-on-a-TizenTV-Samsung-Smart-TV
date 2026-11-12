@@ -48,7 +48,7 @@ jobs:
           MEM="$(get MEM)"; HW="$(get HARDWARE)"; REBUILD="$(get REBUILD_KERNEL)"
           EXTRA="$(get EXTRA_CMDLINE)"; PRODUCT_DIR="$(get PRODUCT_DIR)"
           MODE="$(get MODE)"; MODE="${MODE:-boot}"
-          case "$MODE" in boot|probe|probe-audio|tombstones) ;; *) echo "bad MODE"; exit 1 ;; esac
+          case "$MODE" in boot|probe|probe-audio|probe-graphics4|tombstones) ;; *) echo "bad MODE"; exit 1 ;; esac
           case "$PRODUCT_DIR" in generic|qemu_arm_tv) ;; *) echo "bad PRODUCT_DIR"; exit 1 ;; esac
           [[ "$LOS_DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "bad LOS_DIR"; exit 1; }
           for v in "$TIMEOUT" "$SMP" "$MEM"; do [[ "$v" =~ ^[0-9]+$ ]] || { echo "bad number"; exit 1; }; done
@@ -73,6 +73,11 @@ jobs:
         if: env.MODE == 'probe-audio'
         shell: bash
         run: bash porting/build069/probe_audio.sh "$LOS_DIR"
+
+      - name: Read-only HWC/minigbm probe (MODE=probe-graphics4)
+        if: env.MODE == 'probe-graphics4'
+        shell: bash
+        run: bash porting/build069/probe_graphics4.sh "$LOS_DIR"
 
       - name: Crash evidence from last guest userdata (MODE=tombstones)
         if: env.MODE == 'tombstones'
