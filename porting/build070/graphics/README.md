@@ -56,7 +56,16 @@ Bundle SHA-256 stimmt mit Build 004 überein.
   entsprechend dem Projektziel Mali-G51. Live-GPU-ID weiterhin UNBELEGT.
 - **Triggertyp im Blob ist 0 / IRQ_TYPE_NONE.** Elektrische Polarität und
   Flanken-/Pegelverhalten sind damit nicht bewiesen. Kein erfundenes
-  `IRQ_TYPE_LEVEL_HIGH`. Erst vor Aktivierung aufklären.
+  `IRQ_TYPE_LEVEL_HIGH`. Der Kbase-Test-/Fake-Pfad setzt zwar
+  `IORESOURCE_IRQ_HIGHLEVEL`, beschreibt aber nicht Nike-L-Hardware und ist
+  daher kein Gegenbeleg. Erst vor Aktivierung aufklären.
+- **`mali-supply`: UNBELEGT und nicht ergänzt.** Der Samsung-Kbase-Treiber
+  fragt `regulator_get_optional(..., "mali")` ab und fährt bei fehlendem
+  Regler ausdrücklich fort
+  (`sdp_gpu_nike/.../mali_kbase_core_linux.c:3508–3543`). Das Original-DTB
+  enthält zwar die Regler `CPU_PW` und `CORE_PW`, aber keinerlei
+  GPU-Knoten-Referenz oder Regler mit Mali-Bezug. Eine Zuordnung von
+  `CORE_PW` zu `mali-supply` wäre geraten und bleibt verboten.
 
 ## G3: Design 2, ein genpd-Owner
 
@@ -160,7 +169,10 @@ innerhalb 32 Bit und begrenzt auch DMA-Allokationen entsprechend.
 GP-Format-/Swizzle-Programmierung für ABGR8888; GP-Adress-Latch bei VSync;
 IRQ-Statusbit-Bedeutung im Detail; Scanout-/CMA-/Bootlogo-Speicherübergabe;
 Tearing, Farben, PRIME-Import und Display-Power-Sequenz am Gerät.
-XRGB8888/ARGB8888 sind Quellbefunde, keine Messung korrekter Farben.
+Die Vendor-GP-Formatliste ist auf XRGB8888 und ARGB8888 begrenzt
+(`sdp_drm_nike/sdp_hw_plane.c:13–17`); XRGB8888/ARGB8888 sind damit
+Quellbefunde, aber keine Messung korrekter Farben. Weder die G2D-RGBA-Enums
+noch Androids Formatwunsch beweisen einen GP-ABGR-Swizzle.
 
 ## G6: Mesa-Panfrost / drm_hwcomposer für LineageOS 22.2
 

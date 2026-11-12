@@ -5,7 +5,9 @@
       "compatible": "\"arm,mali-midgard\"",
       "reg": "<0x500000 0x4000>",
       "interrupts": "<0x0 0x72 0x0 0x0 0x71 0x0 0x0 0x70 0x0>",
-      "interrupt-names": "\"JOB\", \"MMU\", \"GPU\""
+      "interrupt-names": "\"JOB\", \"MMU\", \"GPU\"",
+      "interrupt_trigger": "0 / IRQ_TYPE_NONE; polarity is unproven",
+      "mali_supply": "absent; no GPU-associated regulator reference exists in dtb0"
     },
     "/soc/clock-controller@00F50000": {
       "compatible": "\"samsung,sdp1804-clock\"",
@@ -35,6 +37,12 @@
     "vendor_nikel_mux_registers_and_fields": "mali_kbase_config_platform.h:101-115,121-154,184-208",
     "sdp1804_pll_inventory_without_gpu_output": "linux-4.1.10/drivers/clk/clk-sdp.c:1505-1570",
     "activation_status": "unproven: firmware DT has no GPU clock child and no live MMIO readback was taken"
+  },
+  "gpu_power_and_irq_evidence": {
+    "vendor_regulator_lookup": "mali_kbase_core_linux.c:3508-3543: regulator_get_optional(dev, \"mali\"); probe continues without it",
+    "firmware_regulators": "dtb0.dts lines 2070-2078 (CPU_PW) and 2323-2345 (CPU_PW/CORE_PW); no GPU consumer link",
+    "irq_trigger": "dtb0 /soc/sdpgpu@00500000 interrupt cells have flags zero; no electrical trigger type is encoded",
+    "vendor_fake_irq_flags": "mali_kbase_platform_fake.c:66-76 uses IORESOURCE_IRQ_HIGHLEVEL for a fake platform only; not hardware evidence"
   },
   "kernel_commit": "5139929c698c273e07cb0635732f6a918a7b8e78",
   "hardware_tested": false,
