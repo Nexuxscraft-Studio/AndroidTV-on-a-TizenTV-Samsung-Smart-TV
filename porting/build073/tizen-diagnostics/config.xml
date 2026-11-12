@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="http://noverhost.de/q60t-diagnostics"
+        version="0.1.0" viewmodes="maximized">
+  <tizen:application id="NvxQ60T073.Diagnostics" package="NvxQ60T073" required_version="5.5"/>
+  <content src="index.html"/>
+  <name>Q60T Diagnose</name>
+  <description>Read-only diagnostic display for Samsung Q60T and Tizen 5.5.</description>
+  <tizen:profile name="tv-samsung"/>
+  <tizen:privilege name="http://tizen.org/privilege/system"/>
+  <tizen:privilege name="http://developer.samsung.com/privilege/productinfo"/>
+</widget>
