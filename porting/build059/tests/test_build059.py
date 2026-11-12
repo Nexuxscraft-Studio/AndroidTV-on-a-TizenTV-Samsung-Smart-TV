@@ -78,7 +78,7 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 17)
+        self.assertEqual(len(names), 18)
         self.assertTrue(names[0].startswith("0001-serial"))
         # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
         # upstream df0cb5cb50bd
@@ -97,6 +97,8 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertTrue(names[15].startswith("0017-net-sdp-mac-emac-probe-skeleton"))
         # 0018 (Build 070): SDP1412 HDMI transmitter probe skeleton + DT node
         self.assertTrue(names[16].startswith("0018-drm-sdp-hdmi-transmitter-probe-skeleton"))
+        # 0019 (Build 070): SDP1412 IRB + IRS probe skeletons + DT nodes
+        self.assertTrue(names[17].startswith("0019-misc-sdp-micom-irb-irs-probe-skeletons"))
 
     def test_cecif_patch_uses_firmware_values(self):
         txt = self._patch_text("0014-media-cec")
@@ -193,6 +195,31 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertIn("+\t\t\t\t       IRQF_NO_AUTOEN, dev_name(&pdev->dev),", txt)
         # compatible in of_match table
         self.assertIn('+\t{ .compatible = "samsung,sdp-hdmi" },', txt)
+
+    def test_sdp_micom_irb_irs_patch(self):
+        """0019: IRB + IRS skeletons – addresses from firmware dtb0 sha256 0189cc94."""
+        txt = self._patch_text("0019-misc-sdp-micom")
+        # --- DT nodes (3 tabs inside soc@0) ---
+        # IRB compatible
+        self.assertIn('+\t\t\tcompatible = "samsung,sdp-mc-irb";', txt)
+        # IRB reg: firmware dtb0 /soc/mcirb reg <0x9c1300 0x20>
+        self.assertIn("+\t\t\treg = <0x009c1300 0x20>;", txt)
+        # IRB IRQ: GIC SPI 110 (0x6e)
+        self.assertIn("+\t\t\tinterrupts = <GIC_SPI 110 IRQ_TYPE_NONE>;", txt)
+        # IRS compatible
+        self.assertIn('+\t\t\tcompatible = "samsung,sdp-mc-irs";', txt)
+        # IRS reg: firmware dtb0 /soc/mcirs reg <0x9c1400 0x20>
+        self.assertIn("+\t\t\treg = <0x009c1400 0x20>;", txt)
+        # IRS IRQ: GIC SPI 111 (0x6f)
+        self.assertIn("+\t\t\tinterrupts = <GIC_SPI 111 IRQ_TYPE_NONE>;", txt)
+        # --- Driver skeletons ---
+        # IRB of_match compatible
+        self.assertIn('+\t{ .compatible = "samsung,sdp-mc-irb" },', txt)
+        # IRS of_match compatible
+        self.assertIn('+\t{ .compatible = "samsung,sdp-mc-irs" },', txt)
+        # --- Kconfig symbols in nikel-drivers.config ---
+        self.assertIn("+CONFIG_SDP_MICOM_IRB=m", txt)
+        self.assertIn("+CONFIG_SDP_MICOM_IRS=m", txt)
 
     def test_android_profile_merges_driver_set(self):
         build = (B059 / "kernel" / "build.sh").read_text()
