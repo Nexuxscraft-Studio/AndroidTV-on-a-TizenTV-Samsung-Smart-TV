@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Q60T Diagnose</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <script src="$WEBAPIS/webapis/webapis.js"></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">NOVERHOST LAB · BUILD 073</div>
+        <h1>Samsung Q60T <span>Diagnose</span></h1>
+        <p>Offizielle Tizen-APIs · Nur lesend · Keine Shell und kein Root-Zugriff</p>
+      </div>
+      <div class="status-block">
+        <span class="pill" id="state" aria-live="polite">Bereit</span>
+        <button id="refresh" type="button" autofocus>↻ Erneut auslesen</button>
+      </div>
+    </header>
+    <section class="hint">Diese App liefert Systeminformationen, aber keine gesicherten Kernel- oder Bootloaderdaten. Unbekannte Werte werden als „Nicht verfügbar“ gekennzeichnet.</section>
+    <div id="results" class="columns" aria-live="polite">
+      <div class="placeholder">Diagnose wird geladen …</div>
+    </div>
+    <footer>
+      <span>▲▼ Scrollen · OK Auslesen · Zurück Schließen</span>
+      <span>Kein Upload · Keine Speicherung · Keine Systemänderung</span>
+    </footer>
+  </main>
+</body>
+</html>
