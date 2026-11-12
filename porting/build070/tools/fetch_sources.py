@@ -10,6 +10,14 @@ Standard library only. Nothing is written to a TV; files land in OUT_DIR.
       (reports/hardware_2743.0_build004_final.json) and writes
       OUT_DIR/dtb<N>.dtb + OUT_DIR/dtb<N>.dts + OUT_DIR/dtb-manifest.json.
 
+  fetch_sources.py get URL OUT_DIR
+      Downloads one file (e.g. linux-4.1.10-tizen5.5.tgz from the team's
+      file share) into OUT_DIR, skips it if the same size is already there,
+      records size + SHA-256 in OUT_DIR/files-manifest.json. Exit code 3 if
+      the server answers 404 (file not uploaded yet).
+
+  fetch_sources.py dtb URL OUT_DIR   (URL may also point to a bare dtb.bin)
+
   fetch_sources.py gpl URL OUT_DIR
       Downloads Samsung's GPL package 20_DTV_NikeL.zip (outer ZIP, once),
       extracts the inner 20_DTV_NikeL.zip and from it
@@ -30,8 +38,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 FDT_MAGIC = b"\xd0\x0d\xfe\xed"
 GPL_OUTER_SIZE = 743308262          # claude/samsung-gpl-20_DTV_NikeL.md
-# noverhost.de answers the default "Python-urllib/x.y" agent with HTTP 403
-# (Build 070 run 43174876384); identify like a regular download tool.
+# Identify as a download tool, not as the default "Python-urllib/x.y" (some
+# hosters block it; run 43174876384 got HTTP 403 before the files moved).
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) q60t-build070-fetch/1.0"
 GPL_MEMBERS = ("linux-4.1.10-tizen5.5.tgz", "tztv-media-nike.tgz")
 DTB_MEMBER = "decrypted/dtb.bin"
@@ -154,11 +162,16 @@ def cmd_dtb(url, out):
     sys.path.insert(0, str(REPO / "porting" / "build059" / "tools"))
     import fdt2dts  # noqa: E402  (repo tool, standard library only)
 
-    zf = zipfile.ZipFile(HttpRangeFile(url))
-    info = zf.getinfo(DTB_MEMBER)
-    blob = zf.read(info)
-    print("dtb.bin: %d bytes (compressed %d), CRC ok, sha256 %s"
-          % (len(blob), info.compress_size, sha256(blob)))
+    if url.endswith(".bin"):
+        rf = HttpRangeFile(url)
+        blob = rf.read()
+        print("dtb.bin (direct): %d bytes, sha256 %s" % (len(blob), sha256(blob)))
+    else:
+        zf = zipfile.ZipFile(HttpRangeFile(url))
+        info = zf.getinfo(DTB_MEMBER)
+        blob = zf.read(info)
+        print("dtb.bin: %d bytes (compressed %d), CRC ok, sha256 %s"
+              % (len(blob), info.compress_size, sha256(blob)))
     known = known_dtb_hashes()
     manifest = {"source": url, "member": DTB_MEMBER, "dtb_bin_sha256": sha256(blob), "dtbs": []}
     for n, (off, dtb) in enumerate(split_dtbs(blob)):
@@ -175,6 +188,32 @@ def cmd_dtb(url, out):
     if not manifest["dtbs"]:
         raise SystemExit("no DTB found in dtb.bin")
     (out / "dtb-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+
+
+def remote_size(url):
+    req = request(url, {"Range": "bytes=0-0"})
+    with urlopen_verbose(req, timeout=60) as r:
+        if r.status == 206:
+            return int(r.headers["Content-Range"].rsplit("/", 1)[1])
+        return int(r.headers["Content-Length"])
+
+
+def cmd_get(url, out):
+    name = url.rsplit("/", 1)[-1]
+    try:
+        size = remote_size(url)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            print("NOT AVAILABLE (404): %s" % url)
+            raise SystemExit(3)
+        raise
+    dest = out / name
+    download(url, dest, size)
+    mpath = out / "files-manifest.json"
+    manifest = json.loads(mpath.read_text()) if mpath.exists() else {}
+    manifest[name] = {"source": url, "size": size, "sha256": file_sha256(dest)}
+    mpath.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    print("%s: %d bytes sha256 %s" % (name, size, manifest[name]["sha256"]))
 
 
 def download(url, dest, size):
@@ -241,12 +280,12 @@ def cmd_gpl(url, out):
 
 
 def main(argv):
-    if len(argv) != 4 or argv[1] not in ("dtb", "gpl"):
+    if len(argv) != 4 or argv[1] not in ("dtb", "gpl", "get"):
         print(__doc__)
         return 2
     out = Path(argv[3])
     out.mkdir(parents=True, exist_ok=True)
-    {"dtb": cmd_dtb, "gpl": cmd_gpl}[argv[1]](argv[2], out)
+    {"dtb": cmd_dtb, "gpl": cmd_gpl, "get": cmd_get}[argv[1]](argv[2], out)
     return 0
 
 

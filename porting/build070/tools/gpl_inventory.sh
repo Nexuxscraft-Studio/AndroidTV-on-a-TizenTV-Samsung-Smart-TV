@@ -15,7 +15,7 @@ mkdir -p "$SRC"
 
 unpack() {  # <tgz> <dest>
   local tgz="$GPL/$1" dest="$SRC/$2"
-  [ -f "$tgz" ] || { echo "missing $tgz (run MODE=sources first)" >&2; exit 1; }
+  if [ ! -f "$tgz" ]; then echo "I> $1: not on the runner yet (skipped)"; mkdir -p "$dest"; return 0; fi
   if [ ! -f "$dest/.unpacked" ]; then
     rm -rf "$dest" && mkdir -p "$dest"
     tar -xzf "$tgz" -C "$dest" --no-same-owner --no-same-permissions

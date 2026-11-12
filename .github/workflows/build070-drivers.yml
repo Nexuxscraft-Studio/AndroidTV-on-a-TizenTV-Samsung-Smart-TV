@@ -21,8 +21,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  FULLOS_URL: https://noverhost.de/Samsung-Q60T-Tizen-2743-FullOS.zip
-  GPL_URL: https://noverhost.de/20_DTV_NikeL.zip
+  # Team file share (12.11.2026). The old noverhost.de URLs answer 404.
+  # Files that are not uploaded yet are skipped, never guessed.
+  SRC_BASE: https://testpaymenter.noverhost.de/sehrwichtig
 
 jobs:
   offline-tests:
@@ -70,17 +71,33 @@ jobs:
             echo "WORK_DIR=$(realpath -m "$WORK_DIR")"
           } | tee -a "$GITHUB_ENV"
 
-      - name: Firmware DTBs (range request, SHA-256 vs Build 004)
+      - name: Samsung GPL sources (single files from the share, inventory)
         if: env.MODE == 'sources'
         shell: bash
         run: |
-          set -euo pipefail
-          fw="$GPL_DIR/firmware"
-          echo "===== reachability (curl, 1-byte range)"
-          for u in "$FULLOS_URL" "$GPL_URL"; do
-            curl -sS -o /dev/null -r 0-0 -w "%{http_code} %{size_download}B $u\n" "$u" || true
+          set -uo pipefail
+          f=porting/build070/tools/fetch_sources.py
+          for n in linux-4.1.10-tizen5.5.tgz tztv-media-nike.tgz; do
+            python3 -I "$f" get "$SRC_BASE/$n" "$GPL_DIR"; rc=$?
+            [ "$rc" = 0 ] || [ "$rc" = 3 ] || exit "$rc"
           done
-          python3 -I porting/build070/tools/fetch_sources.py dtb "$FULLOS_URL" "$fw"
+          bash porting/build070/tools/gpl_inventory.sh "$GPL_DIR"
+
+      - name: Firmware DTBs (SHA-256 vs Build 004) + DT node index
+        if: env.MODE == 'sources'
+        shell: bash
+        run: |
+          set -uo pipefail
+          fw="$GPL_DIR/firmware"
+          f=porting/build070/tools/fetch_sources.py
+          got=0
+          for u in "$SRC_BASE/dtb.bin" "$SRC_BASE/Samsung-Q60T-Tizen-2743-FullOS.zip"; do
+            code="$(curl -sS -o /dev/null -r 0-0 -w '%{http_code}' "$u" || true)"
+            echo "probe $code $u"
+            if [ "$code" = 206 ]; then python3 -I "$f" dtb "$u" "$fw" && got=1 && break; fi
+          done
+          if [ "$got" = 0 ]; then echo "Firmware dtb.bin not on the share yet - DT index skipped"; exit 0; fi
+          set -e
           t=porting/build070/tools/dt_nodes.py
           echo "===== node table dtb0 (T> lines)"
           python3 -I "$t" table "$fw/dtb0.dtb" | sed 's/^/T> /'
@@ -88,16 +105,6 @@ jobs:
           python3 -I "$t" detail "$fw/dtb0.dtb" | sed 's/^/N> /'
           echo "===== dtb0 vs dtb1 differences (X> lines)"
           python3 -I "$t" diff "$fw/dtb0.dtb" "$fw/dtb1.dtb" | sed 's/^/X> /' | head -400
-
-      - name: Samsung GPL package (download once, unpack, inventory)
-        if: env.MODE == 'sources'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 -I porting/build070/tools/fetch_sources.py gpl "$GPL_URL" "$GPL_DIR"
-          echo "===== inner ZIP listing"
-          sed 's/^/I> /' "$GPL_DIR/gpl-inner-listing.txt"
-          bash porting/build070/tools/gpl_inventory.sh "$GPL_DIR"
 
       - name: Source excerpts for the port (S> lines)
         if: env.MODE == 'show'
@@ -138,7 +145,7 @@ jobs:
             ${{ env.GPL_DIR }}/firmware/dtb-manifest.json
             ${{ env.GPL_DIR }}/firmware/dtb0.dts
             ${{ env.GPL_DIR }}/firmware/dtb1.dts
-            ${{ env.GPL_DIR }}/gpl-manifest.json
+            ${{ env.GPL_DIR }}/files-manifest.json
             ${{ env.WORK_DIR }}/summary.txt
             ${{ env.WORK_DIR }}/kernel/artifacts-arm-android/config
             ${{ env.WORK_DIR }}/kernel/artifacts-arm-android/android-coverage.txt
