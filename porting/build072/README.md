@@ -124,3 +124,39 @@ use [Build 067](../build067/README.md).
 
 **Status:** We can prepare and compile the diagnostic image offline today.
 On the retail Samsung TV, a **safe RAM boot is not yet demonstrated**.
+
+## Real-device developer-access observation (2026-11-12)
+
+User supplied `sdb capability` output after successfully connecting to the
+retail Q60T at a LAN address. Observed values, quoted without network
+identifiers or device secrets:
+
+| SDB property | Observed value | Implication |
+| --- | --- | --- |
+| `cpu_arch` | `armv7` | 32-bit platform/SDK architecture; not proof of actual silicon or full kernel configuration |
+| `platform_version` | `5.5` | Running Tizen platform as reported by SDB |
+| `profile_name` | `tv` | TV development profile |
+| `sdbd_version` | `2.2.31` | SDB daemon version |
+| `sdbd_plugin_version` | `3.8.0_TV_REL` | Samsung TV plug-in version |
+| `intershell_support` | `disabled` | No interactive command shell through standard SDB |
+| `sdbd_rootperm` | `disabled` | No root permissions through SDB daemon |
+| `rootonoff_support` | `disabled` | Cannot toggle root with normal SDB controls |
+| `filesync_support` | `pushpull` | File transfer capability only within permitted paths |
+| `log_enable` | `disabled` | SDB logging disabled |
+| `secure_protocol` | `enabled` | SDB secure protocol reported |
+
+**New conclusion:** Retail SDB connectivity is established, but it does not
+provide the permissions or interactive shell needed to inspect `/proc/config.gz`,
+access `/proc/iomem`, or invoke `kexec`. Build 072's kexec and TV RAM-boot
+status remains **NOT_VERIFIED_ON_TV** / **NOT_DEMONSTRATED** respectively.
+
+**Permitted next experiment:** Build an ordinary Samsung Tizen Web application
+using the public, documented `tizen.systeminfo` API. It can request `BUILD`,
+`CPU`, `MEMORY` and other supported properties and display them locally.
+This is useful to inventory the TV without pretending the SDK exposes kernel
+privileges. References:
+- https://developer.samsung.com/smarttv/develop/api-references/tizen-web-device-api-references/systeminfo-api.html
+- https://developer.samsung.com/smarttv/develop/api-references/tizen-web-device-api-references/systeminfo-api/getting-device-capabilities-using-systeminfo-api.html
+
+This entry is a user-reported live observation, not an independently verified
+kernel/bootloader capture; it does not authorize flashing.
