@@ -88,15 +88,45 @@ Gate und Resets unverändert. Anders als eine `clk_ops.disable`-Funktion kann
 Timeoutgrenze, **keine** gemessene Hardwareanforderung. Samsung nutzt dort
 eine unbegrenzte Schleife mit logischem statt bitweisem AND (:479).
 
-**Takt-Parent und Rate: UNBELEGT.** Die echte SDP1804-Tabelle in
-`linux-4.1.10/drivers/clk/clk-sdp.c:1505–1545` beschreibt PLLs und feste
-Teiler, aber keinen GPU-Takt. COREPLL0/4-Werte anderer SoC-Tabellen dürfen
-nicht übernommen werden. Kbase `mali_kbase_platform_sdp.c:188–209` wählt
-verschiedene Main-/Subpfade; eine Tabelle beweist nicht die aktuelle
-Muxstellung. Daher kein gefälschter CCF-Clock, kein `clocks = <&fin_pll>`,
-keine erfundenen OPPs. Panfrost benötigt weiterhin einen belegten Clock-
-Provider und `mali-supply`, bevor eine Bindung sinnvoll ist. Genpd allein
-macht die GPU nicht lauffähig.
+**Takt-Parent und Rate: für einen aktivierbaren Panfrost-Knoten weiter
+UNBELEGT.** Die echte SDP1804-Tabelle in
+`linux-4.1.10/drivers/clk/clk-sdp.c:1505–1545` beschreibt die PLLs und
+einige feste Teiler, aber keinen GPU-Ausgang. Das Original-DTB hat unter
+`/soc/clock-controller@00F50000` ebenfalls keinen GPU-Clock-Child und der
+Vendor-GPU-Knoten hat keine `clocks`-Property. COREPLL0/4-Werte anderer
+SoC-Tabellen dürfen nicht übernommen werden.
+
+Die Kbase-DVFS-Implementierung belegt immerhin die folgenden *programmier-
+baren* Subpfade. Quelle sind die Kommentare und Zuweisungen in
+`mali_kbase_platform_sdp.c:219–285`; die numerischen Muxwerte stehen in
+`mali_kbase_config_platform.h:121–154,184–208`. Die Tabelle ist weder eine
+Messung am Q60T noch ein gültiger OPP-Satz für Linux 6.6:
+
+| Kbase-Level | Vendor-Kommentar | angewählter PLL-Pfad | Prescaler-Schritt |
+|---|---|---|---|
+| 1 | 95 MHz, COREPLL1 / 8 | Subpath 2, COREPLL1 | 4 (bei `half_out_sel = 0`) |
+| 2 | 190 MHz, COREPLL1 / 4 | Subpath 2, COREPLL1 | 2 |
+| 3 | 300 MHz, FRCPLL / 4 | Subpath 1, FRCPLL | 2 |
+| 4 | 380 MHz, COREPLL1 / 2 | Subpath 2, COREPLL1 | 1 |
+| 5 | 500 MHz, COREPLL0 / 4 | Subpath 1, COREPLL0 | 2 |
+| 6 | 600 MHz, FRCPLL / 2 | Subpath 1, FRCPLL | 1 |
+| 7 | 702 MHz, PULLPLL1 / 2 | Subpath 1, PULLPLL1 | 1 |
+| 8 | 760 MHz, COREPLL1 direkt | keine Programmierung: Funktion gibt `-1` zurück | — |
+
+Die separate Vendor-Frequenztabelle nennt stattdessen 100, 200, 300, 400,
+500, 600, 700 und 800 MHz (`mali_kbase_platform_sdp.c:42–52`). Diese
+Abweichung und der unimplementierte Level 8 verhindern eine Übernahme als
+OPP-Tabelle. Der Umschaltcode setzt erst den Mainpfad, programmiert den
+Subpfad, wartet 20 µs und schaltet danach auf Sub um
+(`mali_kbase_platform_sdp.c:290–324`). Er beweist weder den Boot-Muxzustand
+noch die realen PLL-Raten aus einem laufenden Q60T.
+
+Daher weiterhin kein gefälschter CCF-Clock, kein `clocks = <&fin_pll>` und
+keine erfundenen OPPs. Panfrost benötigt vor einer Bindung einen belegten
+Clock-Provider und `mali-supply`; genpd allein macht die GPU nicht
+lauffähig. Der nächste sichere Nachweis ist ein reiner Register-Readback
+eines laufenden Originalsystems für die Mux- und PLL-Register – ohne
+Schreibzugriff.
 
 ## G5: Displaybefunde und Änderung 0023
 

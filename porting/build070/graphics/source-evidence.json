@@ -9,7 +9,9 @@
     },
     "/soc/clock-controller@00F50000": {
       "compatible": "\"samsung,sdp1804-clock\"",
-      "reg": "<0xf50000 0x3000>"
+      "reg": "<0xf50000 0x3000>",
+      "gpu_clock_child": "absent",
+      "evidence": "dtb0.dts lines 95 onward: no child named for the GPU clock"
     },
     "/soc/bootlogo": {
       "compatible": "\"samsung,sdp-bootlogo\"",
@@ -26,6 +28,13 @@
     "tztv-media-nike/sdp_logo_nike/nikem/sdp_logo_gfx.c": "d39c3e7ea301f97ce74e580bed75f1a968225ab73d1f93b9af49e557766214d2",
     "tztv-media-nike/sdp_drm_nike/sdp_hw_plane.c": "3979bc00c5ac1e83240cd329130c692943ee9d1fc0e62528916046a44ef473b8",
     "tztv-media-nike/sdp_drm_nike/gfx/nikel/sdp_mixer.c": "07d16ababfa9bd9a3bc06bd4ef6099019014f504a1375800ca418209822f018a"
+  },
+  "gpu_clock_evidence": {
+    "vendor_dvfs_frequency_table": "mali_kbase_platform_sdp.c:42-52",
+    "vendor_mux_sequence": "mali_kbase_platform_sdp.c:188-324",
+    "vendor_nikel_mux_registers_and_fields": "mali_kbase_config_platform.h:101-115,121-154,184-208",
+    "sdp1804_pll_inventory_without_gpu_output": "linux-4.1.10/drivers/clk/clk-sdp.c:1505-1570",
+    "activation_status": "unproven: firmware DT has no GPU clock child and no live MMIO readback was taken"
   },
   "kernel_commit": "5139929c698c273e07cb0635732f6a918a7b8e78",
   "hardware_tested": false,
