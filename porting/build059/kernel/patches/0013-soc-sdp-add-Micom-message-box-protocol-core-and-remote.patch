@@ -1,7 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
-Date: Thu, 12 Nov 2026 10:21:13 +0100
-Subject: [PATCH 13/13] soc: sdp: add Micom message box, Micom protocol core and remote control
+Date: Thu, 12 Nov 2026 10:23:05 +0100
+Subject: [PATCH 13/13] soc: sdp: add Micom message box, Micom protocol core
+ and remote control
 
 Build 070 (IR, P1): Linux 6.6 port of Samsung's GPL Micom stack from the
 20_DTV_NikeL package for the Q60T (Nike-L):
@@ -22,15 +23,15 @@ nodes from the firmware DT (status disabled); soc node renamed soc@0
  .../arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi |  26 +-
  drivers/media/rc/Kconfig                      |   8 +
  drivers/media/rc/Makefile                     |   1 +
- drivers/media/rc/sdp-micom-rc.c               | 283 ++++++++++++++
+ drivers/media/rc/sdp-micom-rc.c               | 283 +++++++++++++
  drivers/soc/Kconfig                           |   1 +
  drivers/soc/Makefile                          |   1 +
  drivers/soc/sdp/Kconfig                       |  20 +
  drivers/soc/sdp/Makefile                      |   3 +
- drivers/soc/sdp/sdp-micom.c                   | 366 ++++++++++++++++++
- drivers/soc/sdp/sdp-msgbox.c                  | 303 +++++++++++++++
- include/linux/soc/sdp/sdp-micom.h             |  87 +++++
- 11 files changed, 1098 insertions(+), 1 deletion(-)
+ drivers/soc/sdp/sdp-micom.c                   | 383 ++++++++++++++++++
+ drivers/soc/sdp/sdp-msgbox.c                  | 309 ++++++++++++++
+ include/linux/soc/sdp/sdp-micom.h             |  87 ++++
+ 11 files changed, 1121 insertions(+), 1 deletion(-)
  create mode 100644 drivers/media/rc/sdp-micom-rc.c
  create mode 100644 drivers/soc/sdp/Kconfig
  create mode 100644 drivers/soc/sdp/Makefile
@@ -462,10 +463,10 @@ index 000000000..7b2e9080e
 +obj-$(CONFIG_SDP_MICOM)		+= sdp-micom.o
 diff --git a/drivers/soc/sdp/sdp-micom.c b/drivers/soc/sdp/sdp-micom.c
 new file mode 100644
-index 000000000..09233fbf2
+index 000000000..ed7fe68f8
 --- /dev/null
 +++ b/drivers/soc/sdp/sdp-micom.c
-@@ -0,0 +1,366 @@
+@@ -0,0 +1,383 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Samsung SDP (Nike-L) Micom protocol core.
@@ -650,6 +651,9 @@ index 000000000..09233fbf2
 +
 +/**
 + * sdp_micom_get - Micom of a client device created by this driver
++ * @child: client device (its parent is the Micom device)
++ *
++ * Return: the Micom, or ERR_PTR(-EPROBE_DEFER) if it is not bound yet.
 + */
 +struct sdp_micom *sdp_micom_get(struct device *child)
 +{
@@ -700,6 +704,12 @@ index 000000000..09233fbf2
 +
 +/**
 + * sdp_micom_send_cmd - send a normal 9-byte command (no ack wait)
++ * @micom: Micom
++ * @cmd: command byte
++ * @data: up to 5 data bytes, may be NULL
++ * @len: number of data bytes
++ *
++ * Return: 0 or a negative error code.
 + */
 +int sdp_micom_send_cmd(struct sdp_micom *micom, u8 cmd, const u8 *data,
 +		       size_t len)
@@ -720,7 +730,15 @@ index 000000000..09233fbf2
 +
 +/**
 + * sdp_micom_send_cmd_ack - send a command and wait for its ack
++ * @micom: Micom
++ * @cmd: command byte
++ * @ack: ack byte expected from the Micom
++ * @data: up to 5 data bytes, may be NULL
++ * @len: number of data bytes
 + * @ack_data: optional, receives the 5 data bytes of the ack
++ * @timeout_ms: how long to wait for the ack
++ *
++ * Return: 0, -ETIMEDOUT or another negative error code.
 + */
 +int sdp_micom_send_cmd_ack(struct sdp_micom *micom, u8 cmd, u8 ack,
 +			   const u8 *data, size_t len, u8 *ack_data,
@@ -834,10 +852,10 @@ index 000000000..09233fbf2
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/soc/sdp/sdp-msgbox.c b/drivers/soc/sdp/sdp-msgbox.c
 new file mode 100644
-index 000000000..2a755e58e
+index 000000000..0b8b33a4b
 --- /dev/null
 +++ b/drivers/soc/sdp/sdp-msgbox.c
-@@ -0,0 +1,303 @@
+@@ -0,0 +1,309 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Samsung SDP (Nike-L) Micom message box.
@@ -984,7 +1002,8 @@ index 000000000..2a755e58e
 + *
 + * Waits until both directions are idle (as the Samsung driver does), then
 + * writes the payload, the length and raises the send pending bit.
-+ * Returns 0 or a negative error code.
++ *
++ * Return: 0 or a negative error code.
 + */
 +int sdp_msgbox_send(struct sdp_msgbox *mb, const u8 *buf, size_t len)
 +{
@@ -1021,6 +1040,11 @@ index 000000000..2a755e58e
 +
 +/**
 + * sdp_msgbox_set_rx_callback - install the receive callback (one consumer)
++ * @mb: message box
++ * @cb: callback, runs in the IRQ thread; NULL removes it
++ * @priv: argument for @cb
++ *
++ * Return: 0, -EBUSY if another callback is installed, -ENODEV.
 + */
 +int sdp_msgbox_set_rx_callback(struct sdp_msgbox *mb, sdp_msgbox_rx_cb_t cb,
 +			       void *priv)
@@ -1049,7 +1073,7 @@ index 000000000..2a755e58e
 + * @dev: consumer device (gets a device link to the message box)
 + * @np: consumer node holding the phandle
 + *
-+ * Returns the message box, ERR_PTR(-EPROBE_DEFER) if it is not bound yet.
++ * Return: the message box, ERR_PTR(-EPROBE_DEFER) if it is not bound yet.
 + */
 +struct sdp_msgbox *sdp_msgbox_get(struct device *dev, struct device_node *np)
 +{
