@@ -78,7 +78,7 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 16)
+        self.assertEqual(len(names), 17)
         self.assertTrue(names[0].startswith("0001-serial"))
         # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
         # upstream df0cb5cb50bd
@@ -95,6 +95,8 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertTrue(names[14].startswith("0015-drm-sdp-nikel-minimal-kms"))
         # 0017 (Build 070): SDP1412 EMAC probe skeleton + DT node
         self.assertTrue(names[15].startswith("0017-net-sdp-mac-emac-probe-skeleton"))
+        # 0018 (Build 070): SDP1412 HDMI transmitter probe skeleton + DT node
+        self.assertTrue(names[16].startswith("0018-drm-sdp-hdmi-transmitter-probe-skeleton"))
 
     def test_cecif_patch_uses_firmware_values(self):
         txt = self._patch_text("0014-media-cec")
@@ -165,6 +167,32 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertIn("+\tpriv->clk = devm_clk_get_optional(&pdev->dev, \"emac_clk\");", txt)
         # Driver: of_device_id uses exact firmware compatible string
         self.assertIn('+\t{ .compatible = "samsung,sdp-mac" },', txt)
+
+    def test_sdp_hdmi_patch(self):
+        """0018: HDMI skeleton – all addresses from firmware dtb0 sha256 0189cc94."""
+        txt = self._patch_text("0018-drm")
+        # DT node has 3 tabs of indent (inside soc@0)
+        self.assertIn('+\t\t\tcompatible = "samsung,sdp-hdmi";', txt)
+        # reg: first region (hdmi-reg main core)
+        self.assertIn("+\t\t\treg = <0x00590000 0x20000>,", txt)
+        # reg: EDID region
+        self.assertIn("+\t\t\t      <0x00970000 0x5a0>,", txt)
+        # reg: ESM/HDCP region
+        self.assertIn("+\t\t\t      <0x005b0000 0x8000>,", txt)
+        # reg-names present (from firmware reg-names property)
+        self.assertIn('+\t\t\treg-names = "hdmi-reg", "hdmi-edid-reg",', txt)
+        # IRQ GIC SPI 88 (firmware 0x58) – first of 8
+        self.assertIn("+\t\t\tinterrupts = <GIC_SPI 88 IRQ_TYPE_NONE>,", txt)
+        # IRQ GIC SPI 93 (firmware 0x5d) – last
+        self.assertIn("+\t\t\t\t     <GIC_SPI 93 IRQ_TYPE_NONE>;", txt)
+        # Driver: maps SDP_HDMI_NUM_REGIONS (7) regions
+        self.assertIn("+#define SDP_HDMI_NUM_REGIONS\t7", txt)
+        # Driver: requests SDP_HDMI_NUM_IRQS (8) IRQs
+        self.assertIn("+#define SDP_HDMI_NUM_IRQS\t8", txt)
+        # Driver: IRQs requested with IRQF_NO_AUTOEN (stub handler)
+        self.assertIn("+\t\t\t\t       IRQF_NO_AUTOEN, dev_name(&pdev->dev),", txt)
+        # compatible in of_match table
+        self.assertIn('+\t{ .compatible = "samsung,sdp-hdmi" },', txt)
 
     def test_android_profile_merges_driver_set(self):
         build = (B059 / "kernel" / "build.sh").read_text()
