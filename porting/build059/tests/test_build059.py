@@ -217,9 +217,10 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertIn('+\t{ .compatible = "samsung,sdp-mc-irb" },', txt)
         # IRS of_match compatible
         self.assertIn('+\t{ .compatible = "samsung,sdp-mc-irs" },', txt)
-        # --- Kconfig symbols in nikel-drivers.config ---
-        self.assertIn("+CONFIG_SDP_MICOM_IRB=m", txt)
-        self.assertIn("+CONFIG_SDP_MICOM_IRS=m", txt)
+        # --- Kconfig symbols in nikel-drivers.config (config file, not patch) ---
+        cfg = (B059 / "kernel" / "configs" / "nikel-drivers.config").read_text()
+        self.assertIn("CONFIG_SDP_MICOM_IRB=m", cfg)
+        self.assertIn("CONFIG_SDP_MICOM_IRS=m", cfg)
 
     def test_android_profile_merges_driver_set(self):
         build = (B059 / "kernel" / "build.sh").read_text()
