@@ -78,7 +78,7 @@ jobs:
           set -uo pipefail
           f=porting/build070/tools/fetch_sources.py
           for n in linux-4.1.10-tizen5.5.tgz tztv-media-nike.tgz; do
-            python3 -I "$f" get "$SRC_BASE/$n" "$GPL_DIR"; rc=$?
+            rc=0; python3 -I "$f" get "$SRC_BASE/$n" "$GPL_DIR" || rc=$?   # step runs with bash -e
             [ "$rc" = 0 ] || [ "$rc" = 3 ] || exit "$rc"
           done
           bash porting/build070/tools/gpl_inventory.sh "$GPL_DIR"
