@@ -48,7 +48,7 @@
   var currentRun = 0;
 
   function labelText(value) {
-    if (value === null || value === undefined || value === "" || value === 0 && false) {
+    if (value === null || value === undefined || value === "") {
       return "Nicht verfügbar";
     }
     if (typeof value === "boolean") { return value ? "Ja" : "Nein"; }
