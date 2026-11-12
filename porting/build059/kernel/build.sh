@@ -194,7 +194,8 @@ cp "$KOUT/.config" "$ART/config"
 # 3. the new drivers with extra warnings, as an error gate ---------------------
 GATE_OBJS=(drivers/tty/serial/sdp_uart.o drivers/clk/clk-sdp1804.o drivers/gpio/gpio-sdp.o)
 # Build 070: own driver ports of the shared Q60T kernel (android profile)
-[ "$PROFILE" = android ] && GATE_OBJS+=(drivers/gpu/drm/sdp/sdp_drm.o)
+[ "$PROFILE" = android ] && GATE_OBJS+=(drivers/gpu/drm/sdp/sdp_drm.o \
+  drivers/soc/sdp/sdp-msgbox.o drivers/soc/sdp/sdp-micom.o drivers/media/rc/sdp-micom-rc.o)
 make "${MAKEARGS[@]}" W=1 KCFLAGS=-Werror "${GATE_OBJS[@]}"
 log "W=1 -Werror gate passed: ${GATE_OBJS[*]}"
 

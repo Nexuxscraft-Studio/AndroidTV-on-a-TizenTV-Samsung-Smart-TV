@@ -1,0 +1,1236 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 10:21:13 +0100
+Subject: [PATCH 13/13] soc: sdp: add Micom message box, Micom protocol core and remote control
+
+Build 070 (IR, P1): Linux 6.6 port of Samsung's GPL Micom stack from the
+20_DTV_NikeL package for the Q60T (Nike-L):
+
+- drivers/soc/sdp/sdp-msgbox.c: CPU<->Micom hardware mailbox
+  ("samsung,sdp-messagebox"), from linux-4.1.10/drivers/mailbox/
+  sdp_micom_msgbox.c
+- drivers/soc/sdp/sdp-micom.c: Micom packet protocol and client dispatch
+  ("samsung,tztv-micom"), from tztv-micom/sdp_micom_messagebox.c
+- drivers/media/rc/sdp-micom-rc.c: rc-core scancode device with Samsung's
+  key map, from tztv-micom/rc-wt61p807.c and keymap-rc-wt61p807.c
+
+The Micom decodes the IR remote and the panel keys itself; this is the
+path Samsung's own kernel uses for the remote. DT: message box and Micom
+nodes from the firmware DT (status disabled); soc node renamed soc@0
+(dtc W=1 unit_address_vs_reg). Compile-only: nothing was run on a TV.
+---
+ .../arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi |  26 +-
+ drivers/media/rc/Kconfig                      |   8 +
+ drivers/media/rc/Makefile                     |   1 +
+ drivers/media/rc/sdp-micom-rc.c               | 283 ++++++++++++++
+ drivers/soc/Kconfig                           |   1 +
+ drivers/soc/Makefile                          |   1 +
+ drivers/soc/sdp/Kconfig                       |  20 +
+ drivers/soc/sdp/Makefile                      |   3 +
+ drivers/soc/sdp/sdp-micom.c                   | 366 ++++++++++++++++++
+ drivers/soc/sdp/sdp-msgbox.c                  | 303 +++++++++++++++
+ include/linux/soc/sdp/sdp-micom.h             |  87 +++++
+ 11 files changed, 1098 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/media/rc/sdp-micom-rc.c
+ create mode 100644 drivers/soc/sdp/Kconfig
+ create mode 100644 drivers/soc/sdp/Makefile
+ create mode 100644 drivers/soc/sdp/sdp-micom.c
+ create mode 100644 drivers/soc/sdp/sdp-msgbox.c
+ create mode 100644 include/linux/soc/sdp/sdp-micom.h
+
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+index 9fc98a28f..0f53c81c3 100644
+--- a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+@@ -114,7 +114,7 @@ pmu {
+ 		interrupt-affinity = <&cpu0>, <&cpu1>, <&cpu2>, <&cpu3>;
+ 	};
+ 
+-	soc: soc {
++	soc: soc@0 {
+ 		compatible = "simple-bus";
+ 		#address-cells = <1>;
+ 		#size-cells = <1>;
+@@ -280,5 +280,29 @@ uart3: serial@551000 {
+ 				     <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
+ 			status = "disabled";
+ 		};
++
++		/*
++		 * Micom message box. reg/interrupts from the firmware DT
++		 * (T-NKLDEUC 2743.0 dtb.bin, nikel-2G, sha256 0189cc94..,
++		 * node /soc/msgbox: reg <0x9c0400 0x100>, interrupts
++		 * <0 0x22 0>, trigger type left unspecified as there).
++		 */
++		msgbox: mailbox@9c0400 {
++			compatible = "samsung,sdp-messagebox";
++			reg = <0x009c0400 0x100>;
++			interrupts = <GIC_SPI 34 IRQ_TYPE_NONE>;
++			status = "disabled";
++		};
++	};
++
++	/*
++	 * Micom protocol (firmware node /tztv_micom, compatible
++	 * "samsung,tztv-micom", no registers of its own). The phandle to the
++	 * message box replaces the global variables of the Samsung driver.
++	 */
++	micom {
++		compatible = "samsung,tztv-micom";
++		samsung,messagebox = <&msgbox>;
++		status = "disabled";
+ 	};
+ };
+diff --git a/drivers/media/rc/Kconfig b/drivers/media/rc/Kconfig
+index 07bdf649c..4d3c9d30f 100644
+--- a/drivers/media/rc/Kconfig
++++ b/drivers/media/rc/Kconfig
+@@ -374,6 +374,14 @@ config IR_SPI
+ 	  To compile this driver as a module, choose M here: the module will be
+ 	  called ir-spi.
+ 
++config IR_SDP_MICOM
++	tristate "Samsung SDP (Nike-L) Micom remote control"
++	depends on SDP_MICOM
++	help
++	  Say Y here for the IR remote and front panel keys of Samsung TVs
++	  with an SDP (Nike-L) SoC; the Micom standby controller decodes the
++	  remote and reports key codes over the message box.
++
+ config IR_STREAMZAP
+ 	tristate "Streamzap PC Remote IR Receiver"
+ 	depends on USB
+diff --git a/drivers/media/rc/Makefile b/drivers/media/rc/Makefile
+index a9285266e..28ea7ee09 100644
+--- a/drivers/media/rc/Makefile
++++ b/drivers/media/rc/Makefile
+@@ -46,6 +46,7 @@ obj-$(CONFIG_IR_REDRAT3) += redrat3.o
+ obj-$(CONFIG_IR_RX51) += ir-rx51.o
+ obj-$(CONFIG_IR_SERIAL) += serial_ir.o
+ obj-$(CONFIG_IR_SPI) += ir-spi.o
++obj-$(CONFIG_IR_SDP_MICOM) += sdp-micom-rc.o
+ obj-$(CONFIG_IR_STREAMZAP) += streamzap.o
+ obj-$(CONFIG_IR_SUNXI) += sunxi-cir.o
+ obj-$(CONFIG_IR_TOY) += ir_toy.o
+diff --git a/drivers/media/rc/sdp-micom-rc.c b/drivers/media/rc/sdp-micom-rc.c
+new file mode 100644
+index 000000000..77da975dd
+--- /dev/null
++++ b/drivers/media/rc/sdp-micom-rc.c
+@@ -0,0 +1,283 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Samsung SDP (Nike-L) remote control via the Micom.
++ *
++ * The Micom decodes the Samsung IR remote (and the front panel keys) itself
++ * and reports key press/release events with an 8-bit key code over the
++ * message box. This driver turns them into an rc-core scancode device with
++ * Samsung's key map.
++ *
++ * Linux 6.6 port of tztv-micom/rc-wt61p807.c and keymap-rc-wt61p807.c from
++ * Samsung's GPL package 20_DTV_NikeL (Copyright (C) 2013 Samsung
++ * Electronics Co. Ltd., GPL-2.0). The key map is Samsung's, minus six
++ * hotel-TV codes that do not exist in mainline (KEY_NR, KEY_HOTEL_*:
++ * scancodes 0x2a, 0x35, 0xa1, 0xa2, 0xa3, 0xa7). Android maps the
++ * resulting evdev codes with a key layout file (e.g. KEY_F10 = volume up,
++ * as on Tizen). Not ported: SBB socket bridge, rc_generate/rc_enable sysfs.
++ */
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/soc/sdp/sdp-micom.h>
++#include <media/rc-core.h>
++#include <media/rc-map.h>
++
++#define DRIVER_NAME		"sdp-micom-rc"
++#define RC_MAP_SDP_MICOM	"rc-sdp-micom"
++
++static struct rc_map_table sdp_micom_keys[] = {
++	{ 0x00, KEY_F17 },	/* mts */
++	{ 0x01, KEY_F6 },	/* input mode */
++	{ 0x02, KEY_POWER },
++	{ 0x03, KEY_SLEEP },
++	{ 0x04, KEY_1 },
++	{ 0x05, KEY_2 },
++	{ 0x06, KEY_3 },
++	{ 0x07, KEY_F10 },	/* volume up */
++	{ 0x08, KEY_4 },
++	{ 0x09, KEY_5 },
++	{ 0x0a, KEY_6 },
++	{ 0x0b, KEY_F9 },	/* volume down */
++	{ 0x0c, KEY_7 },
++	{ 0x0d, KEY_8 },
++	{ 0x0e, KEY_9 },
++	{ 0x0f, KEY_F8 },	/* mute */
++	{ 0x10, KEY_F11 },	/* channel down */
++	{ 0x11, KEY_0 },
++	{ 0x12, KEY_F12 },	/* channel up */
++	{ 0x13, KEY_REDO },	/* previous channel */
++	{ 0x14, KEY_F2 },	/* B (green) */
++	{ 0x15, KEY_F3 },	/* C (yellow) */
++	{ 0x16, KEY_F4 },	/* D (blue) */
++	{ 0x19, KEY_PROG1 },	/* channel add/del */
++	{ 0x1a, KEY_LEFTMETA },	/* menu */
++	{ 0x1e, KEY_CAMERA },
++	{ 0x1f, KEY_F18 },	/* information */
++	{ 0x20, KEY_SWITCHVIDEOMODE },	/* PIP */
++	{ 0x23, KEY_MINUS },	/* plus 100 */
++	{ 0x25, KEY_SOUND },	/* caption */
++	{ 0x27, KEY_ALTERASE },	/* AD */
++	{ 0x28, KEY_COPY },	/* picture mode */
++	{ 0x2b, KEY_F19 },	/* S mode */
++	{ 0x2c, KEY_F22 },	/* TTX MIX */
++	{ 0x2d, KEY_EXIT },
++	{ 0x32, KEY_FORWARD },	/* PIP channel up */
++	{ 0x33, KEY_CLOSECD },	/* PIP channel down */
++	{ 0x36, KEY_EJECTCD },	/* antena */
++	{ 0x37, KEY_WWW },	/* WebBrowser */
++	{ 0x3a, KEY_EJECTCLOSECD },	/* auto program */
++	{ 0x3b, KEY_SETUP },	/* factory */
++	{ 0x3c, KEY_F20 },	/* 3 speed */
++	{ 0x3e, KEY_FRONT },	/* picture size */
++	{ 0x3f, KEY_HELP },	/* e-manual */
++	{ 0x40, KEY_COMPUTER },	/* game mode */
++	{ 0x42, KEY_SCREENLOCK },	/* capture */
++	{ 0x43, KEY_DELETEFILE },	/* DTV key */
++	{ 0x44, KEY_F13 },	/* favorite channel */
++	{ 0x45, KEY_REWIND },	/* rewind */
++	{ 0x46, KEY_STOPCD },
++	{ 0x47, KEY_PLAYCD },
++	{ 0x48, KEY_FASTFORWARD },	/* fast forward */
++	{ 0x49, KEY_RECORD },
++	{ 0x4a, KEY_PAUSECD },	/* pause */
++	{ 0x4b, KEY_COMPOSE },	/* simple menu */
++	{ 0x4c, KEY_PLAYPAUSE },	/* MBR setup */
++	{ 0x4e, KEY_BRIGHTNESSUP },	/* fast forward */
++	{ 0x4f, KEY_PROPS },	/* program information */
++	{ 0x50, KEY_BRIGHTNESSDOWN },	/* rewind */
++	{ 0x51, KEY_PHONE },	/* game mode 3D */
++	{ 0x58, KEY_ESC },	/* return(back) */
++	{ 0x59, KEY_PLAY },	/* subtitle */
++	{ 0x5a, KEY_CLOSE },	/* MBR clear */
++	{ 0x5c, KEY_AGAIN },	/* MBR repeat */
++	{ 0x60, KEY_UP },
++	{ 0x61, KEY_DOWN },
++	{ 0x62, KEY_RIGHT },
++	{ 0x64, KEY_BASSBOOST },	/* SNS */
++	{ 0x65, KEY_LEFT },
++	{ 0x68, KEY_ENTER },
++	{ 0x6b, KEY_F7 },	/* channel list */
++	{ 0x6c, KEY_F1 },	/* A (red) */
++	{ 0x6e, KEY_F23 },	/* SRS */
++	{ 0x72, KEY_PRINT },	/* DVR */
++	{ 0x73, KEY_SEARCH },	/* smart search */
++	{ 0x76, KEY_F5 },	/* smart home */
++	{ 0x77, KEY_SUSPEND },	/* energy saving */
++	{ 0x79, KEY_F5 },	/* smart home */
++	{ 0x8b, KEY_PASTE },	/* HDMI */
++	{ 0x8c, KEY_FIND },	/* media.p */
++	{ 0x8f, KEY_HP },	/* app list */
++	{ 0x9a, KEY_REPLY },	/* HDMI CEC */
++	{ 0x9c, KEY_CALC },	/* keypad (more) */
++	{ 0x9f, KEY_F21 },	/* 3D */
++	{ 0xa0, KEY_CHAT },	/* BT voice */
++	{ 0xa4, KEY_FIND },	/* USB hub */
++	{ 0xa6, KEY_PROG4 },	/* home panel */
++	{ 0xa8, KEY_VIDEO_NEXT },	/* page left */
++	{ 0xa9, KEY_VIDEO_PREV },	/* page right */
++	{ 0xaa, KEY_DASHBOARD },	/* KEY_FAMILY_MODE */
++	{ 0xaf, KEY_DISPLAY_OFF },	/* Extra Key */
++	{ 0xb1, KEY_BRL_DOT5 },	/* Launch Zee5 APP */
++	{ 0xb2, KEY_PROG3 },	/* dual view */
++	{ 0xb3, KEY_ROTATE_LOCK_TOGGLE },	/* KEY_ROTATE_PANEL */
++	{ 0xb4, KEY_ALS_TOGGLE },	/* KEY_TV_PLUS */
++	{ 0xb5, KEY_F14 },	/* recommend & search */
++	{ 0xb6, KEY_F24 },	/* WIFI pairing */
++	{ 0xb7, KEY_EDIT },	/* MBR guide */
++	{ 0xb8, KEY_SPORT },	/* soccer mode */
++	{ 0xb9, KEY_BRIGHTNESS_ZERO },	/* Play&Puase Key */
++	{ 0xba, KEY_MAIL },	/* KEY_CINEMA_MODE */
++	{ 0xbb, KEY_BRL_DOT3 },	/* Launch Hulu APP*/
++	{ 0xbc, KEY_BRL_DOT4 },	/* Launch Rakuten APP*/
++	{ 0xbf, KEY_BRL_DOT6 },	/* Launch Globo APP */
++	{ 0xc0, KEY_KPLEFTPAREN },	/* MBR setup failure */
++	{ 0xc4, KEY_QUESTION },	/*Zoom Key*/
++	{ 0xc6, KEY_SEND },	/* family story */
++	{ 0xc8, KEY_KPRIGHTPAREN },	/* MBR setup */
++	{ 0xc9, KEY_NEW },	/* MBR watch TV */
++	{ 0xca, KEY_KBDILLUMTOGGLE },	/* MBR watch movie */
++	{ 0xcc, KEY_KBDILLUMUP },	/* MBR setup confirm */
++	{ 0xce, KEY_TV },	/* Extra Key(KEY_COLOR) */
++	{ 0xd0, KEY_BOOKMARKS },	/* BT contents bar */
++	{ 0xd1, KEY_DIRECTION },	/* BT trigger */
++	{ 0xd2, KEY_CALC },	/* change KEY_F15 -> KEY_CALC requested by hj0530.kim */
++	{ 0xd3, KEY_CYCLEWINDOWS },	/* BT hotkey */
++	{ 0xd4, KEY_MAIL },	/* BT device */
++	{ 0xd5, KEY_MSDOS },	/* BT color mecha */
++	{ 0xd9, KEY_SCROLLDOWN },	/* MBR BD/DVD power */
++	{ 0xe0, KEY_XFER },	/* STB power */
++	{ 0xe6, KEY_POWER },	/* SC POWER */
++	{ 0xf0, KEY_KBDILLUMDOWN },	/* MBR STB/BD menu */
++	{ 0xf1, KEY_SCROLLUP },	/* MBR BD popup */
++	{ 0xf2, KEY_MOVE },	/* MBR TV */
++	{ 0xf3, KEY_MEDIA },	/* Netflix */
++	{ 0xf4, KEY_SHOP },	/* Amazon */
++	{ 0xf5, KEY_AUX },	/* KEY_UNDEFINED */
++	{ 0xf6, KEY_NUMERIC_STAR },	/* Ambient */
++	{ 0xf7, KEY_CAMERA_UP },	/* LUX Speaker pairing */
++	{ 0xb0, KEY_CAMERA_RIGHT },	/* AI Speaker pairing */
++	{ 0xfa, KEY_WPS_BUTTON },	/*Youtube*/
++	{ 0xfd, KEY_NUMERIC_3 },	/* BT pairing guide for reconnection - change KEY_NUMERIC_1 -> KEY_NUMERIC_3 requested by hj0530.kim */
++	{ 0x2f, KEY_SHUFFLE },	/* KEY_ALARM(410) - Hotel alarm for Netflix/Amazon contract of B2B Hospitality */
++	{ 0x98, KEY_OK },	/* DISCRET_POWER_OFF(0x160) */
++	{ 0x99, KEY_SELECT },	/* DISCRET_POWER_ON(0x161) */
++	{ 0x85, KEY_OPTION },	/* DISCRET_S_VIDEO1(0x165) */
++	{ 0xed, KEY_INFO },	/* DISCRET_S_VIDEO2(0x166) */
++	{ 0xfb, KEY_TIME },	/* DISCRET_S_VIDEO3(0x167) */
++	{ 0x86, KEY_VENDOR },	/* DISCRET_COMPONENT1(0x168) */
++	{ 0x88, KEY_ARCHIVE },	/* DISCRET_COMPONENT2(0x169) */
++	{ 0xe8, KEY_PROGRAM },	/* DISCRET_COMPONENT3(0x16A) */
++	{ 0xe9, KEY_CHANNEL },	/* DISCRET_HDMI1(0x16B) */
++	{ 0xbe, KEY_FAVORITES },	/* DISCRET_HDMI2(0x16C) */
++	{ 0xc2, KEY_EPG },	/* DISCRET_HDMI3(0x16D) */
++	{ 0x69, KEY_PVR },	/* DISCRET_PC(0x16E) */
++	{ 0x8a, KEY_MHP },	/* DISCRET_DVI1(0x16F) */
++	{ 0xea, KEY_LANGUAGE },	/* DISCRET_DVI2(0x170) */
++	{ 0x53, KEY_TITLE },	/* DISCRET_ZOOM1(0x171) */
++	{ 0xe1, KEY_SUBTITLE },	/* DISCRET_ZOOM2(0x172) */
++	{ 0xe2, KEY_ANGLE },	/* DISCRET_PANORAMA(0x173) */
++	{ 0xe3, KEY_ZOOM },	/* DISCRET_4_3(0x174) */
++	{ 0xe4, KEY_MODE },	/* DISCRET_16_9(0x175) */
++	{ 0x1b, KEY_PC },	/* DISCRET_SOURCE_TV(0x178) */
++	{ 0xc5, KEY_VCR2 },	/* DISCRET_HDMI4(0x17C) */
++	{ 0x84, KEY_SAT },	/* DISCRET_SOURCE_AV1(0x17D) */
++	{ 0xeb, KEY_SAT2 },	/* DISCRET_SOURCE_AV2(0x17E) */
++	{ 0xec, KEY_CD },	/* DISCRET_SOURCE_AV3(0x17F) */
++};
++
++static struct rc_map_list sdp_micom_map = {
++	.map = {
++		.scan = sdp_micom_keys,
++		.size = ARRAY_SIZE(sdp_micom_keys),
++		.rc_proto = RC_PROTO_OTHER,
++		.name = RC_MAP_SDP_MICOM,
++	},
++};
++
++static void sdp_micom_rc_event(const struct sdp_micom_msg *msg, void *priv)
++{
++	struct rc_dev *rc = priv;
++
++	switch (msg->data[0]) {
++	case SDP_MICOM_EVT_KEYPRESS:
++	case SDP_MICOM_EVT_KEY_UNDEFINED:
++		rc_keydown(rc, RC_PROTO_OTHER, msg->data[1], 0);
++		break;
++	case SDP_MICOM_EVT_KEYRELEASE:
++		rc_keyup(rc);
++		break;
++	}
++}
++
++static void sdp_micom_rc_detach(void *data)
++{
++	sdp_micom_unregister_client(data, SDP_MICOM_CLIENT_IR);
++}
++
++static int sdp_micom_rc_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct sdp_micom *micom;
++	struct rc_dev *rc;
++	int ret;
++
++	micom = sdp_micom_get(dev);
++	if (IS_ERR(micom))
++		return PTR_ERR(micom);
++
++	rc = devm_rc_allocate_device(dev, RC_DRIVER_SCANCODE);
++	if (!rc)
++		return -ENOMEM;
++
++	rc->device_name = "Samsung SDP Micom remote";
++	rc->input_phys = DRIVER_NAME "/input0";
++	rc->input_id.bustype = BUS_HOST;
++	rc->input_id.version = 1;
++	rc->driver_name = DRIVER_NAME;
++	rc->map_name = RC_MAP_SDP_MICOM;
++	rc->allowed_protocols = RC_PROTO_BIT_OTHER;
++	rc->enabled_protocols = RC_PROTO_BIT_OTHER;
++
++	ret = devm_rc_register_device(dev, rc);
++	if (ret)
++		return dev_err_probe(dev, ret, "cannot register rc device\n");
++
++	ret = sdp_micom_register_client(micom, SDP_MICOM_CLIENT_IR,
++					sdp_micom_rc_event, rc);
++	if (ret)
++		return dev_err_probe(dev, ret, "cannot attach to Micom\n");
++
++	return devm_add_action_or_reset(dev, sdp_micom_rc_detach, micom);
++}
++
++static struct platform_driver sdp_micom_rc_driver = {
++	.probe = sdp_micom_rc_probe,
++	.driver = {
++		.name = DRIVER_NAME,
++	},
++};
++
++static int __init sdp_micom_rc_init(void)
++{
++	int ret;
++
++	ret = rc_map_register(&sdp_micom_map);
++	if (ret)
++		return ret;
++
++	ret = platform_driver_register(&sdp_micom_rc_driver);
++	if (ret)
++		rc_map_unregister(&sdp_micom_map);
++	return ret;
++}
++module_init(sdp_micom_rc_init);
++
++static void __exit sdp_micom_rc_exit(void)
++{
++	platform_driver_unregister(&sdp_micom_rc_driver);
++	rc_map_unregister(&sdp_micom_map);
++}
++module_exit(sdp_micom_rc_exit);
++
++MODULE_ALIAS("platform:" DRIVER_NAME);
++MODULE_DESCRIPTION("Samsung SDP Micom remote control");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/Kconfig b/drivers/soc/Kconfig
+index d21e75d69..f546b0844 100644
+--- a/drivers/soc/Kconfig
++++ b/drivers/soc/Kconfig
+@@ -23,6 +23,7 @@ source "drivers/soc/qcom/Kconfig"
+ source "drivers/soc/renesas/Kconfig"
+ source "drivers/soc/rockchip/Kconfig"
+ source "drivers/soc/samsung/Kconfig"
++source "drivers/soc/sdp/Kconfig"
+ source "drivers/soc/sifive/Kconfig"
+ source "drivers/soc/starfive/Kconfig"
+ source "drivers/soc/sunxi/Kconfig"
+diff --git a/drivers/soc/Makefile b/drivers/soc/Makefile
+index 0706a27d1..87d203d88 100644
+--- a/drivers/soc/Makefile
++++ b/drivers/soc/Makefile
+@@ -28,6 +28,7 @@ obj-y				+= qcom/
+ obj-y				+= renesas/
+ obj-y				+= rockchip/
+ obj-$(CONFIG_SOC_SAMSUNG)	+= samsung/
++obj-y				+= sdp/
+ obj-y				+= sifive/
+ obj-y				+= sunxi/
+ obj-$(CONFIG_ARCH_TEGRA)	+= tegra/
+diff --git a/drivers/soc/sdp/Kconfig b/drivers/soc/sdp/Kconfig
+new file mode 100644
+index 000000000..548f83bbc
+--- /dev/null
++++ b/drivers/soc/sdp/Kconfig
+@@ -0,0 +1,20 @@
++# SPDX-License-Identifier: GPL-2.0-only
++menu "Samsung SDP (Nike-L) SoC drivers"
++	depends on ARCH_SDP || COMPILE_TEST
++
++config SDP_MSGBOX
++	tristate "Samsung SDP Micom message box"
++	depends on OF && HAS_IOMEM
++	help
++	  Hardware mailbox between the main CPU and the Micom standby
++	  controller of Samsung SDP (Nike-L) TV SoCs ("samsung,sdp-messagebox").
++
++config SDP_MICOM
++	tristate "Samsung SDP Micom protocol core"
++	depends on SDP_MSGBOX
++	help
++	  Packet protocol spoken with the Micom ("samsung,tztv-micom"): IR
++	  remote and panel key events, HDMI-CEC frames and commands. Client
++	  drivers (e.g. IR_SDP_MICOM) attach to it.
++
++endmenu
+diff --git a/drivers/soc/sdp/Makefile b/drivers/soc/sdp/Makefile
+new file mode 100644
+index 000000000..7b2e9080e
+--- /dev/null
++++ b/drivers/soc/sdp/Makefile
+@@ -0,0 +1,3 @@
++# SPDX-License-Identifier: GPL-2.0-only
++obj-$(CONFIG_SDP_MSGBOX)	+= sdp-msgbox.o
++obj-$(CONFIG_SDP_MICOM)		+= sdp-micom.o
+diff --git a/drivers/soc/sdp/sdp-micom.c b/drivers/soc/sdp/sdp-micom.c
+new file mode 100644
+index 000000000..09233fbf2
+--- /dev/null
++++ b/drivers/soc/sdp/sdp-micom.c
+@@ -0,0 +1,366 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Samsung SDP (Nike-L) Micom protocol core.
++ *
++ * The Micom standby controller decodes the IR remote, the front panel keys
++ * and HDMI-CEC and talks to the main CPU over the message box with short
++ * packets:
++ *   normal   FF FF cmd d0..d4 sum          (9 bytes, sum of bytes 2..7)
++ *   extended FF F9 cmdH cmdL seqH seqL len sum data..  (up to 28 bytes)
++ *   CEC      FE .. (from the Micom: FF FE hdr.. xor)
++ * This driver checks and dispatches incoming packets to client drivers
++ * (IR remote, panel keys, CEC, generic messages) and sends commands.
++ *
++ * Linux 6.6 port of tztv-micom/sdp_micom_messagebox.c and sdp_micom.h from
++ * Samsung's GPL package 20_DTV_NikeL (Copyright (C) 2013 Samsung
++ * Electronics Co. Ltd., GPL-2.0). Not ported: hotel/HD protocol, ISP,
++ * auto-remocon, clone data, debug print thread, power-off/restart hooks.
++ */
++#include <linux/completion.h>
++#include <linux/device.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/soc/sdp/sdp-micom.h>
++#include <linux/spinlock.h>
++
++#define PREFIX			0xFF
++#define PREFIX_CEC		0xFE
++#define PREFIX_EXTENDED		0xF9
++
++#define NORMAL_LEN		9	/* FF FF cmd d0..d4 sum */
++#define NORMAL_DATA		6	/* cmd + 5 data bytes, checksummed */
++#define HEADER_LEN		2
++#define EXT_LEN_IDX		6	/* buf[6] = extended payload length */
++#define EXT_SUM_IDX		7
++#define CMD_DATA_MAX		5
++
++struct sdp_micom_client_slot {
++	sdp_micom_cb_t cb;
++	void *priv;
++};
++
++struct sdp_micom {
++	struct device *dev;
++	struct sdp_msgbox *mb;
++
++	spinlock_t clients_lock;
++	struct sdp_micom_client_slot client[SDP_MICOM_CLIENT_NUM];
++	enum sdp_micom_client last_key_client;
++
++	struct mutex cmd_lock;		/* one command with ack at a time */
++	spinlock_t ack_lock;
++	u8 ack_wanted;			/* 0 = none */
++	u8 ack_data[CMD_DATA_MAX];
++	struct completion ack_done;
++};
++
++static void sdp_micom_dispatch(struct sdp_micom *micom,
++			       enum sdp_micom_client id,
++			       const struct sdp_micom_msg *msg)
++{
++	struct sdp_micom_client_slot slot;
++	unsigned long flags;
++
++	spin_lock_irqsave(&micom->clients_lock, flags);
++	slot = micom->client[id];
++	spin_unlock_irqrestore(&micom->clients_lock, flags);
++
++	if (slot.cb)
++		slot.cb(msg, slot.priv);
++	else
++		dev_dbg(micom->dev, "no client %d for 0x%02x\n", id, msg->data[0]);
++}
++
++static void sdp_micom_check_ack(struct sdp_micom *micom,
++				const struct sdp_micom_msg *msg)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&micom->ack_lock, flags);
++	if (micom->ack_wanted &&
++	    (msg->data[0] == micom->ack_wanted ||
++	     msg->data[0] == SDP_MICOM_ACK_UNKNOWN)) {
++		memcpy(micom->ack_data, &msg->data[1], CMD_DATA_MAX);
++		micom->ack_wanted = 0;
++		complete(&micom->ack_done);
++	}
++	spin_unlock_irqrestore(&micom->ack_lock, flags);
++}
++
++static void sdp_micom_handle_normal(struct sdp_micom *micom,
++				    struct sdp_micom_msg *msg)
++{
++	switch (msg->data[0]) {
++	case SDP_MICOM_EVT_KEY_UNDEFINED:
++		msg->data[1] = SDP_MICOM_KEY_UNDEFINED;
++		fallthrough;
++	case SDP_MICOM_EVT_KEYPRESS:
++		micom->last_key_client = SDP_MICOM_CLIENT_IR;
++		sdp_micom_dispatch(micom, SDP_MICOM_CLIENT_IR, msg);
++		break;
++	case SDP_MICOM_EVT_PANEL_KEYPRESS:
++		micom->last_key_client = SDP_MICOM_CLIENT_PANEL;
++		sdp_micom_dispatch(micom, SDP_MICOM_CLIENT_PANEL, msg);
++		break;
++	case SDP_MICOM_EVT_KEYRELEASE:
++		/* release goes to whoever got the last press */
++		sdp_micom_dispatch(micom, micom->last_key_client, msg);
++		break;
++	default:
++		sdp_micom_dispatch(micom, SDP_MICOM_CLIENT_MSG, msg);
++		break;
++	}
++	sdp_micom_check_ack(micom, msg);
++}
++
++/* message box receive callback: runs in the message box IRQ thread */
++static void sdp_micom_rx(void *priv, const u8 *buf, size_t len)
++{
++	struct sdp_micom *micom = priv;
++	struct sdp_micom_msg msg = { };
++	u8 sum = 0;
++	unsigned int i;
++
++	if (len < NORMAL_LEN || buf[0] != PREFIX) {
++		dev_dbg(micom->dev, "ignoring %zu-byte packet %02x %02x\n",
++			len, buf[0], len > 1 ? buf[1] : 0);
++		return;
++	}
++
++	switch (buf[1]) {
++	case PREFIX:
++		msg.type = SDP_MICOM_MSG_NORMAL;
++		msg.len = NORMAL_DATA;
++		memcpy(msg.data, &buf[HEADER_LEN], msg.len);
++		for (i = 0; i < msg.len; i++)
++			sum += msg.data[i];
++		if (sum != buf[HEADER_LEN + msg.len])
++			goto bad_sum;
++		sdp_micom_handle_normal(micom, &msg);
++		return;
++
++	case PREFIX_EXTENDED:
++		msg.type = SDP_MICOM_MSG_EXTENDED;
++		msg.len = min_t(unsigned int, NORMAL_DATA + buf[EXT_LEN_IDX],
++				len - HEADER_LEN);
++		memcpy(msg.data, &buf[HEADER_LEN], msg.len);
++		for (i = 0; i < msg.len; i++)
++			sum += msg.data[i];
++		sum -= msg.data[EXT_SUM_IDX - HEADER_LEN];	/* own sum byte */
++		if (sum != buf[EXT_SUM_IDX])
++			goto bad_sum;
++		sdp_micom_dispatch(micom, SDP_MICOM_CLIENT_MSG, &msg);
++		return;
++
++	case PREFIX_CEC:
++		msg.type = SDP_MICOM_MSG_CEC;
++		msg.len = (buf[HEADER_LEN] & 0x1f) + 1;
++		if (HEADER_LEN + msg.len >= len)
++			goto bad_len;
++		memcpy(msg.data, &buf[HEADER_LEN], msg.len);
++		for (i = 0; i < msg.len; i++)
++			sum ^= msg.data[i];
++		if (sum != buf[HEADER_LEN + msg.len])
++			goto bad_sum;
++		sdp_micom_dispatch(micom, SDP_MICOM_CLIENT_CEC, &msg);
++		return;
++
++	default:
++		dev_err_ratelimited(micom->dev, "invalid prefix 0x%02x\n", buf[1]);
++		return;
++	}
++
++bad_len:
++	dev_err_ratelimited(micom->dev, "bad CEC packet length\n");
++	return;
++bad_sum:
++	dev_err_ratelimited(micom->dev, "checksum error (type %d, cmd 0x%02x)\n",
++			    msg.type, msg.data[0]);
++}
++
++/**
++ * sdp_micom_get - Micom of a client device created by this driver
++ */
++struct sdp_micom *sdp_micom_get(struct device *child)
++{
++	struct sdp_micom *micom = child->parent ?
++				  dev_get_drvdata(child->parent) : NULL;
++
++	return micom ?: ERR_PTR(-EPROBE_DEFER);
++}
++EXPORT_SYMBOL_GPL(sdp_micom_get);
++
++int sdp_micom_register_client(struct sdp_micom *micom,
++			      enum sdp_micom_client id, sdp_micom_cb_t cb,
++			      void *priv)
++{
++	unsigned long flags;
++	int ret = 0;
++
++	if (id >= SDP_MICOM_CLIENT_NUM || !cb)
++		return -EINVAL;
++
++	spin_lock_irqsave(&micom->clients_lock, flags);
++	if (micom->client[id].cb) {
++		ret = -EBUSY;
++	} else {
++		micom->client[id].cb = cb;
++		micom->client[id].priv = priv;
++	}
++	spin_unlock_irqrestore(&micom->clients_lock, flags);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(sdp_micom_register_client);
++
++void sdp_micom_unregister_client(struct sdp_micom *micom,
++				 enum sdp_micom_client id)
++{
++	unsigned long flags;
++
++	if (id >= SDP_MICOM_CLIENT_NUM)
++		return;
++
++	spin_lock_irqsave(&micom->clients_lock, flags);
++	micom->client[id].cb = NULL;
++	micom->client[id].priv = NULL;
++	spin_unlock_irqrestore(&micom->clients_lock, flags);
++}
++EXPORT_SYMBOL_GPL(sdp_micom_unregister_client);
++
++/**
++ * sdp_micom_send_cmd - send a normal 9-byte command (no ack wait)
++ */
++int sdp_micom_send_cmd(struct sdp_micom *micom, u8 cmd, const u8 *data,
++		       size_t len)
++{
++	u8 buf[NORMAL_LEN] = { PREFIX, PREFIX, cmd };
++	unsigned int i;
++
++	if (len > CMD_DATA_MAX)
++		return -EINVAL;
++	if (data && len)
++		memcpy(&buf[3], data, len);
++	for (i = HEADER_LEN; i < NORMAL_LEN - 1; i++)
++		buf[NORMAL_LEN - 1] += buf[i];
++
++	return sdp_msgbox_send(micom->mb, buf, sizeof(buf));
++}
++EXPORT_SYMBOL_GPL(sdp_micom_send_cmd);
++
++/**
++ * sdp_micom_send_cmd_ack - send a command and wait for its ack
++ * @ack_data: optional, receives the 5 data bytes of the ack
++ */
++int sdp_micom_send_cmd_ack(struct sdp_micom *micom, u8 cmd, u8 ack,
++			   const u8 *data, size_t len, u8 *ack_data,
++			   unsigned int timeout_ms)
++{
++	unsigned long flags;
++	int ret;
++
++	mutex_lock(&micom->cmd_lock);
++	spin_lock_irqsave(&micom->ack_lock, flags);
++	micom->ack_wanted = ack;
++	reinit_completion(&micom->ack_done);
++	spin_unlock_irqrestore(&micom->ack_lock, flags);
++
++	ret = sdp_micom_send_cmd(micom, cmd, data, len);
++	if (!ret && !wait_for_completion_timeout(&micom->ack_done,
++						 msecs_to_jiffies(timeout_ms)))
++		ret = -ETIMEDOUT;
++
++	spin_lock_irqsave(&micom->ack_lock, flags);
++	micom->ack_wanted = 0;
++	if (!ret && ack_data)
++		memcpy(ack_data, micom->ack_data, CMD_DATA_MAX);
++	spin_unlock_irqrestore(&micom->ack_lock, flags);
++	mutex_unlock(&micom->cmd_lock);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(sdp_micom_send_cmd_ack);
++
++static void sdp_micom_unregister_child(void *pdev)
++{
++	platform_device_unregister(pdev);
++}
++
++static void sdp_micom_detach(void *data)
++{
++	struct sdp_micom *micom = data;
++
++	sdp_msgbox_set_rx_callback(micom->mb, NULL, NULL);
++}
++
++static int sdp_micom_probe(struct platform_device *pdev)
++{
++	static const char * const children[] = { "sdp-micom-rc" };
++	struct device *dev = &pdev->dev;
++	struct sdp_micom *micom;
++	struct platform_device *child;
++	unsigned int i;
++	int ret;
++
++	micom = devm_kzalloc(dev, sizeof(*micom), GFP_KERNEL);
++	if (!micom)
++		return -ENOMEM;
++
++	micom->dev = dev;
++	spin_lock_init(&micom->clients_lock);
++	spin_lock_init(&micom->ack_lock);
++	mutex_init(&micom->cmd_lock);
++	init_completion(&micom->ack_done);
++	micom->last_key_client = SDP_MICOM_CLIENT_IR;
++
++	micom->mb = sdp_msgbox_get(dev, dev->of_node);
++	if (IS_ERR(micom->mb))
++		return dev_err_probe(dev, PTR_ERR(micom->mb),
++				     "no message box\n");
++
++	platform_set_drvdata(pdev, micom);
++
++	ret = sdp_msgbox_set_rx_callback(micom->mb, sdp_micom_rx, micom);
++	if (ret)
++		return dev_err_probe(dev, ret, "message box is in use\n");
++	ret = devm_add_action_or_reset(dev, sdp_micom_detach, micom);
++	if (ret)
++		return ret;
++
++	for (i = 0; i < ARRAY_SIZE(children); i++) {
++		child = platform_device_register_data(dev, children[i],
++						      PLATFORM_DEVID_AUTO,
++						      NULL, 0);
++		if (IS_ERR(child))
++			return dev_err_probe(dev, PTR_ERR(child),
++					     "cannot add %s\n", children[i]);
++		ret = devm_add_action_or_reset(dev, sdp_micom_unregister_child,
++					       child);
++		if (ret)
++			return ret;
++	}
++
++	dev_info(dev, "Micom protocol core\n");
++	return 0;
++}
++
++static const struct of_device_id sdp_micom_of_match[] = {
++	{ .compatible = "samsung,tztv-micom" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, sdp_micom_of_match);
++
++static struct platform_driver sdp_micom_driver = {
++	.probe = sdp_micom_probe,
++	.driver = {
++		.name = "sdp-micom",
++		.of_match_table = sdp_micom_of_match,
++		.suppress_bind_attrs = true,
++	},
++};
++module_platform_driver(sdp_micom_driver);
++
++MODULE_DESCRIPTION("Samsung SDP Micom protocol core");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/sdp/sdp-msgbox.c b/drivers/soc/sdp/sdp-msgbox.c
+new file mode 100644
+index 000000000..2a755e58e
+--- /dev/null
++++ b/drivers/soc/sdp/sdp-msgbox.c
+@@ -0,0 +1,303 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Samsung SDP (Nike-L) Micom message box.
++ *
++ * Hardware mailbox between the main CPU and the Micom standby controller
++ * (DT "samsung,sdp-messagebox"). Each direction has eight 32-bit data
++ * registers (word 0 = payload length, words 1..7 = up to 28 payload bytes),
++ * a pending register and a clear register.
++ *
++ * Linux 6.6 port of linux-4.1.10/drivers/mailbox/sdp_micom_msgbox.c from
++ * Samsung's GPL package 20_DTV_NikeL (douk.namm@samsung.com, 2014-2019,
++ * version 1.3). Changes: per-device state instead of globals, kfifo instead
++ * of the open-coded ring, consumers find the box via a DT phandle; the
++ * delayed-IRQ recovery timer, debugfs statistics and VD-ramdump trigger of
++ * the original are not ported.
++ */
++#include <linux/device.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/kfifo.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
++#include <linux/delay.h>
++#include <linux/soc/sdp/sdp-micom.h>
++#include <linux/spinlock.h>
++
++/* register layout, from the Samsung driver */
++#define RECV_DATA(n)		(0x00 + 4 * (n))
++#define RECV_PEND		0x40
++#define RECV_CLEAR		0x44
++#define SEND_DATA(n)		(0x80 + 4 * (n))
++#define SEND_PEND		0xc0
++#define SEND_CLEAR		0xc4
++
++#define MSG_SEND		BIT(0)
++#define MSG_ALL_PENDING		0xff
++
++#define RX_FIFO_DEPTH		16	/* messages, as SDP_MC_HANDLER_RINGBUF_SIZE */
++#define SEND_WAIT_MS		50
++
++struct sdp_msgbox_rx {
++	u32 word[8];
++};
++
++struct sdp_msgbox {
++	struct device *dev;
++	void __iomem *base;
++	int irq;
++
++	spinlock_t rx_lock;		/* ISR <-> thread FIFO */
++	DECLARE_KFIFO(rx_fifo, struct sdp_msgbox_rx, RX_FIFO_DEPTH);
++	struct mutex send_lock;
++
++	spinlock_t cb_lock;		/* rx_cb / rx_priv */
++	sdp_msgbox_rx_cb_t rx_cb;
++	void *rx_priv;
++
++	unsigned int rx_dropped;
++};
++
++static irqreturn_t sdp_msgbox_isr(int irq, void *data)
++{
++	struct sdp_msgbox *mb = data;
++	struct sdp_msgbox_rx rx;
++	irqreturn_t ret = IRQ_NONE;
++	u32 pend;
++	int i;
++
++	pend = readl(mb->base + RECV_PEND);
++	if (!pend) {
++		writel(MSG_ALL_PENDING, mb->base + RECV_CLEAR);
++		readl(mb->base + RECV_CLEAR);	/* flush before GIC EOI */
++		return IRQ_NONE;
++	}
++
++	if (pend & MSG_SEND) {
++		for (i = 0; i < ARRAY_SIZE(rx.word); i++)
++			rx.word[i] = readl(mb->base + RECV_DATA(i));
++		spin_lock(&mb->rx_lock);
++		if (!kfifo_put(&mb->rx_fifo, rx))
++			mb->rx_dropped++;
++		spin_unlock(&mb->rx_lock);
++		writel(MSG_SEND, mb->base + RECV_CLEAR);
++		readl(mb->base + RECV_CLEAR);
++		ret = IRQ_WAKE_THREAD;
++	}
++
++	pend &= MSG_ALL_PENDING & ~MSG_SEND;
++	if (pend) {
++		dev_warn_ratelimited(mb->dev, "unexpected pending bits 0x%02x\n",
++				     pend);
++		writel(pend, mb->base + RECV_CLEAR);
++		readl(mb->base + RECV_CLEAR);
++		if (ret == IRQ_NONE)
++			ret = IRQ_HANDLED;
++	}
++
++	return ret;
++}
++
++static irqreturn_t sdp_msgbox_thread(int irq, void *data)
++{
++	struct sdp_msgbox *mb = data;
++	struct sdp_msgbox_rx rx;
++	sdp_msgbox_rx_cb_t cb;
++	unsigned long flags;
++	void *priv;
++	u32 len;
++
++	for (;;) {
++		spin_lock_irqsave(&mb->rx_lock, flags);
++		if (!kfifo_get(&mb->rx_fifo, &rx)) {
++			spin_unlock_irqrestore(&mb->rx_lock, flags);
++			break;
++		}
++		spin_unlock_irqrestore(&mb->rx_lock, flags);
++
++		len = rx.word[0];
++		if (!len || len > SDP_MSGBOX_MSG_MAX) {
++			dev_err_ratelimited(mb->dev, "invalid message size %u\n",
++					    len);
++			continue;
++		}
++
++		spin_lock_irqsave(&mb->cb_lock, flags);
++		cb = mb->rx_cb;
++		priv = mb->rx_priv;
++		spin_unlock_irqrestore(&mb->cb_lock, flags);
++		if (cb)
++			cb(priv, (const u8 *)&rx.word[1], len);
++	}
++
++	return IRQ_HANDLED;
++}
++
++/**
++ * sdp_msgbox_send - send one message to the Micom
++ * @mb: message box
++ * @buf: payload
++ * @len: payload length, 1..SDP_MSGBOX_MSG_MAX
++ *
++ * Waits until both directions are idle (as the Samsung driver does), then
++ * writes the payload, the length and raises the send pending bit.
++ * Returns 0 or a negative error code.
++ */
++int sdp_msgbox_send(struct sdp_msgbox *mb, const u8 *buf, size_t len)
++{
++	u32 word[7] = { 0 };
++	int i, tries = SEND_WAIT_MS;
++
++	if (!mb)
++		return -ENODEV;
++	if (!len || len > SDP_MSGBOX_MSG_MAX)
++		return -EINVAL;
++
++	memcpy(word, buf, len);	/* little-endian packing, as the original */
++
++	mutex_lock(&mb->send_lock);
++	while ((readl(mb->base + SEND_PEND) & MSG_SEND) ||
++	       (readl(mb->base + RECV_PEND) & MSG_SEND)) {
++		if (!tries--) {
++			mutex_unlock(&mb->send_lock);
++			dev_err(mb->dev, "send timeout\n");
++			return -ETIMEDOUT;
++		}
++		usleep_range(1000, 1500);
++	}
++
++	for (i = 0; i < DIV_ROUND_UP(len, 4); i++)
++		writel(word[i], mb->base + SEND_DATA(1 + i));
++	writel(len, mb->base + SEND_DATA(0));
++	writel(MSG_SEND, mb->base + SEND_PEND);
++	mutex_unlock(&mb->send_lock);
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(sdp_msgbox_send);
++
++/**
++ * sdp_msgbox_set_rx_callback - install the receive callback (one consumer)
++ */
++int sdp_msgbox_set_rx_callback(struct sdp_msgbox *mb, sdp_msgbox_rx_cb_t cb,
++			       void *priv)
++{
++	unsigned long flags;
++	int ret = 0;
++
++	if (!mb)
++		return -ENODEV;
++
++	spin_lock_irqsave(&mb->cb_lock, flags);
++	if (cb && mb->rx_cb) {
++		ret = -EBUSY;
++	} else {
++		mb->rx_cb = cb;
++		mb->rx_priv = priv;
++	}
++	spin_unlock_irqrestore(&mb->cb_lock, flags);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(sdp_msgbox_set_rx_callback);
++
++/**
++ * sdp_msgbox_get - find the message box referenced by "samsung,messagebox"
++ * @dev: consumer device (gets a device link to the message box)
++ * @np: consumer node holding the phandle
++ *
++ * Returns the message box, ERR_PTR(-EPROBE_DEFER) if it is not bound yet.
++ */
++struct sdp_msgbox *sdp_msgbox_get(struct device *dev, struct device_node *np)
++{
++	struct platform_device *pdev;
++	struct device_node *mb_np;
++	struct sdp_msgbox *mb;
++
++	mb_np = of_parse_phandle(np, "samsung,messagebox", 0);
++	if (!mb_np)
++		return ERR_PTR(-ENODEV);
++
++	pdev = of_find_device_by_node(mb_np);
++	of_node_put(mb_np);
++	if (!pdev)
++		return ERR_PTR(-EPROBE_DEFER);
++
++	mb = platform_get_drvdata(pdev);
++	if (!mb) {
++		put_device(&pdev->dev);
++		return ERR_PTR(-EPROBE_DEFER);
++	}
++
++	if (!device_link_add(dev, &pdev->dev, DL_FLAG_AUTOREMOVE_CONSUMER)) {
++		put_device(&pdev->dev);
++		return ERR_PTR(-EINVAL);
++	}
++	put_device(&pdev->dev);
++
++	return mb;
++}
++EXPORT_SYMBOL_GPL(sdp_msgbox_get);
++
++static int sdp_msgbox_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct sdp_msgbox *mb;
++	int ret;
++
++	mb = devm_kzalloc(dev, sizeof(*mb), GFP_KERNEL);
++	if (!mb)
++		return -ENOMEM;
++
++	mb->dev = dev;
++	spin_lock_init(&mb->rx_lock);
++	spin_lock_init(&mb->cb_lock);
++	mutex_init(&mb->send_lock);
++	INIT_KFIFO(mb->rx_fifo);
++
++	mb->base = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(mb->base))
++		return PTR_ERR(mb->base);
++
++	mb->irq = platform_get_irq(pdev, 0);
++	if (mb->irq < 0)
++		return mb->irq;
++
++	if (readl(mb->base + RECV_PEND))
++		dev_warn(dev, "clearing stale pending bits 0x%08x\n",
++			 readl(mb->base + RECV_PEND));
++	writel(MSG_ALL_PENDING, mb->base + RECV_CLEAR);
++	readl(mb->base + RECV_CLEAR);
++
++	ret = devm_request_threaded_irq(dev, mb->irq, sdp_msgbox_isr,
++					sdp_msgbox_thread, 0, dev_name(dev), mb);
++	if (ret)
++		return dev_err_probe(dev, ret, "cannot request IRQ %d\n",
++				     mb->irq);
++
++	platform_set_drvdata(pdev, mb);
++	dev_info(dev, "Micom message box, irq %d\n", mb->irq);
++	return 0;
++}
++
++static const struct of_device_id sdp_msgbox_of_match[] = {
++	{ .compatible = "samsung,sdp-messagebox" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, sdp_msgbox_of_match);
++
++static struct platform_driver sdp_msgbox_driver = {
++	.probe = sdp_msgbox_probe,
++	.driver = {
++		.name = "sdp-msgbox",
++		.of_match_table = sdp_msgbox_of_match,
++		.suppress_bind_attrs = true,
++	},
++};
++module_platform_driver(sdp_msgbox_driver);
++
++MODULE_DESCRIPTION("Samsung SDP Micom message box");
++MODULE_LICENSE("GPL");
+diff --git a/include/linux/soc/sdp/sdp-micom.h b/include/linux/soc/sdp/sdp-micom.h
+new file mode 100644
+index 000000000..69293abae
+--- /dev/null
++++ b/include/linux/soc/sdp/sdp-micom.h
+@@ -0,0 +1,87 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Samsung SDP (Nike-L) Micom message box and Micom protocol interface.
++ *
++ * Linux 6.6 port of Samsung's GPL sources from the 20_DTV_NikeL package:
++ * linux-4.1.10/drivers/mailbox/sdp_micom_msgbox.c and
++ * tztv-micom/sdp_micom.h, sdp_micom_messagebox.c
++ * (Copyright (C) 2013-2020 Samsung Electronics Co. Ltd., GPL-2.0).
++ */
++#ifndef __LINUX_SOC_SDP_MICOM_H
++#define __LINUX_SOC_SDP_MICOM_H
++
++#include <linux/types.h>
++
++struct device;
++struct device_node;
++struct sdp_msgbox;
++struct sdp_micom;
++
++/* ---- message box (hardware mailbox between CPU and Micom) ---- */
++
++/* largest message in one message box transfer (7 data words) */
++#define SDP_MSGBOX_MSG_MAX	28
++
++typedef void (*sdp_msgbox_rx_cb_t)(void *priv, const u8 *buf, size_t len);
++
++struct sdp_msgbox *sdp_msgbox_get(struct device *dev, struct device_node *np);
++int sdp_msgbox_set_rx_callback(struct sdp_msgbox *mb, sdp_msgbox_rx_cb_t cb,
++			       void *priv);
++int sdp_msgbox_send(struct sdp_msgbox *mb, const u8 *buf, size_t len);
++
++/* ---- Micom protocol ---- */
++
++/* commands to the Micom */
++#define SDP_MICOM_CMD_POWEROFF		0x12
++#define SDP_MICOM_CMD_VERSION		0x20
++
++/* events from the Micom */
++#define SDP_MICOM_EVT_KEYPRESS		0x10
++#define SDP_MICOM_EVT_PANEL_KEYPRESS	0x11
++#define SDP_MICOM_EVT_KEYRELEASE	0x1E
++#define SDP_MICOM_EVT_KEY_UNDEFINED	0xAA
++
++/* acks from the Micom */
++#define SDP_MICOM_ACK_VERSION		0x30
++#define SDP_MICOM_ACK_UNKNOWN		0xE4
++
++/* key code reported for SDP_MICOM_EVT_KEY_UNDEFINED */
++#define SDP_MICOM_KEY_UNDEFINED		0xF5
++
++enum sdp_micom_client {
++	SDP_MICOM_CLIENT_IR,
++	SDP_MICOM_CLIENT_PANEL,
++	SDP_MICOM_CLIENT_CEC,
++	SDP_MICOM_CLIENT_MSG,
++	SDP_MICOM_CLIENT_NUM,
++};
++
++enum sdp_micom_msg_type {
++	SDP_MICOM_MSG_NORMAL,
++	SDP_MICOM_MSG_CEC,
++	SDP_MICOM_MSG_EXTENDED,
++};
++
++#define SDP_MICOM_MSG_MAX	32
++
++struct sdp_micom_msg {
++	enum sdp_micom_msg_type type;
++	unsigned int len;
++	u8 data[SDP_MICOM_MSG_MAX];
++};
++
++typedef void (*sdp_micom_cb_t)(const struct sdp_micom_msg *msg, void *priv);
++
++struct sdp_micom *sdp_micom_get(struct device *child);
++int sdp_micom_register_client(struct sdp_micom *micom,
++			      enum sdp_micom_client id, sdp_micom_cb_t cb,
++			      void *priv);
++void sdp_micom_unregister_client(struct sdp_micom *micom,
++				 enum sdp_micom_client id);
++int sdp_micom_send_cmd(struct sdp_micom *micom, u8 cmd, const u8 *data,
++		       size_t len);
++int sdp_micom_send_cmd_ack(struct sdp_micom *micom, u8 cmd, u8 ack,
++			   const u8 *data, size_t len, u8 *ack_data,
++			   unsigned int timeout_ms);
++
++#endif /* __LINUX_SOC_SDP_MICOM_H */

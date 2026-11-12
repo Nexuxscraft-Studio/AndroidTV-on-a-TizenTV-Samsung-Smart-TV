@@ -78,7 +78,7 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 12)
+        self.assertEqual(len(names), 13)
         self.assertTrue(names[0].startswith("0001-serial"))
         # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
         # upstream df0cb5cb50bd
@@ -87,6 +87,20 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertTrue(names[10].startswith("0011-drm-allow-dumb-buffer-ioctls"))
         # 0012 (Build 070): sdp-drm display KMS skeleton in the shared kernel
         self.assertTrue(names[11].startswith("0012-drm-add-Samsung-SDP-Nike-L-display"))
+        # 0013 (Build 070): Micom message box + protocol + remote control
+        self.assertTrue(names[12].startswith("0013-soc-sdp-add-Micom"))
+
+    def test_micom_patch_uses_firmware_values(self):
+        txt = self._patch_text("0013-soc")
+        # firmware DT /soc/msgbox: reg <0x9c0400 0x100>, interrupts <0 0x22 0>
+        self.assertIn("+\t\t\treg = <0x009c0400 0x100>;", txt)
+        self.assertIn("+\t\t\tinterrupts = <GIC_SPI 34 IRQ_TYPE_NONE>;", txt)
+        self.assertIn('+\t\tcompatible = "samsung,tztv-micom";', txt)
+        # both new nodes stay disabled until verified on the device
+        self.assertIn('+\t\t\tstatus = "disabled";', txt)
+        self.assertIn('+\t\tstatus = "disabled";', txt)
+        # mainline has no KEY_NR / KEY_HOTEL_* -> no such entry in the key map
+        self.assertNotRegex(txt, r"\+\t\{ 0x[0-9a-f]+, KEY_(NR|HOTEL_\w+) \}")
 
     def test_sdp_drm_patch(self):
         txt = self._patch_text("0012-drm")
