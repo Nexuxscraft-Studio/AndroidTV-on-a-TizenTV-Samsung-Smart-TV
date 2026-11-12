@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import subprocess
 import sys
@@ -49,7 +48,8 @@ def validated_source(source: Path, allowed_root: Path, kind: str) -> tuple[Path,
         magic = fh.read(4)
     if magic != (UIMAGE_MAGIC if kind == "uimage" else DTB_MAGIC):
         raise ValueError("Unexpected magic for selected evidence type")
-    digest = hashlib.file_digest(resolved.open("rb"), "sha256").hexdigest()
+    with resolved.open("rb") as input_file:
+        digest = hashlib.file_digest(input_file, "sha256").hexdigest()
     return resolved, size, digest
 
 
