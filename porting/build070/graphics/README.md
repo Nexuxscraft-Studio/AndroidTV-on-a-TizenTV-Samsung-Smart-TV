@@ -17,7 +17,7 @@ wurde nicht ergänzt: ein grüner Build allein ersetzt die Projektfreigabe nicht
 | G2 | 0021: disabled `gpu@500000`; reg und alle IRQ-Zellen gegen hashgeprüftes dtb0 verifiziert; beide ARM32-DTBs mit W=1 kompiliert. | **43222413774, grün** (zusätzlich lokal) |
 | G3 | 0022: genpd besitzt Gate, Reset und Idle; keine doppelte CCF-/Reset-Steuerung. ARM32-Objekte mit W=1 -Werror kompiliert; Host-MMIO-Modell der tatsächlichen Callbacks bestanden. Parent/Rate/Supply UNBELEGT. | **43222413774, grün** (zusätzlich lokal) |
 | G4 | `DRM_PANFROST=y` war vorhanden; `SDP1804_GPU_POWER=y` ergänzt. Alle gesetzten CONFIG-Werte der vier Projektfragmente überleben olddefconfig mit AOSP android-6.6/android-base.config. | **43222413774, grün** (zusätzlich lokal) |
-| G5 | 0023: Scanout-Prüfung, FB-Offset, DMA-Adressgrenze, lineare Modifier, IRQ-Initialisierungsreihenfolge und VBlank-Events. ARM32-Objekte mit W=1 -Werror kompiliert. ABGR8888 UNBELEGT; keine Aktivierung. | **43222413774, grün** (zusätzlich lokal) |
+| G5 | 0023: Scanout-Prüfung, FB-Offset, DMA-Adressgrenze, lineare Modifier, IRQ-Initialisierungsreihenfolge und VBlank-Events. 0024: expliziter KMS-Interlock. 0025 macht die ungenutzte Bootlogo-Speicher-Metadaten optional. 0023 ist im Runner kompiliert; 0024/0025 bisher nur Patch-/Lint-geprüft. ABGR8888 UNBELEGT; keine Aktivierung. | **43222413774, grün** (nur 0023; 0024/0025 ohne Runner) |
 | G6 | Kernel-/Mesa-/drm_hwcomposer-Vertrag unten; Userspace weder gebaut noch ausgeführt. | keine |
 
 Lokaler Compiler: Debian GCC **14.2.0**, ARM EABI5, **nicht** der
@@ -223,6 +223,12 @@ als Projekt-Sicherheitsinterlock im neuen DT-Binding dokumentiert, nicht als
 behauptete Hardwarefunktion. GPU und Display sind im ausgelieferten DT weiter
 `disabled`; 0024 wurde nur mit `patch --dry-run` auf dem vollständigen
 Patchstand 0023 geprüft, noch nicht im Runner gebaut.
+
+Patch 0025 macht die proprietäre Bootlogo-Metadatenquelle
+`/sdp_mmap/samsung,gfx0` optional. Sie wird vom Atomic-Scanout nicht für die
+Allokation verwendet; seine Adresse kommt aus dem GEM-DMA-Framebuffer. Damit
+ist kein CMA-/DMA-BUF-/Panfrost-Import als scanoutfähig bewiesen: Das bleibt
+**UNGETESTET** und die 32-Bit-DMA- und Plane-Prüfungen bleiben verbindlich.
 
 Nächste fachliche Arbeit: belegten GPU-Mux-/Parent-Readback erarbeiten;
 danach ABGR/Allocator und reale Display-Timings, weiterhin ohne

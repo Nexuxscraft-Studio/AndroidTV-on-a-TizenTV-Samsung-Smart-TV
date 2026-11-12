@@ -1,0 +1,43 @@
+From: Codex <noreply@openai.com>
+Subject: [PATCH] drm: sdp: make legacy bootlogo memory metadata optional
+
+The atomic scanout path uses the address of its GEM-DMA framebuffer; it does
+not allocate from or map /sdp_mmap/samsung,gfx0.  Do not prevent DRM probe
+when that legacy boot-logo metadata is absent or incomplete.  Keep parsing it
+as diagnostic information when it is available.
+
+This does not prove CMA, DMA-BUF import, or a Panfrost allocation is valid for
+scanout.  The existing 32-bit DMA mask and plane address validation remain the
+only implemented scanout contract.  No hardware values change, the DT node
+remains disabled, and no hardware test was performed.
+
+Signed-off-by: Codex <noreply@openai.com>
+---
+ drivers/gpu/drm/sdp/sdp_drm.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/sdp/sdp_drm.c b/drivers/gpu/drm/sdp/sdp_drm.c
+index 6029053e8072..0ba92d5a8d56 100644
+--- a/drivers/gpu/drm/sdp/sdp_drm.c
++++ b/drivers/gpu/drm/sdp/sdp_drm.c
+@@ -486,7 +486,6 @@ static int sdp_drm_parse_gfx_mem(struct device *dev, u32 *addr, u32 *size)
+ 	np = of_find_node_by_name(NULL, "sdp_mmap");
+ 	if (!np) {
+-		dev_err(dev, "sdp_mmap node not found in device tree\n");
+-		return -ENODEV;
++		return 0;
+ 	}
+ 
+ 	ret = of_property_read_u32_array(np, "samsung,gfx0", data, 3);
+@@ -494,6 +493,6 @@ static int sdp_drm_parse_gfx_mem(struct device *dev, u32 *addr, u32 *size)
+ 	of_node_put(np);
+ 	if (ret) {
+-		dev_err(dev, "samsung,gfx0 not found in sdp_mmap: %d\n", ret);
+-		return ret;
++		dev_dbg(dev, "samsung,gfx0 unavailable: %d\n", ret);
++		return 0;
+ 	}
+ 
+ 	*addr = data[1];
+-- 
+2.43.0
