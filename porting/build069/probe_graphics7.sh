@@ -14,4 +14,6 @@ sec "setupNewDisplayDeviceInternal: format"; grep -n -B2 -A6 'setPixelFormat\|Pi
 sec "7b: RenderSurface.cpp 1-120"; sed -n 1,120p $S/CompositionEngine/src/RenderSurface.cpp
 sec "7b: compositionengine shared_libs"; grep -n -A30 'name: "libcompositionengine_defaults"' $S/CompositionEngine/Android.bp | head -45
 sec "7b: callers of setBufferPixelFormat"; grep -rn 'setBufferPixelFormat' $S --include='*.cpp' | grep -v test | head
+sec "7c: Display.cpp around setBufferPixelFormat"; sed -n 340,372p $S/CompositionEngine/src/Display.cpp
+sec "7c: drm_hwcomposer client target property"; grep -rn -B3 -A12 'ClientTargetProperty\|client_target_property\|clientTargetProperty' external/drm_hwcomposer --include='*.cpp' --include='*.h' | grep -v -i test | head -80
 echo "(done)"
