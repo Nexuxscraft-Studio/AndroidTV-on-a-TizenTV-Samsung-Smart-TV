@@ -13,16 +13,17 @@ wurde nicht ergänzt: ein grüner Build allein ersetzt die Projektfreigabe nicht
 
 | Paket | Änderung / Ergebnis | Runner-Run-ID |
 |---|---|---|
-| G1 | In 0019 `ARCH_SAMSUNG_SDP` → `ARCH_SDP`; alle 22 vorhandenen Patches bis 0023 auf sauberem v6.6.162 angewandt. 0019 hatte bereits 19 Zeilen und keinen Repo-Config-Hunk. 0016 fehlt absichtlich. | keine, lokal |
-| G2 | 0021: disabled `gpu@500000`; reg und alle IRQ-Zellen gegen hashgeprüftes dtb0 verifiziert; beide ARM32-DTBs mit W=1 kompiliert. | keine, lokal |
-| G3 | 0022: genpd besitzt Gate, Reset und Idle; keine doppelte CCF-/Reset-Steuerung. ARM32-Objekte mit W=1 -Werror kompiliert; Host-MMIO-Modell der tatsächlichen Callbacks bestanden. Parent/Rate/Supply UNBELEGT. | keine, lokal |
-| G4 | `DRM_PANFROST=y` war vorhanden; `SDP1804_GPU_POWER=y` ergänzt. Alle gesetzten CONFIG-Werte der vier Projektfragmente überleben olddefconfig mit AOSP android-6.6/android-base.config. | keine, lokal |
-| G5 | 0023: Scanout-Prüfung, FB-Offset, DMA-Adressgrenze, lineare Modifier, IRQ-Initialisierungsreihenfolge und VBlank-Events. ARM32-Objekte mit W=1 -Werror kompiliert. ABGR8888 UNBELEGT; keine Aktivierung. | keine, lokal |
+| G1 | In 0019 `ARCH_SAMSUNG_SDP` → `ARCH_SDP`; alle 22 vorhandenen Patches bis 0023 auf sauberem v6.6.162 angewandt. 0019 hatte bereits 19 Zeilen und keinen Repo-Config-Hunk. 0016 fehlt absichtlich. | **43222413774, grün** (zusätzlich lokal) |
+| G2 | 0021: disabled `gpu@500000`; reg und alle IRQ-Zellen gegen hashgeprüftes dtb0 verifiziert; beide ARM32-DTBs mit W=1 kompiliert. | **43222413774, grün** (zusätzlich lokal) |
+| G3 | 0022: genpd besitzt Gate, Reset und Idle; keine doppelte CCF-/Reset-Steuerung. ARM32-Objekte mit W=1 -Werror kompiliert; Host-MMIO-Modell der tatsächlichen Callbacks bestanden. Parent/Rate/Supply UNBELEGT. | **43222413774, grün** (zusätzlich lokal) |
+| G4 | `DRM_PANFROST=y` war vorhanden; `SDP1804_GPU_POWER=y` ergänzt. Alle gesetzten CONFIG-Werte der vier Projektfragmente überleben olddefconfig mit AOSP android-6.6/android-base.config. | **43222413774, grün** (zusätzlich lokal) |
+| G5 | 0023: Scanout-Prüfung, FB-Offset, DMA-Adressgrenze, lineare Modifier, IRQ-Initialisierungsreihenfolge und VBlank-Events. ARM32-Objekte mit W=1 -Werror kompiliert. ABGR8888 UNBELEGT; keine Aktivierung. | **43222413774, grün** (zusätzlich lokal) |
 | G6 | Kernel-/Mesa-/drm_hwcomposer-Vertrag unten; Userspace weder gebaut noch ausgeführt. | keine |
 
 Lokaler Compiler: Debian GCC **14.2.0**, ARM EABI5, **nicht** der
 LineageOS-LLVM-Prebuilt. Das ist ein zusätzlicher Compiletest, kein Ersatz
-für den angeforderten vollständigen Runner-Kernelbuild. Gebaut wurden
+für den vollständigen Runner-Kernelbuild. Dieser wurde anschließend im Lauf
+**43222413774** mit dem LineageOS-LLVM-Prebuilt erfolgreich ausgeführt. Gebaut wurden
 `drivers/clk/clk-sdp1804{,-gpu}.o`, `drivers/gpu/drm/{sdp,panfrost}/`
 und beide `sdp-nikel-q60t-{1g5,2g}.dtb` mit `W=1 KCFLAGS=-Werror`.
 Der erste Android-Configlauf erzeugte die üblichen Kconfig-Choice-Override-
@@ -147,17 +148,33 @@ XRGB8888/ARGB8888 sind Quellbefunde, keine Messung korrekter Farben.
 Kein Vendor-`libmali.so`-/Kbase-ABI wird mit Panfrost gemischt. Das Vorhandensein
 von `/dev/mali0` ist kein DRM-Render-Node. MindTheGapps ist kein GPU-/Display-HAL.
 
-## Nächster Runnerauftrag
+## Runnernachweis / nächster Schritt
 
 Workflow `build070-drivers.yml` akzeptiert jetzt auch `codex/graphics`.
 Gate erweitert auf `drivers/gpu/drm/panfrost/` und den GPU-Domain-Treiber;
 `dtc W=1`-Warnungen sind jetzt ein Fehler statt einer bloßen Zählung.
 
-Einziger geplanter Auftrag: MODE=kernel, neuer REQUEST_ID. `LOS_DIR` und
-`GPL_DIR` bleiben unverändert. Vor dem Push wegen der gemeinsam genutzten
-Concurrency-Gruppe `build068-selfhosted-v2` mit dem Projektleiter abstimmen.
-Solange kein Lauf gestartet wurde: **Runner-Run-ID = keine, Ergebnis = nicht
-getestet**. Nach jedem Lauf Run-ID, Ausgang und relevante Logzeilen hier
-und im Build-070-README ergänzen. Nächste fachliche Arbeit: belegten
-GPU-Mux-/Parent-Readback erarbeiten; danach ABGR/Allocator und reale
-Display-Timings, weiterhin ohne TV-Aktivierung.
+Ausgeführter Auftrag: MODE=kernel,
+`REQUEST_ID=2026-11-12-graphics-g1-g6-01`; genau ein abgestimmter Request.
+`LOS_DIR` und `GPL_DIR` unverändert.
+
+**Run [43222413774](https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/actions/runs/43222413774), 12.11.2026, Ergebnis SUCCESS.**
+Getesteter Commit `68f47e940f089168920b539588a057d8bb04fe2d`, Runner `debian`.
+LineageOS-Prebuilt `clang-r536225`, Android Clang 19.0.1.
+Offline-Tests und vollständiger Kernelbuild `arm android` erfolgreich;
+`Image`, `zImage`, beide DTBs erzeugt. Grafik-Gate `W=1 -Werror` erfolgreich,
+beide zusätzlichen DT-Rebuilds: **0 Warnungen**. Das heruntergeladene
+Actions-Artefakt bestätigt `DRM_PANFROST=y`, `DRM_SDP=y`,
+`SDP1804_GPU_POWER=y`, `PM_GENERIC_DOMAINS=y`; alle gesetzten Werte der
+vier Projektfragmente sind erhalten. Logauszug:
+[runner-43222413774.md](runner-43222413774.md), maschinenlesbarer Beleg:
+[runner-validation.json](runner-validation.json).
+Artefakt `13947050571`, SHA-256
+`7a754e286d75b05148893c5c7a8be7085b9e8c2eaab72ac55fe88e4e750da655`.
+Keine Hardware-/Boot-/Userspace-Validierung; `drm@5d0000` bleibt disabled.
+
+Nächste fachliche Arbeit: belegten GPU-Mux-/Parent-Readback erarbeiten;
+danach ABGR/Allocator und reale Display-Timings, weiterhin ohne
+TV-Aktivierung. Für einen weiteren Kernelauftrag wieder mit dem
+Projektleiter abstimmen. Die reinen Ergebnis-Dokuänderungen lösen keinen
+neuen Build070-Runnerauftrag aus.

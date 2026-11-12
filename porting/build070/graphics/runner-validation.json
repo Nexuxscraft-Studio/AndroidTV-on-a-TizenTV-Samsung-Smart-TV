@@ -1,0 +1,32 @@
+{
+  "run_id": 43222413774,
+  "url": "https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/actions/runs/43222413774",
+  "head_sha": "68f47e940f089168920b539588a057d8bb04fe2d",
+  "runner": "debian",
+  "result": "success",
+  "kernel": "6.6.162",
+  "arch": "arm",
+  "profile": "android",
+  "toolchain": "LineageOS prebuilt clang-r536225, Clang 19.0.1",
+  "full_kernel_build": true,
+  "W1_Werror_graphics_gate": "passed",
+  "dtc_W1_warnings": 0,
+  "project_fragment_values_lost": [],
+  "artifact_id": 13947050571,
+  "artifact_sha256": "7a754e286d75b05148893c5c7a8be7085b9e8c2eaab72ac55fe88e4e750da655",
+  "artifact_file_sha256": {
+    "config": "f05de6a841990a58f3d3c7928ac1be945559d273f2166de6eceb45a6aab565b2",
+    "summary.txt": "f6feec4aae588e74bcf91ae75ea0d03e4cdb3fd2841393bab804c55f57960427",
+    "BUILD_INFO.txt": "d0397544fb96bf02179f449f7a914e902085bcdc9f3554008cb59a1c277cc2e7",
+    "android-coverage.txt": "6bb5cd7bdb5d22b535faeac5ea4b8de9aac02a6c9093cd7724b4ca5d449a116e"
+  },
+  "hardware_tested": false,
+  "open_UNBELEGT": [
+    "GPU parent/rate",
+    "mali-supply",
+    "IRQ electrical polarity",
+    "ABGR8888 swizzle",
+    "panel timings",
+    "runtime scanout"
+  ]
+}
