@@ -1,0 +1,234 @@
+From: Codex <noreply@openai.com>
+Subject: [PATCH] drm: sdp: validate linear scanout and synchronize vblank events
+
+Reject pitches/crops/modes that cannot be programmed by the current fixed
+boot-logo path; account for framebuffer offsets and reject DMA truncation.
+Register IRQ only after CRTC/vblank initialization. Queue flip events for
+vblank instead of completing immediately; add vblank mask hooks.
+
+Evidence (tztv-media-nike):
+ sdp_logo_nike/nikem/sdp_logo.c:296-301,470-472 (stride/base register)
+ sdp_logo_nike/nikem/sdp_logo.c:36-53 (NIKEL interrupt acknowledge)
+ sdp_logo_nike/nikem/sdp_logo_gfx.c:83-85 (unmask)
+ sdp_drm_nike/gfx/nikel/sdp_mixer.c:108-146 (vblank mask/unmask)
+ sdp_drm_nike/sdp_hw_plane.c:13-17 (XRGB8888/ARGB8888 formats)
+
+ABGR8888 channel swizzle, exact boot timing, scanout latch and real IRQ
+behavior remain UNBELEGT. Do not advertise ABGR or AFBC without proof.
+Only software constraints are tightened; DT remains disabled. No TV tests.
+
+diff --git a/drivers/gpu/drm/sdp/sdp_drm.c b/drivers/gpu/drm/sdp/sdp_drm.c
+index f2a5a83c1..a08d908f0 100644
+--- a/drivers/gpu/drm/sdp/sdp_drm.c
++++ b/drivers/gpu/drm/sdp/sdp_drm.c
+@@ -32,6 +32,8 @@
+  * Plane programming: sdp_logo.c      (sdp_logo_set_plane, _NIKEL_GFX_)
+  * Mixer init:        sdp_logo_gfx.c  (sdp_logo_gfx_init, _NIKEL_GFX_)
+  */
++#include <linux/dma-mapping.h>
++#include <linux/interrupt.h>
+ #include <linux/io.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
+@@ -45,6 +47,7 @@
+ #include <drm/drm_fb_dma_helper.h>
+ #include <drm/drm_fbdev_dma.h>
+ #include <drm/drm_fourcc.h>
++#include <drm/drm_framebuffer.h>
+ #include <drm/drm_gem_dma_helper.h>
+ #include <drm/drm_gem_framebuffer_helper.h>
+ #include <drm/drm_managed.h>
+@@ -145,6 +148,12 @@ static const u32 sdp_drm_formats[] = {
+ 	DRM_FORMAT_ARGB8888,
+ };
+ 
++/* Scanout only accepts the linear layout documented by the boot-logo path. */
++static const u64 sdp_drm_modifiers[] = {
++	DRM_FORMAT_MOD_LINEAR,
++	DRM_FORMAT_MOD_INVALID,
++};
++
+ /* ── helpers ─────────────────────────────────────────────────────────────── */
+ 
+ static inline void gp_write(struct sdp_drm_device *sdp, u32 reg, u32 val)
+@@ -202,6 +211,44 @@ static const struct drm_connector_funcs sdp_drm_conn_funcs = {
+ 
+ /* ── display pipe: GP plane + mixer ─────────────────────────────────────── */
+ 
++/*
++ * sdp_logo.c:296-301 derives H_OFFSET from width, not arbitrary pitches.
++ * Only the boot-logo dimensions are implemented; never accept an oversized
++ * or cropped FB and then silently scan it with a 1920-pixel stride.
++ */
++static enum drm_mode_status
++sdp_drm_mode_valid(struct drm_simple_display_pipe *pipe,
++		   const struct drm_display_mode *mode)
++{
++	if (mode->hdisplay != GP_INPUT_W || mode->vdisplay != GP_INPUT_H)
++		return MODE_BAD;
++	if (mode->flags & (DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_DBLSCAN))
++		return MODE_BAD;
++	return MODE_OK;
++}
++
++static int sdp_drm_pipe_check(struct drm_simple_display_pipe *pipe,
++			    struct drm_plane_state *state,
++			    struct drm_crtc_state *crtc_state)
++{
++	struct drm_framebuffer *fb = state->fb;
++	dma_addr_t addr;
++	u64 last;
++
++	if (!fb)
++		return 0;
++	if (fb->width != GP_INPUT_W || fb->height != GP_INPUT_H ||
++	    fb->pitches[0] != GP_INPUT_W * 4 ||
++	    fb->modifier != DRM_FORMAT_MOD_LINEAR || state->src_x || state->src_y)
++		return -EINVAL;
++	addr = drm_fb_dma_get_gem_addr(fb, state, 0);
++	last = (u64)addr + (u64)fb->pitches[0] * fb->height - 1;
++	/* Only BASE_ADDR_LOW is ported; do not truncate a high DMA address. */
++	if (last > U32_MAX)
++		return -EINVAL;
++	return 0;
++}
++
+ /**
+  * sdp_drm_pipe_enable() - turn on the GP plane and mixer output
+  * @pipe: simple display pipe
+@@ -232,7 +279,7 @@ static void sdp_drm_pipe_enable(struct drm_simple_display_pipe *pipe,
+ 	if (!gem)
+ 		return;
+ 
+-	addr = (u32)gem->dma_addr;
++	addr = (u32)drm_fb_dma_get_gem_addr(fb, plane_state, 0);
+ 
+ 	/* GP plane: H_OFFSET = width >> 2 */
+ 	gp_write(sdp, GP_H_OFFSET, GP_INPUT_W >> 2);
+@@ -271,8 +318,8 @@ static void sdp_drm_pipe_enable(struct drm_simple_display_pipe *pipe,
+ 		  (WINDOW_BLEND << BLEND_MODE_SHIFT) |
+ 		  (0xff & BLEND_FACTOR_MASK));
+ 
+-	/* Mixer: unmask vsync IRQ */
+-	mix_write(sdp, MIX_IRQ_MASK, 0x0);
++	/* Pair with vblank_off before disabling the plane. */
++	drm_crtc_vblank_on(&pipe->crtc);
+ }
+ 
+ /**
+@@ -288,6 +335,8 @@ static void sdp_drm_pipe_disable(struct drm_simple_display_pipe *pipe)
+ 						   pipe);
+ 	u32 val;
+ 
++	drm_crtc_vblank_off(&pipe->crtc);
++
+ 	/* Disable GP plane */
+ 	val = gp_read(sdp, GP_DISP_MODE_0);
+ 	val &= ~GP_ENABLE_BITS;
+@@ -322,18 +371,44 @@ static void sdp_drm_pipe_update(struct drm_simple_display_pipe *pipe,
+ 	if (!gem)
+ 		return;
+ 
+-	gp_write(sdp, GP_BASE_ADDR_LOW, (u32)gem->dma_addr);
++	gp_write(sdp, GP_BASE_ADDR_LOW,
++		 (u32)drm_fb_dma_get_gem_addr(fb, state, 0));
+ 
+ 	if (pipe->crtc.state->event) {
++		struct drm_pending_vblank_event *event = pipe->crtc.state->event;
++
+ 		spin_lock_irq(&pipe->crtc.dev->event_lock);
+-		drm_crtc_send_vblank_event(&pipe->crtc,
+-					   pipe->crtc.state->event);
+ 		pipe->crtc.state->event = NULL;
++		if (drm_crtc_vblank_get(&pipe->crtc) == 0)
++			drm_crtc_arm_vblank_event(&pipe->crtc, event);
++		else
++			drm_crtc_send_vblank_event(&pipe->crtc, event);
+ 		spin_unlock_irq(&pipe->crtc.dev->event_lock);
+ 	}
+ }
+ 
++static int sdp_drm_enable_vblank(struct drm_simple_display_pipe *pipe)
++{
++	struct sdp_drm_device *sdp = container_of(pipe, struct sdp_drm_device, pipe);
++
++	/* Samsung sdp_logo_gfx.c:83-85, NIKEL IRQ unmask value. */
++	mix_write(sdp, MIX_IRQ_MASK, 0);
++	return 0;
++}
++
++static void sdp_drm_disable_vblank(struct drm_simple_display_pipe *pipe)
++{
++	struct sdp_drm_device *sdp = container_of(pipe, struct sdp_drm_device, pipe);
++
++	/* Samsung sdp_drm_nike/gfx/nikel/sdp_mixer.c:137-146. */
++	mix_write(sdp, MIX_IRQ_MASK, 1);
++}
++
+ static const struct drm_simple_display_pipe_funcs sdp_drm_pipe_funcs = {
++	.mode_valid	= sdp_drm_mode_valid,
++	.check		= sdp_drm_pipe_check,
++	.enable_vblank	= sdp_drm_enable_vblank,
++	.disable_vblank	= sdp_drm_disable_vblank,
+ 	.enable		= sdp_drm_pipe_enable,
+ 	.disable	= sdp_drm_pipe_disable,
+ 	.update		= sdp_drm_pipe_update,
+@@ -357,6 +432,8 @@ static irqreturn_t sdp_drm_irq(int irq, void *data)
+ 	u32 status;
+ 
+ 	status = mix_read(sdp, MIX_IRQ_STATUS);
++	if (!status)
++		return IRQ_NONE;
+ 	mix_write(sdp, MIX_IRQ_STATUS, status);
+ 
+ 	drm_crtc_handle_vblank(&sdp->pipe.crtc);
+@@ -448,6 +525,10 @@ static int sdp_drm_probe(struct platform_device *pdev)
+ 	drm = &sdp->drm;
+ 	platform_set_drvdata(pdev, drm);
+ 
++	ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
++	if (ret)
++		return ret;
++
+ 	/* Map the 7 register blocks (OSD, GP, MIXER, QE, GA, POST, TMG) */
+ 	for (i = 0; i < NUM_BASE; i++) {
+ 		res = platform_get_resource(pdev, IORESOURCE_MEM, i);
+@@ -476,13 +557,6 @@ static int sdp_drm_probe(struct platform_device *pdev)
+ 	if (irq < 0)
+ 		return irq;
+ 
+-	ret = devm_request_irq(&pdev->dev, irq, sdp_drm_irq, IRQF_SHARED,
+-			       "sdp-drm-vsync", sdp);
+-	if (ret) {
+-		dev_err(&pdev->dev, "failed to request vsync IRQ %d: %d\n",
+-			irq, ret);
+-		return ret;
+-	}
+ 
+ 	/* DRM mode config */
+ 	ret = drmm_mode_config_init(drm);
+@@ -506,7 +580,7 @@ static int sdp_drm_probe(struct platform_device *pdev)
+ 					   &sdp_drm_pipe_funcs,
+ 					   sdp_drm_formats,
+ 					   ARRAY_SIZE(sdp_drm_formats),
+-					   NULL, &sdp->connector);
++					   sdp_drm_modifiers, &sdp->connector);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -517,6 +591,15 @@ static int sdp_drm_probe(struct platform_device *pdev)
+ 
+ 	drm_mode_config_reset(drm);
+ 
++	ret = devm_request_irq(&pdev->dev, irq, sdp_drm_irq, IRQF_SHARED,
++			       "sdp-drm-vsync", sdp);
++	if (ret) {
++		dev_err(&pdev->dev, "failed to request vsync IRQ %d: %d\n",
++			irq, ret);
++		return ret;
++	}
++
++
+ 	ret = drm_dev_register(drm, 0);
+ 	if (ret)
+ 		return ret;

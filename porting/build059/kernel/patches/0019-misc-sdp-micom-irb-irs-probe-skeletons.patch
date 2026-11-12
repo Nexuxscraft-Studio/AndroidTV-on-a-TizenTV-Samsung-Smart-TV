@@ -96,7 +96,7 @@ index f2a4d1ff6..a58fa9c32 100644
  obj-$(CONFIG_TMR_INJECT)	+= xilinx_tmr_inject.o
  obj-$(CONFIG_TPS6594_ESM)	+= tps6594-esm.o
  obj-$(CONFIG_TPS6594_PFSM)	+= tps6594-pfsm.o
-+obj-$(CONFIG_ARCH_SAMSUNG_SDP)	+= sdp-micom/
++obj-$(CONFIG_ARCH_SDP)	+= sdp-micom/
 diff --git a/drivers/misc/sdp-micom/Kconfig b/drivers/misc/sdp-micom/Kconfig
 new file mode 100644
 index 000000000..4e8230ac4

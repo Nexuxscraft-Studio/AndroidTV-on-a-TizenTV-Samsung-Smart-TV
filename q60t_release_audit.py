@@ -113,6 +113,7 @@ ALLOWED_PORTING_SOURCES = {
     # Build 070: shared Q60T kernel (driver set), runner tooling, nikel init
     "porting/build059/kernel/configs/nikel-drivers.config",
     "porting/build070/kernel_build.sh",
+    "porting/build070/tests/gpu_power_harness.c",
     "porting/build070/runner/request.env",
     "porting/build070/tools/gpl_inventory.sh",
     "porting/device/samsung/nikel/init.nikel.rc",

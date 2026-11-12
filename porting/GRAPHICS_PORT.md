@@ -106,3 +106,12 @@ vom **09.03.2018** (Arm-MD5:
 DDK-/Userspace-Komponente hin. Der original Samsung-Kbase-ABI,
 DRM-/Panel-/Composer-Pfad und die Rechte zur Weiterverteilung fehlen
 weiterhin. Details: [BUILD008_REPORT.md](../BUILD008_REPORT.md).
+
+## Build 070 – aktueller Panfrost-/Displaypfad
+
+Der aktuelle Port zielt auf **Linux 6.6.162 ARM32 / LineageOS 22.2**.
+Die alten Build-005/007-Kbase-/4.1.10-Prüfer oben sind historische Analysen,
+keine Aussage über die Bereitschaft dieses neuen Kernels. Aktuelle Quellen,
+Patches, Tests und offene Punkte: [Build-070-Grafikstand](build070/graphics/README.md).
+Panfrost und Kbase werden nicht vermischt. GPU/Power-Domain/Display bleiben
+`disabled`; derzeit keine bestätigte Hardwarefunktion.

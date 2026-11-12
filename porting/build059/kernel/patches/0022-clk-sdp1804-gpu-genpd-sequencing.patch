@@ -1,0 +1,271 @@
+From: Codex <noreply@openai.com>
+Subject: [PATCH] clk: sdp1804: own GPU gate/reset/idle in one genpd domain
+
+Design 2: share the existing clock-controller mapping; one writer owns the
+whole power sequence. No reset-controller or CCF gate touches these bits.
+Samsung tztv-media-nike/sdp_gpu_nike/drivers/gpu/arm/midgard/platform/sdp/:
+ mali_kbase_platform_sdp.c:470-494 (off/on order)
+ mali_kbase_config_platform.h:101-106,128-140,150-162 (NIKEL registers/bits).
+Controller base: firmware dtb0 /soc/clock-controller@00F50000 reg.
+Use masked finite polling instead of Samsung's unbounded logical-AND loop.
+Timeout restores the idle-request bit and leaves reset/gate unchanged.
+2000 us is a software timeout policy, not a hardware timing measurement.
+GPU parent/rate and mali-supply are UNBELEGT; no fabricated CCF clock.
+Both DT nodes stay disabled. Compile-only; runtime/TV untested.
+
+diff --git a/Documentation/devicetree/bindings/clock/samsung,sdp1804-clock.yaml b/Documentation/devicetree/bindings/clock/samsung,sdp1804-clock.yaml
+index 7f47baba7..7402a2dfd 100644
+--- a/Documentation/devicetree/bindings/clock/samsung,sdp1804-clock.yaml
++++ b/Documentation/devicetree/bindings/clock/samsung,sdp1804-clock.yaml
+@@ -29,6 +29,17 @@ properties:
+   "#clock-cells":
+     const: 1
+ 
++  gpu-power-domain:
++    type: object
++    description: Experimental Nike-L GPU gate/reset/idle sequencing domain.
++    properties:
++      "#power-domain-cells":
++        const: 0
++      status: true
++    required:
++      - "#power-domain-cells"
++    additionalProperties: false
++
+ required:
+   - compatible
+   - reg
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+index ee7d693fe..ab7025d6c 100644
+--- a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+@@ -133,6 +133,7 @@ gpu: gpu@500000 {
+ 				     <GIC_SPI 0x71 IRQ_TYPE_NONE>,
+ 				     <GIC_SPI 0x70 IRQ_TYPE_NONE>;
+ 			interrupt-names = "job", "mmu", "gpu";
++			power-domains = <&gpu_power>;
+ 			status = "disabled";
+ 		};
+ 
+@@ -169,6 +170,11 @@ clock: clock-controller@f50000 {
+ 			clocks = <&fin_pll>;
+ 			#clock-cells = <1>;
+ 
++			/* Design 2: one owner for GPU gate/reset/idle, no MMIO here. */
++			gpu_power: gpu-power-domain {
++				#power-domain-cells = <0>;
++				status = "disabled";
++			};
+ 		};
+ 
+ 		/*
+diff --git a/drivers/clk/Kconfig b/drivers/clk/Kconfig
+index 3bff59f36..09696383d 100644
+--- a/drivers/clk/Kconfig
++++ b/drivers/clk/Kconfig
+@@ -128,6 +128,14 @@ config COMMON_CLK_SDP1804
+ 	  (Nike-L) DTV SoC as configured by the boot loader. The driver
+ 	  never changes a PLL and registers no clock gates.
+ 
++config SDP1804_GPU_POWER
++	bool "Samsung Nike-L GPU power sequencing (experimental)"
++	depends on COMMON_CLK_SDP1804 && PM
++	select PM_GENERIC_DOMAINS
++	help
++	  Own the GPU clock gate, reset and idle handshake as one PM domain.
++	  The DT child must be explicitly enabled; Q60T nodes stay disabled.
++
+ config COMMON_CLK_SI5341
+ 	tristate "Clock driver for SiLabs 5341 and 5340 A/B/C/D devices"
+ 	depends on I2C
+diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
+index 71a38a658..da5cbe070 100644
+--- a/drivers/clk/Makefile
++++ b/drivers/clk/Makefile
+@@ -136,3 +136,5 @@ endif
+ obj-y					+= xilinx/
+ obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
+ obj-$(CONFIG_COMMON_CLK_ZYNQMP)         += zynqmp/
++
++obj-$(CONFIG_SDP1804_GPU_POWER) += clk-sdp1804-gpu.o
+diff --git a/drivers/clk/clk-sdp1804-gpu.c b/drivers/clk/clk-sdp1804-gpu.c
+new file mode 100644
+index 000000000..0c7b1a23f
+--- /dev/null
++++ b/drivers/clk/clk-sdp1804-gpu.c
+@@ -0,0 +1,128 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Nike-L GPU power sequencing, Build 070 Design 2 (genpd).
++ * Register layout: Samsung mali_kbase_config_platform.h, NIKEL branch,
++ * lines 101-106, 128-140, 150-162. Ordering: mali_kbase_platform_sdp.c
++ * lines 470-494, tztv-media-nike/sdp_gpu_nike/.../platform/sdp/.
++ * Shares the existing SDP1804 mapping; this is the only GPU gate/reset
++ * writer. CCF must NOT also gate the GPU or export these resets.
++ * Both the domain child and the GPU are disabled in the shipped DT.
++ */
++#include <linux/bitops.h>
++#include <linux/errno.h>
++#include <linux/iopoll.h>
++#include <linux/pm_domain.h>
++#include <linux/slab.h>
++
++#include "clk-sdp1804-gpu.h"
++
++#define GPU_RESET	0x07f8
++#define GPU_GATE	0x088c
++#define GPU_IDLE_REQ	0x0a10
++#define GPU_IDLE_ACK	0x0a14
++#define GPU_BUS_NRESET	BIT(24)
++#define GPU_CORE_NRESET	BIT(28)
++#define GPU_GATE_ON	BIT(12)
++#define GPU_IDLE	BIT(0)
++/* Software safety bound, not a measured hardware timing requirement. */
++#define GPU_IDLE_TIMEOUT_US	2000
++
++struct sdp1804_gpu_power {
++	struct generic_pm_domain domain;
++	void __iomem *base;
++};
++
++static void gpu_update(struct sdp1804_gpu_power *gpu, u32 offset,
++		       u32 mask, bool set)
++{
++	u32 value = readl(gpu->base + offset);
++
++	value = set ? value | mask : value & ~mask;
++	writel(value, gpu->base + offset);
++	/* Drain posted writes before the next sequencing step. */
++	readl(gpu->base + offset);
++}
++
++static int sdp1804_gpu_on(struct generic_pm_domain *domain)
++{
++	struct sdp1804_gpu_power *gpu = container_of(domain,
++					struct sdp1804_gpu_power, domain);
++
++	gpu_update(gpu, GPU_GATE, GPU_GATE_ON, true);
++	gpu_update(gpu, GPU_RESET, GPU_BUS_NRESET, true);
++	gpu_update(gpu, GPU_RESET, GPU_CORE_NRESET, true);
++	gpu_update(gpu, GPU_IDLE_REQ, GPU_IDLE, false);
++	return 0;
++}
++
++static int sdp1804_gpu_off(struct generic_pm_domain *domain)
++{
++	struct sdp1804_gpu_power *gpu = container_of(domain,
++					struct sdp1804_gpu_power, domain);
++	bool was_requested = readl(gpu->base + GPU_IDLE_REQ) & GPU_IDLE;
++	u32 value;
++	int ret;
++
++	gpu_update(gpu, GPU_IDLE_REQ, GPU_IDLE, true);
++	ret = readl_poll_timeout(gpu->base + GPU_IDLE_ACK, value,
++				value & GPU_IDLE, 1, GPU_IDLE_TIMEOUT_US);
++	if (ret) {
++		/* Keep clock and resets intact; genpd retains the ON state. */
++		gpu_update(gpu, GPU_IDLE_REQ, GPU_IDLE, was_requested);
++		return ret;
++	}
++	gpu_update(gpu, GPU_RESET, GPU_BUS_NRESET, false);
++	gpu_update(gpu, GPU_RESET, GPU_CORE_NRESET, false);
++	gpu_update(gpu, GPU_GATE, GPU_GATE_ON, false);
++	return 0;
++}
++
++int sdp1804_gpu_power_init(struct device_node *np, void __iomem *base)
++{
++	struct sdp1804_gpu_power *gpu;
++	struct device_node *child;
++	u32 gate, reset;
++	bool is_off;
++	int ret;
++
++	child = of_get_child_by_name(np, "gpu-power-domain");
++	if (!child)
++		return 0;
++	if (!of_device_is_available(child)) {
++		ret = 0;
++		goto put_node;
++	}
++	/* Read state only after explicit domain enablement; never force a reset. */
++	gate = readl(base + GPU_GATE) & GPU_GATE_ON;
++	reset = readl(base + GPU_RESET) & (GPU_BUS_NRESET | GPU_CORE_NRESET);
++	if (!gate && !reset)
++		is_off = true;
++	else if (gate && reset == (GPU_BUS_NRESET | GPU_CORE_NRESET) &&
++		 !(readl(base + GPU_IDLE_REQ) & GPU_IDLE))
++		is_off = false;
++	else {
++		ret = -EINVAL; /* mixed boot state: do not guess */
++		goto put_node;
++	}
++	gpu = kzalloc(sizeof(*gpu), GFP_KERNEL);
++	if (!gpu) {
++		ret = -ENOMEM;
++		goto put_node;
++	}
++	gpu->base = base;
++	gpu->domain.name = "sdp1804-gpu";
++	gpu->domain.power_on = sdp1804_gpu_on;
++	gpu->domain.power_off = sdp1804_gpu_off;
++	ret = pm_genpd_init(&gpu->domain, NULL, is_off);
++	if (ret)
++		goto free_gpu;
++	ret = of_genpd_add_provider_simple(child, &gpu->domain);
++	if (!ret)
++		goto put_node; /* lifetime matches the early clock provider */
++	pm_genpd_remove(&gpu->domain);
++free_gpu:
++	kfree(gpu);
++put_node:
++	of_node_put(child);
++	return ret;
++}
+diff --git a/drivers/clk/clk-sdp1804-gpu.h b/drivers/clk/clk-sdp1804-gpu.h
+new file mode 100644
+index 000000000..968fb30cd
+--- /dev/null
++++ b/drivers/clk/clk-sdp1804-gpu.h
+@@ -0,0 +1,18 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef CLK_SDP1804_GPU_H
++#define CLK_SDP1804_GPU_H
++
++#include <linux/io.h>
++#include <linux/kconfig.h>
++#include <linux/of.h>
++
++#if IS_ENABLED(CONFIG_SDP1804_GPU_POWER)
++int sdp1804_gpu_power_init(struct device_node *np, void __iomem *base);
++#else
++static inline int sdp1804_gpu_power_init(struct device_node *np,
++				       void __iomem *base)
++{
++	return 0;
++}
++#endif
++#endif
+diff --git a/drivers/clk/clk-sdp1804.c b/drivers/clk/clk-sdp1804.c
+index dcddb6dfb..dac329e91 100644
+--- a/drivers/clk/clk-sdp1804.c
++++ b/drivers/clk/clk-sdp1804.c
+@@ -21,6 +21,8 @@
+ 
+ #include <dt-bindings/clock/samsung,sdp1804-clk.h>
+ 
++#include "clk-sdp1804-gpu.h"
++
+ #define PLL_MDIV_SHIFT	8
+ #define PLL_MDIV_MASK	0x3ff
+ #define PLL_PDIV_SHIFT	20
+@@ -188,6 +190,9 @@ static void __init sdp1804_clk_init(struct device_node *np)
+ 				clk_hw_get_name(data->hws[i]),
+ 				clk_hw_get_rate(data->hws[i]));
+ 
++	if (sdp1804_gpu_power_init(np, base))
++		pr_err("%pOF: GPU power-domain registration failed\n", np);
++
+ 	if (of_clk_add_hw_provider(np, of_clk_hw_onecell_get, data))
+ 		pr_err("%pOF: cannot add clock provider\n", np);
+ 	return;

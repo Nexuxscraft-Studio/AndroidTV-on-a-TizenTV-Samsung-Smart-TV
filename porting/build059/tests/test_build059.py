@@ -78,7 +78,7 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 19)
+        self.assertEqual(len(names), 22)
         self.assertTrue(names[0].startswith("0001-serial"))
         # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
         # upstream df0cb5cb50bd
@@ -101,6 +101,10 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertTrue(names[17].startswith("0019-misc-sdp-micom-irb-irs-probe-skeletons"))
         # 0020 (Build 070): fix missing drm_edid.h include in sdp_drm.c
         self.assertTrue(names[18].startswith("0020-drm-sdp-add-missing-drm-edid-h-include"))
+
+        self.assertTrue(names[19].startswith("0021-arm-dts-q60t-disabled-panfrost"))
+        self.assertTrue(names[20].startswith("0022-clk-sdp1804-gpu-genpd"))
+        self.assertTrue(names[21].startswith("0023-drm-sdp-linear-scanout"))
 
     def test_cecif_patch_uses_firmware_values(self):
         txt = self._patch_text("0014-media-cec")

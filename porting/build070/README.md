@@ -4,6 +4,21 @@
 Basis: Branch `claude/build069-android-qemu-boot` (ce5bf49). Am TV wird nichts
 getestet, geflasht oder geladen; die Gates aus Build 061/065 bleiben.
 
+## Grafik – codex/graphics (12.11.2026)
+
+Aktueller Grafikstand und G1–G6: [graphics/README.md](graphics/README.md).
+Patches 0021 (GPU-DT), 0022 (genpd), 0023 (Scanout/VBlank); GPU, Domain und
+Display bleiben disabled. Lokaler ARM32-GCC-Compile mit W=1 -Werror für
+sdp-drm/Panfrost/Clock-Domain und beide DTs bestanden; sämtliche gesetzten
+Projekt-Fragmentwerte überleben das Android-Profil. **Runner 43222413774: SUCCESS. Vollständiger ARM32-Android-Kernel mit
+LineageOS-Clang 19.0.1 gebaut; Grafik-Gate W=1 -Werror bestanden; beide DTs
+mit 0 dtc-Warnungen. Logbeleg: [graphics/runner-43222413774.md](graphics/runner-43222413774.md).**
+GPU-Parent/Rate/Supply, ABGR8888 und genaue Panel-Timings: **UNBELEGT**.
+Andere Subsysteme unverändert, ausgenommen Build-Blocker in Patch 0019:
+`CONFIG_ARCH_SAMSUNG_SDP` → `CONFIG_ARCH_SDP`. Hunkgröße/Config-Hunk waren
+im übernommenen Basisstand bereits bereinigt. Patch 0016 fehlt und wurde
+nicht zur Aktivierung ergänzt.
+
 ## Was in diesem Build „getestet“ heißt
 
 | Prüfung | Wo | Stand |
@@ -16,9 +31,10 @@ getestet, geflasht oder geladen; die Gates aus Build 061/065 bleiben.
 | Firmware-DTBs (SHA-256 = Build 004) + GPL-Quellen auf dem Runner | Runner, Run 43180001180 | ✅ |
 | Am TV / unter QEMU gebootet | – | ❌ nicht gelaufen |
 
-Lokal wurde **kein** Kernel konfiguriert oder kompiliert (Chat-Umgebung ohne
-`flex`, ohne AOSP-`android-base.config`). Alles in der Spalte „Runner“ gilt erst
-nach einem grünen Lauf als geprüft.
+Die obige Tabelle enthält historische Prüfungen vor dem Grafik-Arbeitspaket.
+Der aktuelle Grafikstand einschließlich lokalem ARM32-GCC-Compile und grünem
+LineageOS-LLVM-Runnerlauf 43222413774 ist im Grafikabschnitt dokumentiert.
+Kein Lauf bestätigt Hardwarefunktion.
 
 ## Schritt 0 – ein gemeinsamer Q60T-Kernel
 
