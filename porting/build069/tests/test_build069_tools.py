@@ -97,6 +97,28 @@ SAMPLE_LOG = """\
 """
 
 
+class AudioPolicyContractTests(unittest.TestCase):
+    """Boot 8 + Boot 10: every audio policy include must be installed, and the
+    Bluetooth module must exist because the audio APEX VINTF fragment declares
+    IModule/bluetooth (audioserver waits for every declared instance)."""
+
+    DEV = Path(__file__).resolve().parents[1] / "device" / "qemu_arm_tv"
+
+    def test_includes_are_installed(self):
+        import re
+        xml = (self.DEV / "audio_policy_configuration.xml").read_text()
+        mk = (self.DEV / "lineage_qemu_arm_tv.mk").read_text()
+        includes = re.findall(r'<xi:include href="([^"]+)"', xml)
+        self.assertIn("bluetooth_audio_policy_configuration_7_0.xml", includes)
+        for inc in includes:
+            self.assertIn("$(TARGET_COPY_OUT_VENDOR)/etc/%s" % inc, mk, inc)
+
+    def test_bootanimation_allowed(self):
+        lines = (self.DEV / "lineage_qemu_arm_tv.mk").read_text().splitlines()
+        active = [l for l in lines if not l.lstrip().startswith("#")]
+        self.assertFalse([l for l in active if "debug.sf.nobootanimation" in l])
+
+
 class MilestoneTests(unittest.TestCase):
     def test_first_stage_failure(self) -> None:
         r = bm.analyse(SAMPLE_LOG)

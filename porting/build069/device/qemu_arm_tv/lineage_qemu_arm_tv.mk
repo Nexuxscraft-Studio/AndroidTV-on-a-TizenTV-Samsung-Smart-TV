@@ -64,6 +64,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
     device/google/cuttlefish/shared/config/audio/policy/primary_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/primary_audio_policy_configuration.xml \
     frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/r_submix_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/bluetooth_audio_policy_configuration_7_0.xml:$(TARGET_COPY_OUT_VENDOR)/etc/bluetooth_audio_policy_configuration_7_0.xml \
     frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
     frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
     hardware/interfaces/audio/aidl/default/audio_effects_config.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects_config.xml
@@ -74,9 +75,10 @@ PRODUCT_PACKAGES += \
     android.hardware.power-service.example
 
 # 32-bit only product: no default zygote is set by core_64_bit*.mk.
+# Boot 10: SurfaceFlinger has a display (virtio-gpu, 1280x800), so the boot
+# animation is allowed again (debug.sf.nobootanimation=1 removed).
 PRODUCT_VENDOR_PROPERTIES += \
     ro.zygote=zygote32 \
-    debug.sf.nobootanimation=1 \
     ro.sf.lcd_density=320
 
 PRODUCT_COPY_FILES += \

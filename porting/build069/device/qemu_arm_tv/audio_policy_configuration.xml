@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!-- Build 069 M3: audio policy for the QEMU ARM32 ATV emulator.
      Derived from device/google/cuttlefish/shared/config/audio/policy/
-     audio_policy_configuration.xml (Apache-2.0), but without the Bluetooth
-     include: bluetooth_audio_policy_configuration_7_0.xml is not installed on
-     this product, the unresolved xi:include made the whole file invalid and
-     the AOSP example core HAL never registered IModule/default (boot 8). -->
+     audio_policy_configuration.xml (Apache-2.0).
+     Boot 8: the Bluetooth xi:include pointed to a file that was not installed,
+     which made the whole file invalid (no IModule/default).
+     Boot 10: without the Bluetooth module the example HAL never registers
+     IModule/bluetooth, but its APEX VINTF fragment declares it, so audioserver
+     waits forever (libaudiohal waitForService on every declared instance) and
+     the system_server watchdog fires. The include is back and
+     bluetooth_audio_policy_configuration_7_0.xml is installed (as Cuttlefish:
+     device/google/cuttlefish/shared/bluetooth/device_vendor.mk). -->
 <audioPolicyConfiguration version="7.0" xmlns:xi="http://www.w3.org/2001/XInclude">
     <globalConfiguration speaker_drc_enabled="false"/>
 
@@ -14,6 +19,9 @@
 
         <!-- Remote Submix Audio HAL -->
         <xi:include href="r_submix_audio_policy_configuration.xml"/>
+
+        <!-- Bluetooth Audio HAL (module "bluetooth" -> IModule/bluetooth) -->
+        <xi:include href="bluetooth_audio_policy_configuration_7_0.xml"/>
     </modules>
 
     <xi:include href="audio_policy_volumes.xml"/>
