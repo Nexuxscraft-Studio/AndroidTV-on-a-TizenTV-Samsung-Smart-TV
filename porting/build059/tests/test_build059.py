@@ -78,7 +78,7 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 18)
+        self.assertEqual(len(names), 19)
         self.assertTrue(names[0].startswith("0001-serial"))
         # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
         # upstream df0cb5cb50bd
@@ -99,6 +99,8 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertTrue(names[16].startswith("0018-drm-sdp-hdmi-transmitter-probe-skeleton"))
         # 0019 (Build 070): SDP1412 IRB + IRS probe skeletons + DT nodes
         self.assertTrue(names[17].startswith("0019-misc-sdp-micom-irb-irs-probe-skeletons"))
+        # 0020 (Build 070): fix missing drm_edid.h include in sdp_drm.c
+        self.assertTrue(names[18].startswith("0020-drm-sdp-add-missing-drm-edid-h-include"))
 
     def test_cecif_patch_uses_firmware_values(self):
         txt = self._patch_text("0014-media-cec")
@@ -221,6 +223,11 @@ class PatchSeriesTest(unittest.TestCase):
         cfg = (B059 / "kernel" / "configs" / "nikel-drivers.config").read_text()
         self.assertIn("CONFIG_SDP_MICOM_IRB=m", cfg)
         self.assertIn("CONFIG_SDP_MICOM_IRS=m", cfg)
+
+    def test_sdp_drm_edid_include_patch(self):
+        """0020: fix missing drm_edid.h in sdp_drm.c (W=1 -Werror fix)."""
+        txt = self._patch_text("0020-drm-sdp-add-missing-drm-edid-h-include")
+        self.assertIn("+#include <drm/drm_edid.h>", txt)
 
     def test_android_profile_merges_driver_set(self):
         build = (B059 / "kernel" / "build.sh").read_text()
