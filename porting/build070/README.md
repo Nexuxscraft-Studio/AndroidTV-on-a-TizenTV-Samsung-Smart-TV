@@ -1,6 +1,6 @@
 # Build 070 – Treiber für den Q60T (Nike-L) auf Linux 6.6.162 ARM32
 
-**Stand 12.11.2026 – Schritt 0 + Infrastruktur, noch kein Runner-Lauf.**
+**Stand 12.11.2026, 10:35 – gemeinsamer Kernel grün, IR und CEC portiert (compile-only).**
 Basis: Branch `claude/build069-android-qemu-boot` (ce5bf49). Am TV wird nichts
 getestet, geflasht oder geladen; die Gates aus Build 061/065 bleiben.
 
@@ -10,10 +10,11 @@ getestet, geflasht oder geladen; die Gates aus Build 061/065 bleiben.
 |---|---|---|
 | Offline-Tests (`build059/tests`, `build070/tests`, `tests/`) | lokal (Chat) | ✅ grün, 12.11. |
 | Patch-Serie 0001–0012 wendet sich auf v6.6.162 (5139929c) an | lokal (Chat, `patch -p1`) | ✅ |
-| Kernel-Konfiguration (jede Fragmentzeile überlebt `olddefconfig`) | Runner, `MODE=kernel` | ⏳ nicht gelaufen |
-| `W=1 -Werror`-Gate inkl. `sdp_drm.o` | Runner, `MODE=kernel` | ⏳ nicht gelaufen |
-| `dtc` mit `W=1` für `sdp-nikel-q60t-{1g5,2g}.dtb` | Runner, `MODE=kernel` | ⏳ nicht gelaufen |
-| Firmware-DTBs + GPL-Quellen auf dem Runner | Runner, `MODE=sources` | ⏳ eingereiht (Runner blockiert) |
+| Kernel-Konfiguration (jede Fragmentzeile überlebt `olddefconfig`) | Runner, Run 43192182923 | ✅ |
+| `W=1 -Werror`-Gate (UART, Clock, GPIO, sdp-drm, Micom, IR, CEC) | Runner, Run 43192182923 | ✅ |
+| `dtc` mit `W=1` für `sdp-nikel-q60t-{1g5,2g}.dtb` | Runner, Run 43192182923 | ✅ 0 Warnungen |
+| Firmware-DTBs (SHA-256 = Build 004) + GPL-Quellen auf dem Runner | Runner, Run 43180001180 | ✅ |
+| Am TV / unter QEMU gebootet | – | ❌ nicht gelaufen |
 
 Lokal wurde **kein** Kernel konfiguriert oder kompiliert (Chat-Umgebung ohne
 `flex`, ohne AOSP-`android-base.config`). Alles in der Spalte „Runner“ gilt erst
@@ -84,6 +85,33 @@ Der Display-Quellcode (`sdp_drm_nike`) liegt **nicht** im Kernel-Tarball,
 sondern in `tztv-media-nike.tgz` – deshalb holt `MODE=sources` beide.
 Vor jeder Portierung wird die Lizenz geprüft: Dateien mit
 `MODULE_LICENSE("Proprietary")` (wie `sdp_mmc.c`) werden nicht übernommen.
+
+## Portierte Treiber (Linux 6.6, aus Samsungs GPL-Paket 20_DTV_NikeL)
+
+| Patch | Treiber | Quelle (4.1.10 / tztv) | DT (Fundstelle Firmware dtb0, nikel-2G) | Stand |
+|---|---|---|---|---|
+| 0012 | `drm/sdp` Display-KMS **Gerüst** | Build 063 (eigen) | – | kompiliert, kein Modeset |
+| 0013 | `soc/sdp/sdp-msgbox` Micom-Mailbox | `drivers/mailbox/sdp_micom_msgbox.c` | `/soc/msgbox` reg 0x9c0400/0x100, IRQ SPI 0x22 | kompiliert, DT disabled |
+| 0013 | `soc/sdp/sdp-micom` Micom-Protokoll | `tztv-micom/sdp_micom_messagebox.c` | `/tztv_micom` | kompiliert, DT disabled |
+| 0013 | `media/rc/sdp-micom-rc` Fernbedienung | `tztv-micom/rc-wt61p807.c`, `keymap-rc-wt61p807.c` | (Kind von micom) | kompiliert |
+| 0014 | `media/cec/platform/sdp/sdp-cecif` HDMI-CEC | `drivers/soc/sdp/sdp_micom_cecif.c` | `/soc/cecif` reg 0x9c0f00/0x48, IRQ SPI 0x27; `/soc/mccmu` 0x9c0300/0x30 | kompiliert, DT disabled |
+
+Hinweise:
+- **IR:** `sdp_micom_irb.c` ist ein IR-*Sender*, `sdp_micom_irs.c` ein Roh-Empfänger
+  (eigenes `/dev/lirc1`, Polling). Tasten der Fernbedienung dekodiert der Micom und
+  meldet sie über die Message-Box – dieser Weg ist portiert. Key-Map: 157 von 163
+  Samsung-Codes (6 Hotel-Codes ohne Mainline-Keycode entfallen); Android braucht
+  noch eine `.kl`-Datei (Tizen nutzt z. B. KEY_F10 = Lauter).
+- **CEC:** Der Controller gehört im Standby dem Micom; der Treiber übernimmt die
+  vom Micom gesetzten Timing-Register und verweigert `enable`, solange der Micom
+  ihn hält. Offen: Micom-Versionsprüfung (`sdp_mc_ctrl_syscall_get_version`,
+  braucht `samsung,sdp-micom-ctrl`), Physikalische Adresse fest 0.0.0.0 (TV).
+- **Nicht portiert:** Micom-Poweroff/Restart-Hooks (Ausschalten über Micom),
+  Hotel-/HD-Protokoll, ISP, Panel-Tasten-Client.
+- **Lizenz:** alle bisher portierten Dateien tragen GPL-Köpfe. Dateien mit
+  „confidential and proprietary"-Kopf (v. a. `sdp_drm_nike/dp/`) werden nach
+  Absprache vom 12.11. ebenfalls genutzt, nur im privaten Repo, mit Originalkopf,
+  in eigenem Unterordner und mit Liste hier; vor einer Veröffentlichung entfernen.
 
 ## Nächste Schritte (Reihenfolge laut Kickoff)
 

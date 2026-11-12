@@ -43,8 +43,8 @@ DT-Knoten erst mit Werten aus der Firmware-`dtb.bin`. Details: `porting/build070
 | Video-Decode (MFC) | P1 | V4L2-m2m | `sdp_codec_nike` | 064: config/DT/plan |
 | Audio | P1 | ASoC | `sdp_alsa_nike` | 064: config/DT/plan |
 | HDMI | P1 | drm-bridge/eigen | `samsung,sdp-hdmi` | 064: DT/plan |
-| HDMI-CEC | P1 | `cec`-core | `sdp-mc-cecif` (disabled) | 064: DT/plan |
-| IR-Fernbedienung | P1 | `rc-core` | `sdp-mc-irb/irs` (okay) | 064: DT/plan |
+| HDMI-CEC | P1 | `cec`-core | `sdp-mc-cecif` (disabled) | 064: DT/plan; **070: Patch 0014 portiert, kompiliert** |
+| IR-Fernbedienung | P1 | `rc-core` | Micom (`tztv-micom` rc-wt61p807) | 064: DT/plan; **070: Patch 0013 (Mailbox+Micom+RC) portiert, kompiliert** |
 | USB (HID/Storage) | P2 | EHCI/OHCI | `sdp-usben` | 063: config/enable |
 | Ethernet | P2 | eigen/generic | `samsung,sdp-mac` | 064: config/DT/plan |
 | WLAN/BT | P2 | chipsatzabhängig | unklar | offen |
