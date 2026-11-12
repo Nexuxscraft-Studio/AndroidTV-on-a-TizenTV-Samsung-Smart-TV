@@ -1,0 +1,24 @@
+name: Build 073 – Tizen 5.5 diagnostics offline checks
+on:
+  push:
+    branches:
+      - feature/build073-tizen-diagnostics
+    paths:
+      - 'porting/build073/**'
+      - '.github/workflows/build073-tizen-diagnostics.yml'
+  pull_request:
+    paths:
+      - 'porting/build073/**'
+      - '.github/workflows/build073-tizen-diagnostics.yml'
+jobs:
+  source-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: XML manifest and read-only API structural tests
+        run: python3 -m unittest discover -s porting/build073/tests -v
+      - name: JavaScript syntax (Node.js)
+        run: node --check porting/build073/tizen-diagnostics/js/app.js
