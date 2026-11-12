@@ -1,0 +1,727 @@
+From 0a328847e39b01207c22d174804c0744639a01a7 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 12:57:25 +0100
+Subject: [PATCH] drm/sdp: add minimal Nike-L (SDP1412) DRM/KMS display driver
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Build 070 patch 0015.  Ported from the Samsung GPL sdp_logo_nike module
+(tztv-media-nike/sdp_logo_nike, kernel 4.1.10) to the Linux 6.6 DRM/KMS
+framework.
+
+The driver drives the GP (graphic-plane) layer through the on-chip mixer
+at 1920×1080, inheriting the mixer / QE / POST / TMG register state the
+Tizen boot firmware has already set.  Minimum viable approach:
+
+  - Maps 7 register regions from the DT bootlogo node (OSD, GP, MIXER,
+    QE, GA, POST, TMG at 0x5d0000 … 0xc00000, from firmware dtb0
+    sha256 0189cc94 and GPL sdp_logo_chip.h _NIKEL_GFX_).
+  - Reads the GP framebuffer physical address from /sdp_mmap
+    "samsung,gfx0" (0xfb580000, 16 MiB, same sdp_logo_parse_exe_mem
+    pattern).
+  - Programs GP plane: H_OFFSET, INPUT_SIZE, OUTPUT_SIZE, HOR/VER_RATIO
+    (0x8000 = 2:1 for UHD), GP_BASE_ADDR_LOW, enables DISP_MODE_0.
+  - Handles vsync via mixer IRQ (GIC SPI 47 / 0x2f); acks by
+    read-then-write-back of MIX_IRQ_STATUS (GPL vsync_irq_handler).
+  - drm_simple_display_pipe + drm_gem_dma + drm_fbdev_dma.
+
+DT: add drm@5d0000 node (samsung,sdp-drm, status=disabled) inside
+soc@0 in sdp-nikel.dtsi; add root-level sdp_mmap node with
+samsung,gfx0/gfx1 from firmware.
+
+Register offsets: sdp_logo_chip.h (_NIKEL_GFX_ section, REG(x)=x<<2).
+Mixer init values: sdp_logo_gfx.c (sdp_logo_gfx_init, _NIKEL_GFX_).
+Plane sequence: sdp_logo.c (sdp_logo_set_plane, _NIKEL_GFX_).
+All addresses from firmware dtb0 sha256 0189cc94 and GPL source only.
+
+NEVER FLASH – compile-only until validated on the runner.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01HFSjk2L7MPX5r9CMRGhqwJ
+---
+ .../arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi |  39 ++
+ drivers/gpu/drm/sdp/Kconfig                   |  15 +-
+ drivers/gpu/drm/sdp/sdp_drm.c                 | 485 +++++++++++++++---
+ 3 files changed, 470 insertions(+), 69 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+index 3ef68cc59..fc472833b 100644
+--- a/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
++++ b/arch/arm64/boot/dts/samsung-sdp/sdp-nikel.dtsi
+@@ -316,6 +316,29 @@ cec@9c0f00 {
+ 			samsung,mccmu = <&mccmu>;
+ 			status = "disabled";
+ 		};
++
++		/*
++		 * DRM/KMS display driver.  Reg regions from firmware dtb0
++		 * /soc/bootlogo (sha256 0189cc94), in the order sdp_drm.c
++		 * expects (OSD=0, GP=1, MIXER=2, QE=3, GA=4, POST=5, TMG=6).
++		 *
++		 * Interrupts (IRQ_TYPE_NONE – polarity set by firmware):
++		 *   [0] GIC SPI 47  (0x2f) vsync
++		 *   [1] GIC SPI 102 (0x66) 2-D blitter done (unused)
++		 */
++		drm@5d0000 {
++			compatible = "samsung,sdp-drm";
++			reg = <0x005d0000 0x4000>,	/* OSD */
++			      <0x005d4000 0x4000>,	/* GP  */
++			      <0x005d8000 0x4000>,	/* MIXER */
++			      <0x005dc000 0x40000>,	/* QE */
++			      <0x00580000 0x4000>,	/* GA */
++			      <0x00700000 0xd000>,	/* POST */
++			      <0x00c00000 0x20000>;	/* TMG */
++			interrupts = <GIC_SPI 47 IRQ_TYPE_NONE>,
++				     <GIC_SPI 102 IRQ_TYPE_NONE>;
++			status = "disabled";
++		};
+ 	};
+ 
+ 	/*
+@@ -328,4 +351,20 @@ micom {
+ 		samsung,messagebox = <&msgbox>;
+ 		status = "disabled";
+ 	};
++
++	/*
++	 * Reserved memory regions from the firmware /sdp_mmap property set.
++	 * "samsung,gfx0" is the GP-plane framebuffer: physical 0xfb580000,
++	 * size 0xfd8000 (~16 MiB).  The property is a u32 triplet where
++	 * index 0 is unused, index 1 is the physical address, index 2 is the
++	 * size (matches sdp_logo_parse_exe_mem() in tztv-media-nike).
++	 *
++	 * Source: firmware dtb0 /sdp_mmap (sha256 0189cc94), X>-diff lines.
++	 */
++	sdp_mmap {
++		compatible = "samsung,sdp-mmap";
++		samsung,gfx0 = <0x0 0xfb580000 0xfd8000>;
++		samsung,gfx1 = <0x0 0xf9d80000 0x1800000>;
++	};
++
+ };
+diff --git a/drivers/gpu/drm/sdp/Kconfig b/drivers/gpu/drm/sdp/Kconfig
+index 72bf32439..7ba152624 100644
+--- a/drivers/gpu/drm/sdp/Kconfig
++++ b/drivers/gpu/drm/sdp/Kconfig
+@@ -1,13 +1,16 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ config DRM_SDP
+-	tristate "Samsung SDP Nike-L display (skeleton, compile-only)"
++	tristate "Samsung SDP Nike-L (SDP1412) minimal DRM/KMS display"
+ 	depends on DRM && OF
+ 	depends on ARCH_SDP || COMPILE_TEST
+ 	select DRM_KMS_HELPER
+ 	select DRM_GEM_DMA_HELPER
++	select DRM_FBDEV_EMULATION
+ 	help
+-	  Build 063/070 DRM/KMS skeleton for the Samsung SDP Nike-L (Q60T)
+-	  display controller (samsung,sdp-drm). This does NOT drive the
+-	  panel; modeset, plane programming, VSync and panel init are TODO
+-	  and must be ported from Samsung's GPL sdp_drm_nike sources. It only
+-	  binds to a "samsung,sdp-drm" device-tree node. Never flash.
++	  Minimal DRM/KMS driver for the Samsung SDP Nike-L (SDP1412)
++	  display controller (compatible "samsung,sdp-drm"), as found on the
++	  Q60T TV SoC.  Drives the GP (graphic-plane) layer through the
++	  on-chip mixer at 1920×1080, inheriting the mixer/QE/POST/TMG state
++	  the boot firmware has already configured.  Ported from the Samsung
++	  GPL sdp_logo_nike module (Build 070, patch 0015).  Never flash
++	  without full hardware validation.
+diff --git a/drivers/gpu/drm/sdp/sdp_drm.c b/drivers/gpu/drm/sdp/sdp_drm.c
+index a91f989b0..176033c64 100644
+--- a/drivers/gpu/drm/sdp/sdp_drm.c
++++ b/drivers/gpu/drm/sdp/sdp_drm.c
+@@ -1,28 +1,47 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /*
+- * Build 063/070: Samsung SDP Nike-L display (sdp-drm) - minimal DRM/KMS skeleton
+- * for Linux 6.6, continuing the Build 058 sdp_drm_util/sdp_drm_fence migration.
+- * Build 070 carries it as patch 0012 of the shared Q60T kernel; it binds only
+- * to a "samsung,sdp-drm" DT node, which the Q60T DT does not contain yet.
+- *
+- * COMPILE-ONLY SCAFFOLD -- NEVER FLASH OR RELY ON THIS FOR A WORKING DISPLAY.
+- * It allocates a DRM device, registers ONE fixed-mode connector and a simple
+- * display pipe so the KMS stack plus gralloc/Panfrost/drm_hwcomposer can be
+- * brought up incrementally on the real build host. The actual hardware bring-up
+- * -- controller timing, plane programming, VSync/IRQ, panel (samsung,sdp1202)
+- * init, backlight -- is deliberately left as TODO and must be filled from the
+- * Samsung Nike-L sdp_drm vendor sources. Register ownership is unverified and
+- * overlaps the sdp1804 clock controller; see porting/build063/docs/DISPLAY_PORT.md.
++ * Samsung SDP Nike-L (SDP1412) display – minimal DRM/KMS driver
++ *
++ * Build 070, patch 0015.  Ported from the Samsung GPL sdp_logo_nike module
++ * (tztv-media-nike/sdp_logo_nike, kernel 4.1.10) to the Linux 6.6 DRM/KMS
++ * framework.  This is the shortest path to a picture: it drives a single
++ * GP (graphic-plane) layer through the on-chip mixer, exactly the same
++ * pipeline the Tizen boot-logo uses.
++ *
++ * Hardware blocks mapped (from firmware dtb0 /soc/bootlogo):
++ *   reg index 0  OSD   0x005d0000  0x4000   (not programmed yet)
++ *   reg index 1  GP    0x005d4000  0x4000   ← GP plane registers
++ *   reg index 2  MIXER 0x005d8000  0x4000   ← mixer / vsync IRQ
++ *   reg index 3  QE    0x005dc000  0x40000  (quality engine, bypassed)
++ *   reg index 4  GA    0x00580000  0x4000   (2-D blitter, unused here)
++ *   reg index 5  POST  0x00700000  0xd000   (not programmed yet)
++ *   reg index 6  TMG   0x00c00000  0x20000  (timing generator, left alone)
++ *
++ * Framebuffer memory comes from the /sdp_mmap "samsung,gfx0" property:
++ *   physical address 0xfb580000, size 0xfd8000 (~16 MiB).
++ *
++ * The GP plane takes a physical base address in PLANE_BASE_ADDR_LOW (reg 12)
++ * and displays it through the mixer at the resolution / scaler ratio the
++ * boot-firmware has already configured.  The driver keeps the existing mixer
++ * and QE/POST/TMG configuration; it only programs the GP plane and reads
++ * vsync from the mixer IRQ.
++ *
++ * NEVER FLASH THIS – compile-only until validated on the runner.
++ *
++ * Register offsets: sdp_logo_chip.h  (_NIKEL_GFX_ section)
++ * Plane programming: sdp_logo.c      (sdp_logo_set_plane, _NIKEL_GFX_)
++ * Mixer init:        sdp_logo_gfx.c  (sdp_logo_gfx_init, _NIKEL_GFX_)
+  */
+ #include <linux/io.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
++#include <linux/of_address.h>
+ #include <linux/platform_device.h>
+ 
+ #include <drm/drm_atomic_helper.h>
+ #include <drm/drm_connector.h>
+ #include <drm/drm_drv.h>
+-#include <drm/drm_edid.h>
++#include <drm/drm_fb_dma_helper.h>
+ #include <drm/drm_fbdev_dma.h>
+ #include <drm/drm_fourcc.h>
+ #include <drm/drm_gem_dma_helper.h>
+@@ -32,13 +51,90 @@
+ #include <drm/drm_modeset_helper_vtables.h>
+ #include <drm/drm_probe_helper.h>
+ #include <drm/drm_simple_kms_helper.h>
++#include <drm/drm_vblank.h>
++
++/* ── Nike-L register map (from sdp_logo_chip.h, _NIKEL_GFX_ section) ─────
++ *
++ * REG(x) = (x) << 2   (register index → byte offset)
++ *
++ * All offsets verified against GPL source sdp_logo_chip.h lines 164–220,
++ * firmware dtb0 /soc/bootlogo reg property (sha256 0189cc94).
++ */
++#define REG(x)			((x) << 2)
++
++/* GP plane registers (base[GP_BASE], firmware 0x5d4000) */
++#define GP_DISP_MODE_0		REG(0)	/* [4:0] enable bits, [11:8] flip */
++#define GP_DISP_MODE_1		REG(1)
++#define GP_INPUT_SIZE		REG(4)	/* [31:16] width | [15:0] height */
++#define GP_OUTPUT_SIZE		REG(5)	/* [31:16] w_out | [15:0] h_out */
++#define GP_H_OFFSET		REG(6)	/* width >> 2 */
++#define GP_HOR_RATIO		REG(8)	/* horizontal scale ratio */
++#define GP_VER_RATIO		REG(9)	/* vertical scale ratio */
++#define GP_BASE_ADDR_LOW	REG(12)	/* physical framebuffer address */
++#define GP_BASE_ADDR_HIGH	REG(13)	/* upper address bits */
++
++/* Mixer registers (base[MIXER_BASE], firmware 0x5d8000) */
++#define MIX_MODE		REG(0)
++#define MIX_GFXP		REG(1)	/* pre/post mixing control */
++#define MIX_IRQ_STATUS		REG(2)	/* read-then-write-back to ack */
++#define MIX_IRQ_MASK		REG(3)	/* 0 = unmask vsync IRQ */
++#define MIX_SYNC_CONTROL	REG(5)
++#define MIX_RASTER_SIZE		REG(7)	/* [31:16] h | [15:0] v raster */
++#define MIX_SIZE		REG(8)	/* [31:16] h | [15:0] v active */
++#define MIX_POS			REG(9)	/* [31:16] x | [15:0] y */
++#define MIX_GP_ACTIVE_SIZE	REG(12)	/* [31:16] w | [15:0] h */
++#define MIX_GP_ACTIVE_POS	REG(13)	/* [31:16] x | [15:0] y */
++#define MIX_GP_BLEND_CTL	REG(22)	/* [31:16] mode | [8:0] factor */
++#define MIX_CLK_SEL		REG(104)
++
++/* Blend mode constants (from sdp_logo.h) */
++#define BLEND_MODE_SHIFT	16
++#define BLEND_FACTOR_MASK	0x1ff
++#define WINDOW_BLEND		2
+ 
+-#define SDP_DRM_DEFAULT_WIDTH	1920
+-#define SDP_DRM_DEFAULT_HEIGHT	1080
++/* Scale ratios (from sdp_logo_chip.h) – 0x8000 = 2:1 downscale */
++#define GP_UHD_RATIO_H		0x8000
++#define GP_UHD_RATIO_V		0x8000
+ 
++/* Active area for the GP plane (UHD: input 1920×1080 → output 3840×2160) */
++#define GP_INPUT_W		1920
++#define GP_INPUT_H		1080
++#define GP_OUTPUT_SHIFT		1		/* output = input << 1 */
++
++/* Mixer start position (from sdp_logo_chip.h) */
++#define UHD_MIXER_START_X	0x50
++#define UHD_MIXER_START_Y	0x16
++
++/* GP enable bits in DISP_MODE_0 */
++#define GP_ENABLE_BITS		0x11
++#define GP_FLIP_MASK		0xf00
++
++/* base[] indices – match the bootlogo DT reg order */
++enum sdp_drm_base {
++	OSD_BASE	= 0,
++	GP_BASE		= 1,
++	MIXER_BASE	= 2,
++	QE_BASE		= 3,
++	GA_BASE		= 4,
++	POST_BASE	= 5,
++	TMG_BASE	= 6,
++	NUM_BASE	= 7,
++};
++
++/**
++ * struct sdp_drm_device - driver private state
++ * @drm: DRM device
++ * @base: ioremapped register blocks (indexed by enum sdp_drm_base)
++ * @fb_phys: physical address of the reserved framebuffer (from sdp_mmap)
++ * @fb_size: size of the reserved framebuffer in bytes
++ * @pipe: DRM simple display pipe
++ * @connector: DRM connector (fixed mode, always connected)
++ */
+ struct sdp_drm_device {
+ 	struct drm_device drm;
+-	void __iomem *regs;
++	void __iomem *base[NUM_BASE];
++	u32 fb_phys;
++	u32 fb_size;
+ 	struct drm_simple_display_pipe pipe;
+ 	struct drm_connector connector;
+ };
+@@ -48,79 +144,301 @@ static const u32 sdp_drm_formats[] = {
+ 	DRM_FORMAT_ARGB8888,
+ };
+ 
+-/* Connector: expose one fixed mode. TODO: read real Nike-L panel timing. */
++/* ── helpers ─────────────────────────────────────────────────────────────── */
++
++static inline void gp_write(struct sdp_drm_device *sdp, u32 reg, u32 val)
++{
++	writel(val, sdp->base[GP_BASE] + reg);
++}
++
++static inline u32 gp_read(struct sdp_drm_device *sdp, u32 reg)
++{
++	return readl(sdp->base[GP_BASE] + reg);
++}
++
++static inline void mix_write(struct sdp_drm_device *sdp, u32 reg, u32 val)
++{
++	writel(val, sdp->base[MIXER_BASE] + reg);
++}
++
++static inline u32 mix_read(struct sdp_drm_device *sdp, u32 reg)
++{
++	return readl(sdp->base[MIXER_BASE] + reg);
++}
++
++/* ── connector: one fixed mode, always connected ────────────────────────── */
++
++/**
++ * sdp_drm_conn_get_modes() - expose a single 1920×1080 mode
++ * @connector: DRM connector
++ *
++ * The Q60T panel reports 1920×1080 in the firmware DT display-timings
++ * (hactive=0x780, vactive=0x438).  The mixer scales to 3840×2160 with
++ * a 2:1 ratio; userspace sees the native 1920×1080.
++ *
++ * Return: number of modes added.
++ */
+ static int sdp_drm_conn_get_modes(struct drm_connector *connector)
+ {
+ 	int count;
+ 
+-	count = drm_add_modes_noedid(connector, SDP_DRM_DEFAULT_WIDTH,
+-				     SDP_DRM_DEFAULT_HEIGHT);
+-	drm_set_preferred_mode(connector, SDP_DRM_DEFAULT_WIDTH,
+-			       SDP_DRM_DEFAULT_HEIGHT);
++	count = drm_add_modes_noedid(connector, GP_INPUT_W, GP_INPUT_H);
++	drm_set_preferred_mode(connector, GP_INPUT_W, GP_INPUT_H);
+ 	return count;
+ }
+ 
+-static const struct drm_connector_helper_funcs sdp_drm_conn_helper_funcs = {
++static const struct drm_connector_helper_funcs sdp_drm_conn_helper = {
+ 	.get_modes = sdp_drm_conn_get_modes,
+ };
+ 
+ static const struct drm_connector_funcs sdp_drm_conn_funcs = {
+-	.fill_modes = drm_helper_probe_single_connector_modes,
+-	.destroy = drm_connector_cleanup,
+-	.reset = drm_atomic_helper_connector_reset,
+-	.atomic_duplicate_state = drm_atomic_helper_connector_duplicate_state,
+-	.atomic_destroy_state = drm_atomic_helper_connector_destroy_state,
++	.fill_modes		= drm_helper_probe_single_connector_modes,
++	.destroy		= drm_connector_cleanup,
++	.reset			= drm_atomic_helper_connector_reset,
++	.atomic_duplicate_state	= drm_atomic_helper_connector_duplicate_state,
++	.atomic_destroy_state	= drm_atomic_helper_connector_destroy_state,
+ };
+ 
+-/* Simple display pipe: all hardware steps are TODO for a real bring-up. */
++/* ── display pipe: GP plane + mixer ─────────────────────────────────────── */
++
++/**
++ * sdp_drm_pipe_enable() - turn on the GP plane and mixer output
++ * @pipe: simple display pipe
++ * @crtc_state: CRTC state (unused, mode is fixed)
++ * @plane_state: plane state with the framebuffer to display
++ *
++ * Programs the GP plane with the framebuffer address, size, scale ratios
++ * and position, then enables the plane.  Mixer and QE/POST/TMG are left
++ * in whatever state the boot firmware set.
++ *
++ * Register sequence reconstructed from sdp_logo_gfx_init() and
++ * sdp_logo_set_plane() in sdp_logo_nike/nikem/ (GPL, _NIKEL_GFX_ path).
++ */
+ static void sdp_drm_pipe_enable(struct drm_simple_display_pipe *pipe,
+ 				struct drm_crtc_state *crtc_state,
+ 				struct drm_plane_state *plane_state)
+ {
+-	/* TODO: program the Nike-L display controller and enable the output. */
++	struct sdp_drm_device *sdp = container_of(pipe, struct sdp_drm_device,
++						   pipe);
++	struct drm_framebuffer *fb = plane_state->fb;
++	struct drm_gem_dma_object *gem;
++	u32 addr, val;
++
++	if (!fb)
++		return;
++
++	gem = drm_fb_dma_get_gem_obj(fb, 0);
++	if (!gem)
++		return;
++
++	addr = (u32)gem->dma_addr;
++
++	/* GP plane: H_OFFSET = width >> 2 */
++	gp_write(sdp, GP_H_OFFSET, GP_INPUT_W >> 2);
++
++	/* GP plane: input size (packed: width<<16 | height) */
++	gp_write(sdp, GP_INPUT_SIZE,
++		 (GP_INPUT_W << 16) | GP_INPUT_H);
++
++	/* GP plane: output size = input << GP_OUTPUT_SHIFT (2× for UHD) */
++	val = ((GP_INPUT_W << GP_OUTPUT_SHIFT) << 16) |
++	       (GP_INPUT_H << GP_OUTPUT_SHIFT);
++	gp_write(sdp, GP_OUTPUT_SIZE, val);
++
++	/* GP plane: scale ratios (0x8000 = 2:1 downscale) */
++	gp_write(sdp, GP_HOR_RATIO, GP_UHD_RATIO_H);
++	gp_write(sdp, GP_VER_RATIO, GP_UHD_RATIO_V);
++
++	/* Mixer: GP active size = output size */
++	mix_write(sdp, MIX_GP_ACTIVE_SIZE, val);
++
++	/* Mixer: position */
++	mix_write(sdp, MIX_POS,
++		  (UHD_MIXER_START_X << 16) | UHD_MIXER_START_Y);
++
++	/* GP plane: framebuffer physical address */
++	gp_write(sdp, GP_BASE_ADDR_LOW, addr);
++
++	/* GP plane: no flip, clear flip bits then enable */
++	val = gp_read(sdp, GP_DISP_MODE_0);
++	val &= ~GP_FLIP_MASK;
++	val |= GP_ENABLE_BITS;
++	gp_write(sdp, GP_DISP_MODE_0, val);
++
++	/* Mixer: blend – window blend, full opacity */
++	mix_write(sdp, MIX_GP_BLEND_CTL,
++		  (WINDOW_BLEND << BLEND_MODE_SHIFT) |
++		  (0xff & BLEND_FACTOR_MASK));
++
++	/* Mixer: unmask vsync IRQ */
++	mix_write(sdp, MIX_IRQ_MASK, 0x0);
+ }
+ 
++/**
++ * sdp_drm_pipe_disable() - blank the GP plane
++ * @pipe: simple display pipe
++ *
++ * Clears the enable bits in GP DISP_MODE_0 and masks the vsync IRQ.
++ * Mixer/POST/TMG are left running – the panel stays on but shows black.
++ */
+ static void sdp_drm_pipe_disable(struct drm_simple_display_pipe *pipe)
+ {
+-	/* TODO: blank the Nike-L display controller. */
++	struct sdp_drm_device *sdp = container_of(pipe, struct sdp_drm_device,
++						   pipe);
++	u32 val;
++
++	/* Disable GP plane */
++	val = gp_read(sdp, GP_DISP_MODE_0);
++	val &= ~GP_ENABLE_BITS;
++	gp_write(sdp, GP_DISP_MODE_0, val);
++
++	/* Mask vsync IRQ */
++	mix_write(sdp, MIX_IRQ_MASK, 0x1);
+ }
+ 
++/**
++ * sdp_drm_pipe_update() - flip to a new framebuffer
++ * @pipe: simple display pipe
++ * @old_state: previous plane state
++ *
++ * Writes the new framebuffer's physical address into GP_BASE_ADDR_LOW.
++ * The flip takes effect at the next vsync (the mixer latches on the
++ * rising edge of the internal sync).
++ */
+ static void sdp_drm_pipe_update(struct drm_simple_display_pipe *pipe,
+ 				struct drm_plane_state *old_state)
+ {
+-	/* TODO: flip to the new framebuffer and signal VSync/vblank. */
++	struct sdp_drm_device *sdp = container_of(pipe, struct sdp_drm_device,
++						   pipe);
++	struct drm_plane_state *state = pipe->plane.state;
++	struct drm_framebuffer *fb = state->fb;
++	struct drm_gem_dma_object *gem;
++
++	if (!fb)
++		return;
++
++	gem = drm_fb_dma_get_gem_obj(fb, 0);
++	if (!gem)
++		return;
++
++	gp_write(sdp, GP_BASE_ADDR_LOW, (u32)gem->dma_addr);
++
++	if (pipe->crtc.state->event) {
++		spin_lock_irq(&pipe->crtc.dev->event_lock);
++		drm_crtc_send_vblank_event(&pipe->crtc,
++					   pipe->crtc.state->event);
++		pipe->crtc.state->event = NULL;
++		spin_unlock_irq(&pipe->crtc.dev->event_lock);
++	}
+ }
+ 
+ static const struct drm_simple_display_pipe_funcs sdp_drm_pipe_funcs = {
+-	.enable = sdp_drm_pipe_enable,
+-	.disable = sdp_drm_pipe_disable,
+-	.update = sdp_drm_pipe_update,
++	.enable		= sdp_drm_pipe_enable,
++	.disable	= sdp_drm_pipe_disable,
++	.update		= sdp_drm_pipe_update,
+ };
+ 
++/* ── vsync IRQ ──────────────────────────────────────────────────────────── */
++
++/**
++ * sdp_drm_irq() - mixer vsync interrupt handler
++ * @irq: interrupt number
++ * @data: pointer to struct sdp_drm_device
++ *
++ * Acknowledges the mixer vsync IRQ by reading MIX_IRQ_STATUS and writing
++ * it back (as done in sdp_logo vsync_irq_handler).
++ *
++ * Return: IRQ_HANDLED.
++ */
++static irqreturn_t sdp_drm_irq(int irq, void *data)
++{
++	struct sdp_drm_device *sdp = data;
++	u32 status;
++
++	status = mix_read(sdp, MIX_IRQ_STATUS);
++	mix_write(sdp, MIX_IRQ_STATUS, status);
++
++	drm_crtc_handle_vblank(&sdp->pipe.crtc);
++
++	return IRQ_HANDLED;
++}
++
++/* ── mode config ────────────────────────────────────────────────────────── */
++
+ static const struct drm_mode_config_funcs sdp_drm_mode_config_funcs = {
+-	.fb_create = drm_gem_fb_create,
+-	.atomic_check = drm_atomic_helper_check,
+-	.atomic_commit = drm_atomic_helper_commit,
++	.fb_create	= drm_gem_fb_create,
++	.atomic_check	= drm_atomic_helper_check,
++	.atomic_commit	= drm_atomic_helper_commit,
+ };
+ 
+ DEFINE_DRM_GEM_DMA_FOPS(sdp_drm_fops);
+ 
+ static const struct drm_driver sdp_drm_driver = {
+-	.driver_features = DRIVER_GEM | DRIVER_MODESET | DRIVER_ATOMIC,
+-	.fops = &sdp_drm_fops,
++	.driver_features	= DRIVER_GEM | DRIVER_MODESET | DRIVER_ATOMIC,
++	.fops			= &sdp_drm_fops,
+ 	DRM_GEM_DMA_DRIVER_OPS,
+-	.name = "sdp-drm",
+-	.desc = "Samsung SDP Nike-L display (skeleton)",
+-	.date = "20261111",
+-	.major = 0,
+-	.minor = 1,
++	.name			= "sdp-drm",
++	.desc			= "Samsung SDP Nike-L display",
++	.date			= "20261112",
++	.major			= 0,
++	.minor			= 2,
+ };
+ 
++/* ── platform driver ────────────────────────────────────────────────────── */
++
++/**
++ * sdp_drm_parse_gfx_mem() - read framebuffer address from /sdp_mmap
++ * @dev: platform device
++ * @addr: returned physical address
++ * @size: returned size in bytes
++ *
++ * The Samsung SDP SoC places reserved memory regions in a /sdp_mmap
++ * device-tree node as named u32[3] properties (index 0 is unused,
++ * index 1 is the physical address, index 2 is the size).  The GP plane's
++ * framebuffer is "samsung,gfx0".
++ *
++ * Return: 0 on success, negative errno on failure.
++ */
++static int sdp_drm_parse_gfx_mem(struct device *dev, u32 *addr, u32 *size)
++{
++	struct device_node *np;
++	u32 data[3];
++	int ret;
++
++	np = of_find_node_by_name(NULL, "sdp_mmap");
++	if (!np) {
++		dev_err(dev, "sdp_mmap node not found in device tree\n");
++		return -ENODEV;
++	}
++
++	ret = of_property_read_u32_array(np, "samsung,gfx0", data, 3);
++	of_node_put(np);
++	if (ret) {
++		dev_err(dev, "samsung,gfx0 not found in sdp_mmap: %d\n", ret);
++		return ret;
++	}
++
++	*addr = data[1];
++	*size = data[2];
++	return 0;
++}
++
++/**
++ * sdp_drm_probe() - probe the SDP display platform device
++ * @pdev: platform device (compatible "samsung,sdp-drm")
++ *
++ * Maps the 7 register blocks from the DT reg property, reads the
++ * framebuffer address from /sdp_mmap, requests the vsync IRQ, and
++ * registers the DRM device with one simple display pipe.
++ *
++ * Return: 0 on success, negative errno on failure.
++ */
+ static int sdp_drm_probe(struct platform_device *pdev)
+ {
+ 	struct sdp_drm_device *sdp;
+ 	struct drm_device *drm;
+-	int ret;
++	struct resource *res;
++	int irq, ret, i;
+ 
+ 	sdp = devm_drm_dev_alloc(&pdev->dev, &sdp_drm_driver,
+ 				 struct sdp_drm_device, drm);
+@@ -129,29 +447,70 @@ static int sdp_drm_probe(struct platform_device *pdev)
+ 	drm = &sdp->drm;
+ 	platform_set_drvdata(pdev, drm);
+ 
+-	sdp->regs = devm_platform_ioremap_resource(pdev, 0);
+-	if (IS_ERR(sdp->regs))
+-		return PTR_ERR(sdp->regs);
++	/* Map the 7 register blocks (OSD, GP, MIXER, QE, GA, POST, TMG) */
++	for (i = 0; i < NUM_BASE; i++) {
++		res = platform_get_resource(pdev, IORESOURCE_MEM, i);
++		if (!res) {
++			dev_err(&pdev->dev, "reg region %d not found\n", i);
++			return -ENOENT;
++		}
++		sdp->base[i] = devm_ioremap(&pdev->dev, res->start,
++					     resource_size(res));
++		if (!sdp->base[i]) {
++			dev_err(&pdev->dev, "ioremap region %d failed\n", i);
++			return -ENOMEM;
++		}
++	}
++
++	/* Read the reserved framebuffer address from /sdp_mmap */
++	ret = sdp_drm_parse_gfx_mem(&pdev->dev, &sdp->fb_phys, &sdp->fb_size);
++	if (ret)
++		return ret;
++
++	dev_info(&pdev->dev, "gfx0 framebuffer at 0x%08x, size 0x%x\n",
++		 sdp->fb_phys, sdp->fb_size);
+ 
++	/* Vsync IRQ (first interrupt in the DT, index 0 = SPI 47) */
++	irq = platform_get_irq(pdev, 0);
++	if (irq < 0)
++		return irq;
++
++	ret = devm_request_irq(&pdev->dev, irq, sdp_drm_irq, IRQF_SHARED,
++			       "sdp-drm-vsync", sdp);
++	if (ret) {
++		dev_err(&pdev->dev, "failed to request vsync IRQ %d: %d\n",
++			irq, ret);
++		return ret;
++	}
++
++	/* DRM mode config */
+ 	ret = drmm_mode_config_init(drm);
+ 	if (ret)
+ 		return ret;
+-	drm->mode_config.min_width = SDP_DRM_DEFAULT_WIDTH;
+-	drm->mode_config.max_width = SDP_DRM_DEFAULT_WIDTH;
+-	drm->mode_config.min_height = SDP_DRM_DEFAULT_HEIGHT;
+-	drm->mode_config.max_height = SDP_DRM_DEFAULT_HEIGHT;
++	drm->mode_config.min_width = GP_INPUT_W;
++	drm->mode_config.max_width = GP_INPUT_W;
++	drm->mode_config.min_height = GP_INPUT_H;
++	drm->mode_config.max_height = GP_INPUT_H;
+ 	drm->mode_config.funcs = &sdp_drm_mode_config_funcs;
+ 
+-	drm_connector_helper_add(&sdp->connector, &sdp_drm_conn_helper_funcs);
++	/* Connector */
++	drm_connector_helper_add(&sdp->connector, &sdp_drm_conn_helper);
+ 	ret = drm_connector_init(drm, &sdp->connector, &sdp_drm_conn_funcs,
+ 				 DRM_MODE_CONNECTOR_Unknown);
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = drm_simple_display_pipe_init(drm, &sdp->pipe, &sdp_drm_pipe_funcs,
++	/* Simple display pipe (GP plane → mixer) */
++	ret = drm_simple_display_pipe_init(drm, &sdp->pipe,
++					   &sdp_drm_pipe_funcs,
+ 					   sdp_drm_formats,
+-					   ARRAY_SIZE(sdp_drm_formats), NULL,
+-					   &sdp->connector);
++					   ARRAY_SIZE(sdp_drm_formats),
++					   NULL, &sdp->connector);
++	if (ret)
++		return ret;
++
++	/* Vblank */
++	ret = drm_vblank_init(drm, 1);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -185,15 +544,15 @@ static const struct of_device_id sdp_drm_of_match[] = {
+ MODULE_DEVICE_TABLE(of, sdp_drm_of_match);
+ 
+ static struct platform_driver sdp_drm_platform_driver = {
+-	.probe = sdp_drm_probe,
+-	.remove_new = sdp_drm_remove,
+-	.shutdown = sdp_drm_shutdown,
++	.probe		= sdp_drm_probe,
++	.remove_new	= sdp_drm_remove,
++	.shutdown	= sdp_drm_shutdown,
+ 	.driver = {
+-		.name = "sdp-drm",
+-		.of_match_table = sdp_drm_of_match,
++		.name		= "sdp-drm",
++		.of_match_table	= sdp_drm_of_match,
+ 	},
+ };
+ module_platform_driver(sdp_drm_platform_driver);
+ 
+-MODULE_DESCRIPTION("Samsung SDP Nike-L display DRM/KMS skeleton (compile-only)");
++MODULE_DESCRIPTION("Samsung SDP Nike-L display DRM/KMS driver");
+ MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

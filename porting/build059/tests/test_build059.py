@@ -78,7 +78,7 @@ class PatchSeriesTest(unittest.TestCase):
 
     def test_series_order(self):
         names = [p.name for p in sorted(self.PATCHES.glob("*.patch"))]
-        self.assertEqual(len(names), 14)
+        self.assertEqual(len(names), 15)
         self.assertTrue(names[0].startswith("0001-serial"))
         # 0010 (Build 069): BPF interpreter fallback, 6.6 equivalent of
         # upstream df0cb5cb50bd
@@ -91,6 +91,8 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertTrue(names[12].startswith("0013-soc-sdp-add-Micom"))
         # 0014 (Build 070): Micom HDMI-CEC controller (cec framework)
         self.assertTrue(names[13].startswith("0014-media-cec-add-Samsung-SDP"))
+        # 0015 (Build 070): Nike-L minimal DRM/KMS display driver (GP plane)
+        self.assertTrue(names[14].startswith("0015-drm-sdp-nikel-minimal-kms"))
 
     def test_cecif_patch_uses_firmware_values(self):
         txt = self._patch_text("0014-media-cec")
@@ -119,6 +121,24 @@ class PatchSeriesTest(unittest.TestCase):
         self.assertIn("+obj-$(CONFIG_DRM_SDP) += sdp/", txt)
         self.assertIn('+\t{ .compatible = "samsung,sdp-drm" },', txt)
         self.assertIn("+\t.remove_new = sdp_drm_remove,", txt)
+
+    def test_sdp_drm_kms_patch(self):
+        """0015: minimal Nike-L KMS driver – addresses from firmware dtb0 only."""
+        txt = self._patch_text("0015-drm")
+        # GP framebuffer from /sdp_mmap samsung,gfx0 (dtb0 sha256 0189cc94)
+        self.assertIn("+\t\tsamsung,gfx0 = <0x0 0xfb580000 0xfd8000>;", txt)
+        # DRM reg regions from /soc/bootlogo (dtb0 sha256 0189cc94)
+        self.assertIn("+\t\t\treg = <0x005d0000 0x4000>,", txt)   # OSD
+        self.assertIn("+\t\t\t      <0x005d4000 0x4000>,", txt)   # GP
+        self.assertIn("+\t\t\t      <0x005d8000 0x4000>,", txt)   # MIXER
+        # Vsync IRQ: GIC SPI 47 from firmware
+        self.assertIn("+\t\t\tinterrupts = <GIC_SPI 47 IRQ_TYPE_NONE>,", txt)
+        # REG macro matches GPL sdp_logo_chip.h _NIKEL_GFX_
+        self.assertIn("+#define REG(x)\t\t\t((x) << 2)", txt)
+        # GP plane enable bits from GPL sdp_logo_set_plane_enable
+        self.assertIn("+#define GP_ENABLE_BITS\t\t0x11", txt)
+        # drm_fb_dma_helper included for drm_fb_dma_get_gem_obj
+        self.assertIn("+#include <drm/drm_fb_dma_helper.h>", txt)
 
     def test_android_profile_merges_driver_set(self):
         build = (B059 / "kernel" / "build.sh").read_text()
