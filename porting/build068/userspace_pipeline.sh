@@ -232,6 +232,26 @@ stage_sync() {
 }
 
 # ---------------------------------------------------------------- check-target
+# Build 069: small source patches for the LOS tree, stored as
+# los-patches/<project path>/NNNN-*.patch. Idempotent: an already applied patch
+# (reverse check passes) is skipped; one that applies neither way stops the run.
+apply_los_patches() {
+  local root="$1" p proj
+  [ -d "$root" ] || return 0
+  while IFS= read -r p; do
+    proj="$(dirname "${p#"$root"/}")"
+    [ -d "$LOS_DIR/$proj" ] || die "los-patch $p: project $proj not in tree"
+    if git -C "$LOS_DIR/$proj" apply --check -R "$p" 2>/dev/null; then
+      log "check-target: los-patch already applied: $proj/$(basename "$p")"
+    elif git -C "$LOS_DIR/$proj" apply --check "$p"; then
+      git -C "$LOS_DIR/$proj" apply "$p"
+      log "check-target: los-patch applied: $proj/$(basename "$p")"
+    else
+      die "los-patch does not apply: $proj/$(basename "$p")"
+    fi
+  done < <(find "$root" -name '*.patch' | sort)
+}
+
 stage_check_target() {
   local prod="vendor/lineage/build/target/product"
   local atv_mk release emu_kernel qemu_arm
@@ -248,6 +268,7 @@ stage_check_target() {
     rm -rf "$prod" && mkdir -p "$prod"
     cp -a "$REPO_ROOT/porting/build069/device/qemu_arm_tv/." "$prod/"
     log "check-target: installed $prod from porting/build069/device/qemu_arm_tv"
+    apply_los_patches "$REPO_ROOT/porting/build069/los-patches"
   fi
   grep -q "lineage_${TARGET}\.mk" "$prod/AndroidProducts.mk" \
     || die "lineage_${TARGET} is NOT in $prod/AndroidProducts.mk of this tree"

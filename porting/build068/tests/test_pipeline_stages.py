@@ -118,10 +118,36 @@ class PipelineTests(unittest.TestCase):
         r = self.run_pipeline("--only", "build")
         self.assertIn("already done", r.stderr)
 
+    def _fake_surfaceflinger(self) -> Path:
+        """frameworks/native git project with the lines los-patch 0001 touches."""
+        import subprocess
+        proj = self.los / "frameworks/native"
+        sf = proj / "services/surfaceflinger/SurfaceFlinger.cpp"
+        sf.parent.mkdir(parents=True, exist_ok=True)
+        lines = ["// l%d" % i for i in range(1, 3817)] + [
+            "    ui::PixelFormat pixelFormat = static_cast<ui::PixelFormat>(PIXEL_FORMAT_UNKNOWN);",
+            "    if (state.physical) {",
+            "        resolution = state.physical->activeMode->getResolution();",
+            "        pixelFormat = static_cast<ui::PixelFormat>(PIXEL_FORMAT_RGBA_8888);",
+            "    } else if (state.surface != nullptr) {",
+            "        int status = state.surface->query(NATIVE_WINDOW_WIDTH, &resolution.width);",
+            '        ALOGE_IF(status != NO_ERROR, "Unable to query width (%d)", status);',
+            "// end"]
+        sf.write_text("\n".join(lines) + "\n")
+        subprocess.run(["git", "init", "-q", str(proj)], check=True)
+        return sf
+
     def test_qemu_arm_tv_device_is_installed_from_repo(self) -> None:
         (self.los / "device/google/atv/products/atv_generic_system.mk").write_text("# stub\n")
+        sf = self._fake_surfaceflinger()
         r = self.run_pipeline("--only", "check-target", "--target", "qemu_arm_tv")
         self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("pixelFormat = defaultCompositionPixelFormat;", sf.read_text())
+        self.assertIn("los-patch applied", r.stderr)
+        # second run: patch is recognised as applied, not applied twice
+        r = self.run_pipeline("--only", "check-target", "--target", "qemu_arm_tv", "--force")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("los-patch already applied", r.stderr)
         dev = self.los / "device/nexuxscraft/qemu_arm_tv"
         self.assertTrue((dev / "BoardConfig.mk").is_file())
         self.assertIn("lineage_qemu_arm_tv.mk", (dev / "AndroidProducts.mk").read_text())
