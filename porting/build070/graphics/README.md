@@ -220,3 +220,20 @@ danach ABGR/Allocator und reale Display-Timings, weiterhin ohne
 TV-Aktivierung. Für einen weiteren Kernelauftrag wieder mit dem
 Projektleiter abstimmen. Die reinen Ergebnis-Dokuänderungen lösen keinen
 neuen Build070-Runnerauftrag aus.
+
+## Vorbereiteter SDB-Readback
+
+`../tools/collect_tizen_graphics_evidence.sh` sammelt für einen bereits
+verbundenen Stock-Tizen-SDB-Endpoint ausschließlich lesend `dmesg`,
+`/proc/interrupts`, die Live-DT-GPU-Properties, Clock-/Regulator-Debugfs und
+DRM-/GPU-Sysfs. Es lädt keine Module, schreibt weder Sysfs noch MMIO und
+verändert den Fernseher nicht. Auf dem Rechner mit SDB:
+
+```sh
+SDB_SERIAL='HOST:PORT' OUT_DIR=./q60t-stock-evidence \
+  porting/build070/tools/collect_tizen_graphics_evidence.sh
+```
+
+Das Ergebnisarchiv ist die Eingabe für Clock-Parent/Rate, IRQ-Typ,
+`mali-supply` und den echten Display-Bootmodus. Fehlende Debugfs-Dateien
+sind ein Befund, kein Fehler des Collectors.
