@@ -49,6 +49,19 @@
     "new_unit_tests": "porting/build078/tests/test_footer_auth_audit.py",
     "new_unit_test_count": 7,
     "execution_status": "NOT_RUN_YET",
-    "live_file_audit_status": "NOT_RUN_YET"
+    "live_file_audit_status": "OWNER_REPORTED_PASS",
+    "local_reference_footer_audit": {
+      "reported_by": "project owner",
+      "date": "2026-11-13",
+      "command": "python3 porting/build078/footer_auth_audit.py --components-dir /opt/samsung-atv-lab/samsung/firmware-2743/decrypted --strict",
+      "status": "SIX_COMPONENT_FOOTER_MATCH",
+      "components_verified": 6,
+      "reference_window_sha256_matched": true,
+      "all_terminal_16_bytes_equal_0x10": true,
+      "sign_bin_window_all_zero": true,
+      "cryptographic_signature_verified": false
+    },
+    "new_unit_tests_execution_status": "NOT_YET_REPORTED",
+    "new_unit_tests_original_field_note": "The original execution_status value remains under tests.execution_status for audit history; 7 new unit tests are not confirmed by this output"
   }
 }
