@@ -1,0 +1,154 @@
+{
+  "schema": "build079_swu_verifier_owner_static_evidence_v1",
+  "date": "2026-11-13",
+  "source": "owner-provided terminal output from extracted 2743.0 rootfs",
+  "target": "Samsung GQ50Q60TGUXZG, T-NKLDEUC 2743.0 reference firmware (target-board runtime not verified)",
+  "verified_file_information": {
+    "path": "/usr/bin/SWUVerifierTV",
+    "format": "ELF32 little-endian ARM EABI5 PIE, stripped",
+    "interpreter": "/lib/ld-linux.so.3",
+    "direct_needed_library_examples": [
+      "libSWUProductionConfig.so",
+      "libavoc.so",
+      "libdeviced.so.1",
+      "libmicom.so.0"
+    ],
+    "direct_libcrypto_in_owner_shown_needed_list": false,
+    "symbols_observed_as_strings": [
+      "SWU::Common::UpgradeGraph::RSAValidation",
+      "SWU::Common::UpgradeGraph::AESEncryption",
+      "SWU::Common::UpgradeGraph::CRC32Validation",
+      "SWU::Core::FlashHandler::FlashSink",
+      "SWU::Platform::ISystemControl::getExternalAppVerificationResult"
+    ],
+    "cplusplus_symbol_note": "Owner-output contains Boost serialization/RTTI name strings; not sufficient to prove callable verification code or runtime invocation."
+  },
+  "units": {
+    "swu-verifier-tv.service": {
+      "ExecStart": "/usr/bin/SWUVerifierTV",
+      "Type": "dbus",
+      "BusName": "org.tizen.tv.swu.verifier.TV",
+      "Requires": "deviced.service",
+      "After": "deviced.service",
+      "OnFailure": "swu-verifier-tv.timer",
+      "ConditionPathExists": "!/opt/backup/OS_UPGRADE_FLAG"
+    },
+    "swu-verifier-tv.timer": {
+      "OnActiveSec": "1",
+      "Unit": "swu-verifier-tv.service"
+    },
+    "swu-core-tv.service": {
+      "ExecStart": "/usr/bin/SWUCoreTV --idle-timeout 30",
+      "Requisite": "swu-verifier-tv.service deviced.service",
+      "After": "swu-verifier-tv.service deviced.service",
+      "ConditionPathExists": "!/mnt/backup/OS_UPGRADE_FLAG"
+    },
+    "swu-service.service": {
+      "ExecStart": "/usr/bin/SWUService --idle-timeout 30",
+      "Requisite": "swu-verifier-tv.service deviced.service",
+      "After": "swu-verifier-tv.service deviced.service",
+      "ConditionPathExists": "!/mnt/backup/OS_UPGRADE_FLAG"
+    },
+    "org.tizen.tv.swu.verifier.TV.busname": {
+      "Name": "org.tizen.tv.swu.verifier.TV",
+      "Service": "swu-verifier-tv.service"
+    }
+  },
+  "source_correlation": "Synacktiv MSD decrypt.py recognizes OURSAValidationDesc TLV; original SWU verifier binary has names RSAValidation, AESEncryption and CRC32Validation. Callers and crypto enforcement unverified.",
+  "pending_proofs": [
+    "RSAValidation actual function implementation",
+    "RSAVerification call graph and trust anchor",
+    "Samsung update acceptance policy",
+    "physical TV BootROM/secure boot signature checks",
+    "Target 50-inch board verified safe recovery"
+  ],
+  "safety": {
+    "binary_executed": false,
+    "tv_accessed": false,
+    "signature_verified": false,
+    "bootloader_auth_verified": false,
+    "safe_to_flash": false
+  },
+  "code": {
+    "analyzer": "porting/build079/swu_static_audit.py",
+    "tests": "porting/build079/tests/test_swu_static_audit.py",
+    "synthetic_unit_test_count": 9,
+    "executed_on_owner_original_elf": false,
+    "unit_tests_executed": true,
+    "owner_original_elf_first_audit_reported_passed": true,
+    "updated_exhaustive_dynsym_audit_run": true,
+    "unit_tests_execution_status": "OWNER_REPORTED_OK_BEFORE_9TH_TEST; NINTH_TEST_EXECUTION_NOT_EXPLICITLY_SHOWN",
+    "new_classification_fix_retested": true
+  },
+  "owner_reported_local_static_audit": {
+    "date": "2026-11-13",
+    "schema": "build079_swu_verifier_static_audit_v1",
+    "status": "STATIC_ELF_AND_SYSTEMD_METADATA_ONLY",
+    "binary_sha256": "0af2d2b00d96b8eff32032dd1001b7b688b124e9cf0b9bdf5862e55eea183149",
+    "binary_size_bytes": 1921360,
+    "elf_arch": "ELF32 ARM little endian machine=40",
+    "direct_libcrypto_needed": false,
+    "dynamic_sections_success": true,
+    "dynamic_symbols_success": true,
+    "rsa_related_dynamic_symbols_examples": [
+      {
+        "type": "FUNC",
+        "binding": "WEAK",
+        "observation": "boost::serialization::void_caster_primitive<RSAValidation,...> constructor; not RSA verification"
+      },
+      {
+        "type": "OBJECT",
+        "binding": "GLOBAL",
+        "observation": "typeinfo for SWU::Common::UpgradeGraph::RSAValidation"
+      },
+      {
+        "type": "FUNC",
+        "binding": "WEAK",
+        "observation": "boost::archive serializer specialization for RSAValidation"
+      }
+    ],
+    "expected_absent_string_markers": [
+      "OURSAValidationDesc",
+      "RSA_verify",
+      "EVP_PKEY_verify"
+    ],
+    "important_limit": "The original analyzer returned only first 30 matching .dynsym entries, often Boost/RTTI boilerplate; code updated to scan all, rank direct SWU class functions and separate const/ctor/dtor candidates. Updated analyzer NOT YET EXECUTED against owner binary.",
+    "cryptographic_check_confirmed": false,
+    "bootloader_authentication_confirmed": false,
+    "safe_to_flash": false
+  },
+  "owner_reported_exhaustive_dynsym_scan": {
+    "date": "2026-11-13",
+    "source": "owner-pasted run of updated Build079 on original SWUVerifierTV",
+    "matching_dynamic_symbols_total": 539,
+    "defined_rsa_class_function_count": 11,
+    "initial_reported_non_ctor_dtor_method_candidate_count": 6,
+    "classification_correction": "The 6 included parameterized C1 and C2 constructor aliases; analyzer had incorrectly matched only C1Ev/C2Ev. Four distinct regular method names remain after excluding these two entries; new audit should be run to confirm exact values.",
+    "expected_non_ctor_dtor_method_candidates_after_fix": [
+      "SWU::Common::UpgradeGraph::RSAValidation::expandsData() const",
+      "SWU::Common::UpgradeGraph::RSAValidation::getRSAKeyId() const",
+      "SWU::Common::UpgradeGraph::RSAValidation::clone() const",
+      "SWU::Common::UpgradeGraph::RSAValidation::signature() const"
+    ],
+    "constructor_abi_aliases": [
+      "_ZN3SWU6Common12UpgradeGraph13RSAValidationC1EjRKSt6vectorIhSaIhEE",
+      "_ZN3SWU6Common12UpgradeGraph13RSAValidationC2EjRKSt6vectorIhSaIhEE"
+    ],
+    "cryptographic_signature_validation_execution_confirmed": false,
+    "further_callgraph_evidence_required": true,
+    "confirmed_corrected_scan": {
+      "date": "2026-11-13",
+      "defined_rsa_class_function_count": 11,
+      "rsa_class_ctor_dtor_count": 7,
+      "rsa_class_non_ctor_dtor_method_candidate_count": 4,
+      "method_names": [
+        "SWU::Common::UpgradeGraph::RSAValidation::expandsData() const",
+        "SWU::Common::UpgradeGraph::RSAValidation::getRSAKeyId() const",
+        "SWU::Common::UpgradeGraph::RSAValidation::clone() const",
+        "SWU::Common::UpgradeGraph::RSAValidation::signature() const"
+      ],
+      "explanation": "No RSA verification implementation identified by these four function names; next inspect consumers/call sites of signature() and getRSAKeyId().",
+      "user_reported_output_matches_expected": true
+    }
+  }
+}
