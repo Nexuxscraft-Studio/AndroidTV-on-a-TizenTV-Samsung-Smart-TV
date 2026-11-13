@@ -1,0 +1,31 @@
+/dts-v1/;
+
+/* Standalone resource fixture for dtc. Keep disabled and use offline only. */
+/ {
+	compatible = "samsung,dtv", "samsung,sdp-nikel";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	/* A phandle and cell layout for offline decoding only. */
+	gic: interrupt-controller {
+		compatible = "arm,gic-400";
+		interrupt-controller;
+		#interrupt-cells = <3>;
+		#address-cells = <0>;
+		status = "disabled";
+	};
+
+	osdp@5d0000 {
+		compatible = "samsung,sdp-osdp";
+		reg = <0x5d0000 0x4000>;
+		interrupt-parent = <&gic>;
+		interrupts = <0 0x2f 0>;
+		status = "disabled";
+	};
+
+	mixer@5d8000 {
+		compatible = "samsung,sdp-mixer";
+		reg = <0x5d8000 0x4000>;
+		status = "disabled";
+	};
+};
