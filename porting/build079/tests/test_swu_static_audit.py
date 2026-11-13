@@ -90,5 +90,33 @@ class StaticAuditTests(unittest.TestCase):
                 mod.analyze(Path(temp))
 
 
+    def test_prioritizes_defined_const_rsa_method_over_boost_boilerplate(self):
+        boilerplate = "".join(
+            f" {i}: 00002000 16 FUNC WEAK DEFAULT 13 _ZN5boost3Foo13RSAValidation{i}Ev\\n"
+            for i in range(1, 37)
+        )
+        direct_method = (
+            " 99: 00001abc 32 FUNC GLOBAL DEFAULT 13 "
+            "_ZNK3SWU6Common12UpgradeGraph13RSAValidation6verifyEv\\n"
+        )
+        out = mod.classify_dynsym_lines(boilerplate + direct_method)
+        self.assertEqual(out["matching_dynamic_symbols_total"], 37)
+        self.assertTrue(out["interesting_dynsyms_truncated"])
+        self.assertEqual(out["rsa_class_non_ctor_dtor_method_candidate_count"], 1)
+        self.assertEqual(out["interesting_dynsyms"][0]["name"], direct_method.split()[-1])
+        self.assertEqual(out["rsa_class_non_ctor_dtor_method_candidates"][0]["type"], "FUNC")
+
+    def test_rtti_not_mistaken_for_verifier_implementation(self):
+        output = (
+            " 11: 00005000 24 OBJECT GLOBAL DEFAULT 22 "
+            "_ZTIN3SWU6Common12UpgradeGraph13RSAValidationE\\n"
+            " 12: 00004000 16 FUNC GLOBAL DEFAULT 13 "
+            "_ZN3SWU6Common12UpgradeGraph13RSAValidationD1Ev\\n"
+        )
+        out = mod.classify_dynsym_lines(output)
+        self.assertEqual(out["rsa_class_non_ctor_dtor_method_candidate_count"], 0)
+        self.assertEqual(out["defined_rsa_class_function_count"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()
