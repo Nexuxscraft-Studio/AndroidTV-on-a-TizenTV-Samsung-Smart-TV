@@ -103,7 +103,7 @@ def _symbol_priority(entry: dict) -> tuple[int, str]:
     own_rsa = bool(re.search(r"N(?:K)?3SWU6Common12UpgradeGraph13RSAValidation", name))
     defined_func = entry["type"] == "FUNC" and entry["section"] != "UND"
     boost_or_rtti = ("boost" in name or name.startswith(("_ZT", "_ZGV")))
-    ctor_or_dtor = bool(re.search(r"(?:C[123]|D[012])Ev(?:@|$)", name))
+    ctor_or_dtor = bool(re.search(r"13RSAValidation(?:C[123]|D[012])", name))
     if own_rsa and defined_func and not ctor_or_dtor and not boost_or_rtti:
         return (0, name)
     if own_rsa and defined_func and not boost_or_rtti:
@@ -141,12 +141,17 @@ def classify_dynsym_lines(output: str) -> dict:
         and "boost" not in x["name"]
     ]
     strongest = [x for x in own_rsa if _symbol_priority(x)[0] == 0]
+    constructors_and_destructors = [
+        x for x in own_rsa if re.search(r"13RSAValidation(?:C[123]|D[012])", x["name"])
+    ]
     return {
         "interesting_dynsyms": matches[:30],
         "matching_dynamic_symbols_total": len(matches),
         "interesting_dynsyms_truncated": len(matches) > 30,
         "defined_rsa_class_functions": own_rsa[:30],
         "defined_rsa_class_function_count": len(own_rsa),
+        "rsa_class_ctor_dtor_functions": constructors_and_destructors[:30],
+        "rsa_class_ctor_dtor_count": len(constructors_and_destructors),
         "rsa_class_non_ctor_dtor_method_candidates": strongest[:30],
         "rsa_class_non_ctor_dtor_method_candidate_count": len(strongest),
         "warning": (
