@@ -94,8 +94,75 @@ def parse_unit(content: str) -> dict:
     return result
 
 
+def _symbol_priority(entry: dict) -> tuple[int, str]:
+    """Put concrete SWU methods before generic Boost/RTTI boilerplate.
+
+    Ranking is a research aid; it is NOT proof a verification method runs.
+    """
+    name = entry["name"]
+    own_rsa = "N3SWU6Common12UpgradeGraph13RSAValidation" in name
+    defined_func = entry["type"] == "FUNC" and entry["section"] != "UND"
+    boost_or_rtti = ("boost" in name or name.startswith(("_ZT", "_ZGV")))
+    ctor_or_dtor = bool(re.search(r"(?:C[123]|D[012])Ev(?:@|$)", name))
+    if own_rsa and defined_func and not ctor_or_dtor and not boost_or_rtti:
+        return (0, name)
+    if own_rsa and defined_func and not boost_or_rtti:
+        return (1, name)
+    if "getExternalAppVerificationResult" in name and defined_func:
+        return (2, name)
+    if defined_func and not boost_or_rtti:
+        return (3, name)
+    if defined_func:
+        return (4, name)
+    return (5, name)
+
+
+def classify_dynsym_lines(output: str) -> dict:
+    """Examine all dynamic symbol rows, not only first 30 matching rows."""
+    matches = []
+    for line in output.splitlines():
+        if not any(t.decode("ascii") in line for t in SYMBOL_TOKENS):
+            continue
+        fields = line.split()
+        if len(fields) < 8 or not fields[0].endswith(":"):
+            continue
+        matches.append({
+            "type": fields[3],
+            "binding": fields[4],
+            "section": fields[6],
+            "name": fields[7][:500],
+        })
+    matches.sort(key=_symbol_priority)
+    own_rsa = [
+        x for x in matches if
+        "N3SWU6Common12UpgradeGraph13RSAValidation" in x["name"]
+        and x["type"] == "FUNC"
+        and x["section"] != "UND"
+        and "boost" not in x["name"]
+    ]
+    strongest = [x for x in own_rsa if _symbol_priority(x)[0] == 0]
+    return {
+        "interesting_dynsyms": matches[:30],
+        "matching_dynamic_symbols_total": len(matches),
+        "interesting_dynsyms_truncated": len(matches) > 30,
+        "defined_rsa_class_functions": own_rsa[:30],
+        "defined_rsa_class_function_count": len(own_rsa),
+        "rsa_class_non_ctor_dtor_method_candidates": strongest[:30],
+        "rsa_class_non_ctor_dtor_method_candidate_count": len(strongest),
+        "warning": (
+            "Defined method names alone do not identify a cryptographic check "
+            "or prove execution; absence of exported symbols cannot exclude "
+            "stripped/internal/static/dynamically loaded implementations."
+        ),
+    }
+
+
 def readelf_metadata(binary: Path) -> dict:
-    info = {"tool_available": False, "needed_libraries": [], "interesting_dynsyms": []}
+    info = {
+        "tool_available": False, "needed_libraries": [],
+        "interesting_dynsyms": [], "matching_dynamic_symbols_total": 0,
+        "rsa_class_non_ctor_dtor_method_candidates": [],
+    }
     try:
         dyn = subprocess.run(
             ["readelf", "-W", "-d", str(binary)],
@@ -116,20 +183,7 @@ def readelf_metadata(binary: Path) -> dict:
             re.findall(r"Shared library: \[([^\]]+)\]", dyn.stdout)
         ))
     if sym.returncode == 0:
-        for line in sym.stdout.splitlines():
-            if not any(t.decode("ascii") in line for t in SYMBOL_TOKENS):
-                continue
-            parts = line.split()
-            if len(parts) < 8 or not parts[0].endswith(":"):
-                continue
-            info["interesting_dynsyms"].append({
-                "type": parts[3],
-                "binding": parts[4],
-                "section": parts[6],
-                "name": parts[7][:320],
-            })
-            if len(info["interesting_dynsyms"]) == 30:
-                break
+        info.update(classify_dynsym_lines(sym.stdout))
     return info
 
 
