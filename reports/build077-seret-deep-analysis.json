@@ -66,5 +66,108 @@
     "tv_boot_test": false,
     "flashed": false,
     "safe_to_flash": false
+  },
+  "owner_reported_local_original_audit": {
+    "source": "owner-provided terminal JSON",
+    "date": "2026-11-13",
+    "status": "OFFLINE_STATIC_CONTROL_FLOW_CORROBORATED",
+    "known_a32_instruction_words_verified": 9,
+    "branch_edge_count": 43,
+    "computed_header_pointer": "0x1a0cd8",
+    "embedded_zimage_call_site": "0x6f8",
+    "first_64k_payload_entropy_bits_per_byte": 3.6881
+  },
+  "owner_reported_footer_analysis": {
+    "date": "2026-11-13",
+    "source": "owner local read-only file size, suffix, 256-byte SHA256 and Shannon entropy outputs",
+    "note": "Signature and encryption algorithms unknown. All offsets are FILE offsets. The 256-byte window is the last 272 bytes excluding 16 bytes of literal 0x10.",
+    "last_16_bytes_in_all_files": "10101010101010101010101010101010",
+    "all_six_files_have_272_byte_tail_pattern": true,
+    "files": [
+      {
+        "name": "seret.bin",
+        "size_bytes": 3137552,
+        "window256_offset": "0x2fdf00",
+        "entropy_bits_per_byte": 7.146,
+        "window_zero_byte_count": 1,
+        "sha256_window256": "3c02a9c0f032590d76eafa3090beb3fb9293d5cf55d2401eaacb6e1f6f725255"
+      },
+      {
+        "name": "uImage",
+        "size_bytes": 7041296,
+        "window256_offset": "0x6b7000",
+        "entropy_bits_per_byte": 7.228,
+        "window_zero_byte_count": 1,
+        "sha256_window256": "29b4bdfe920a3af1854ab49f117279cf691c6a64256798a669f4c903415c86de"
+      },
+      {
+        "name": "sign.bin",
+        "size_bytes": 1040,
+        "window256_offset": "0x300",
+        "entropy_bits_per_byte": 0,
+        "window_zero_byte_count": 256,
+        "sha256_window256": "5341e6b2646979a70e57653007a1f310169421ec9bdd9f1a5648f75ade005af1",
+        "window_all_zero": true
+      },
+      {
+        "name": "secos.bin",
+        "size_bytes": 4186128,
+        "window256_offset": "0x3fdf00",
+        "entropy_bits_per_byte": 7.274,
+        "window_zero_byte_count": 2,
+        "sha256_window256": "add0b88cc5316ab7c5b0face5609c8eedeab52bbc2e94fbd0a7f5dee8c3e819b"
+      },
+      {
+        "name": "ddr.init",
+        "size_bytes": 311312,
+        "window256_offset": "0x4bf00",
+        "entropy_bits_per_byte": 7.161,
+        "window_zero_byte_count": 0,
+        "sha256_window256": "201171e79e6614c4b87f473dca4fe4f325c74b0f48ac5f92bdabdae5fd036a96"
+      },
+      {
+        "name": "dtb.bin",
+        "size_bytes": 1564688,
+        "window256_offset": "0x17df00",
+        "entropy_bits_per_byte": 7.252,
+        "window_zero_byte_count": 1,
+        "sha256_window256": "b30b71478c50b502392eb6b7ad583129560997aaa547e4056973f22152008811"
+      }
+    ],
+    "seret_nonzero_islands_gap_threshold_bytes": 256,
+    "seret_nonzero_islands_file_offset": [
+      {
+        "from": "0x1a0ce4",
+        "to": "0x1a64b6",
+        "span_bytes": 22483,
+        "nonzero_bytes": 22388
+      },
+      {
+        "from": "0x1a6980",
+        "to": "0x1a69d2",
+        "span_bytes": 83,
+        "nonzero_bytes": 80
+      },
+      {
+        "from": "0x1a6d50",
+        "to": "0x1a6ec8",
+        "span_bytes": 377,
+        "nonzero_bytes": 305
+      },
+      {
+        "from": "0x2fdf00",
+        "to": "0x2fe00f",
+        "span_bytes": 272,
+        "nonzero_bytes": 271
+      }
+    ],
+    "zero_only_gap_after_third_island": {
+      "start": "0x1a6ec9",
+      "end": "0x2fdeff"
+    },
+    "dtb_size_equals_seret_uninterpreted_header_word_0x17e010": true,
+    "validated_signature_algorithm": false,
+    "rsa2048_confirmed": false,
+    "safe_to_flash": false
   }
 }
