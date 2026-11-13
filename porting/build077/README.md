@@ -81,6 +81,68 @@ The Build 077 tool fails closed when the input SHA, size, zImage/header
 evidence, or recorded instruction words differ; it reads only the named
 file and prints JSON to standard output. All tests use synthetic bytes.
 
+## Owner-observed six-component 272-byte footer pattern (2026-11-13)
+
+Additional **read-only** measurements on the already extracted reference firmware
+show that six components all end in **16 literal bytes of `0x10`**, preceded
+by a 256-byte window beginning at a 256-byte-aligned file offset.
+
+| Component | Total bytes | 256-byte window offset | Shannon entropy (bits/byte) | Zero bytes in window | 16-byte end suffix |
+| --- | ---: | --- | ---: | ---: | --- |
+| `seret.bin` | 3,137,552 | `0x2fdf00` | 7.146 | 1 | 16 × `0x10` |
+| `uImage` | 7,041,296 | `0x6b7000` | 7.228 | 1 | 16 × `0x10` |
+| `sign.bin` | 1,040 | `0x300` | **0.000** | **256** | 16 × `0x10` |
+| `secos.bin` | 4,186,128 | `0x3fdf00` | 7.274 | 2 | 16 × `0x10` |
+| `ddr.init` | 311,312 | `0x4bf00` | 7.161 | 0 | 16 × `0x10` |
+| `dtb.bin` | 1,564,688 | `0x17df00` | 7.252 | 1 | 16 × `0x10` |
+
+**Critical difference:** The entire `sign.bin` region at
+`0x300..0x3ff` consists of **256 zero bytes**, while the equivalent
+windows in the other five files contain varied bytes. A shared *packing*
+convention is plausible, but assigning the five variable regions to RSA
+signatures and the zero region to a disabled/empty signature would be
+speculation: there is **no authenticated cryptographic algorithm,
+public key, signature-verification trace, or measured secure-boot policy**.
+Visible 16 × `0x10` can be a literal padding convention; it does not
+prove a particular encryption/padding scheme.
+
+The `uImage` suffix starts precisely at the end of the declared payload
+(`64-byte header + 7,040,960-byte payload = 0x6b7000`), so its
+272-byte suffix lies outside that declared payload. For other components
+we have established the *last 272 bytes*, not a common parser definition.
+
+In `seret.bin` the appended data begins at file offset `0x1a0cd8`.
+When grouping nonzero bytes using a **256-byte zero-gap threshold**, the
+owner found four islands at offsets:
+
+- `0x1a0ce4..0x1a64b6` (22,483-byte span)
+- `0x1a6980..0x1a69d2` (83-byte span)
+- `0x1a6d50..0x1a6ec8` (377-byte span)
+- `0x2fdf00..0x2fe00f` (272-byte span, ending at EOF)
+
+These are byte-pattern islands **not verified format segments**. In the
+large intermediate region there are no nonzero bytes between
+`0x1a6ec9` and `0x2fdeff`.
+
+The header's uninterpreted value `0x0017e010` is **numerically equal**
+to the observed complete `dtb.bin` length. The equality is noteworthy
+but does **not establish a DTB pointer or cross-file dependency**.
+
+The owner's original-file Build 077 audit returned
+`OFFLINE_STATIC_CONTROL_FLOW_CORROBORATED`; this validates its
+SHA-pinned file/offset/instruction assertions, not live TV boot.
+Build 077's seven synthetic unit tests have not yet been confirmed
+by a reported test run. The measurements above come from the owner's
+local commands and were not independently re-run by GitHub CI.
+
+### Next evidence for the footer hypothesis
+
+Compare additional firmware versions **if independently obtained and
+authorized**, identify the static code responsible for validating or
+skipping the 256-byte field, and compare any associated documented
+certificate/key metadata. Do not mutate `seret.bin`, `sign.bin`,
+`uImage` or the TV storage to test the hypothesis.
+
 ## Research questions next
 
 1. Recover the complete control flow and data-flow around `0x4b8`, including
