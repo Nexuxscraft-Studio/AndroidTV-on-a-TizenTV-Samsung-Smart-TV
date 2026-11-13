@@ -72,11 +72,13 @@
   "code": {
     "analyzer": "porting/build079/swu_static_audit.py",
     "tests": "porting/build079/tests/test_swu_static_audit.py",
-    "synthetic_unit_test_count": 8,
+    "synthetic_unit_test_count": 9,
     "executed_on_owner_original_elf": false,
-    "unit_tests_executed": false,
+    "unit_tests_executed": true,
     "owner_original_elf_first_audit_reported_passed": true,
-    "updated_exhaustive_dynsym_audit_run": false
+    "updated_exhaustive_dynsym_audit_run": true,
+    "unit_tests_execution_status": "OWNER_REPORTED_OK_BEFORE_LATEST_CONSTRUCTOR_CLASSIFICATION_FIX",
+    "new_classification_fix_retested": false
   },
   "owner_reported_local_static_audit": {
     "date": "2026-11-13",
@@ -114,5 +116,25 @@
     "cryptographic_check_confirmed": false,
     "bootloader_authentication_confirmed": false,
     "safe_to_flash": false
+  },
+  "owner_reported_exhaustive_dynsym_scan": {
+    "date": "2026-11-13",
+    "source": "owner-pasted run of updated Build079 on original SWUVerifierTV",
+    "matching_dynamic_symbols_total": 539,
+    "defined_rsa_class_function_count": 11,
+    "initial_reported_non_ctor_dtor_method_candidate_count": 6,
+    "classification_correction": "The 6 included parameterized C1 and C2 constructor aliases; analyzer had incorrectly matched only C1Ev/C2Ev. Four distinct regular method names remain after excluding these two entries; new audit should be run to confirm exact values.",
+    "expected_non_ctor_dtor_method_candidates_after_fix": [
+      "SWU::Common::UpgradeGraph::RSAValidation::expandsData() const",
+      "SWU::Common::UpgradeGraph::RSAValidation::getRSAKeyId() const",
+      "SWU::Common::UpgradeGraph::RSAValidation::clone() const",
+      "SWU::Common::UpgradeGraph::RSAValidation::signature() const"
+    ],
+    "constructor_abi_aliases": [
+      "_ZN3SWU6Common12UpgradeGraph13RSAValidationC1EjRKSt6vectorIhSaIhEE",
+      "_ZN3SWU6Common12UpgradeGraph13RSAValidationC2EjRKSt6vectorIhSaIhEE"
+    ],
+    "cryptographic_signature_validation_execution_confirmed": false,
+    "further_callgraph_evidence_required": true
   }
 }
