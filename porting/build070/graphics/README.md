@@ -108,6 +108,24 @@ REA-Evidenz-ID `ev_e7d3cf333f091591153e14731a5328ea3458e09414afe05aa9a96ca93f284
 Das ist statischer Codebeleg, kein Hardwarelauf. Insbesondere belegt er
 weder Clock-Parent/-Rate, `mali-supply`, IRQ-Polarität noch MMIO-Nebenwirkungen.
 
+Der nachfolgende Raw-ARM32-/ELF-Abgleich verbindet diesen Pfad eindeutig mit
+dem Firmware-Clockfenster: Der `samsung,sdp1804-clock`-Callback bei
+`0xc0654038` ruft den gemeinsamen Initialisierer `0xc0653748`, der DT-
+Resource 0 (`0x00f50000`, `0x3000`) übernimmt und `of_iomap(node, 0)`
+speichert. Der virtuelle Rückgabewert ist ein Laufzeitwert und wird nicht
+erfunden. Die vier GPU-Register liegen innerhalb dieses Fensters.
+
+Wichtige Grenze: `sdp_gpu.ko` hat für
+`kbase_platform_sdp_gpu_power_control` keinen direkten Intra-Modul-Caller,
+keine Call-Relokation und keinen Kernel-Namensverweis gezeigt; der Export
+allein ist kein Aufruf. Die Kbase-PM-Callbacks sind dort Stubs (`power_on`
+gibt 1 zurück, `power_off` kehrt sofort zurück). Das Modul ruft die
+Clock/Reset-Helfer dennoch aus dem Powercontroller (1 Read, 8 Set-Relocations)
+und aus dem DVFS-Setter (15 Set-Relocations). Patch 0022 verwendet die
+binär bestätigte Sequenz daher als neue, explizit deaktivierte Linux-genpd-
+Implementierung; er behauptet **nicht**, den Stock-PM-Callbackpfad zu
+reproduzieren oder einen funktionierenden Vendor-Aufruf bewiesen zu haben.
+
 **Takt-Parent und Rate: für einen aktivierbaren Panfrost-Knoten weiter
 UNBELEGT.** Die echte SDP1804-Tabelle in
 `linux-4.1.10/drivers/clk/clk-sdp.c:1505–1545` beschreibt die PLLs und

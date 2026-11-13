@@ -75,6 +75,15 @@
       "observed_on_order": "set f5088c bit 12; set f507f8 bit 24 then 28; clear f50a10 bit 0",
       "limitations": "Static decompiler pseudocode only; it does not establish clock parent/rate, regulator supply, IRQ polarity, MMIO side effects, or successful hardware execution."
     },
+    "raw_mapping_and_module_caller_trace": {
+      "report_date": "2026-11-13",
+      "clock_controller_proof": "dtb0 /soc/clock-controller@00F50000 (samsung,sdp1804-clock, reg 0xf50000/0x3000) matches callback 0xc0654038; it calls common initializer 0xc0653748, which takes resource 0 and stores of_iomap(node, 0).",
+      "mapping_limits": "The runtime virtual ioremap return value is absent from the raw image. No numeric virtual MMIO pointer is inferred.",
+      "helper_call_inventory": "Raw kernel: 4 direct reader, 66 direct setter, and 1 wrapper callsites; module relocations: kbase_platform_sdp_gpu_power_control has 1 reader and 8 setter calls, kbase_platform_sdp_set_dvfs_lev has 15 setter calls.",
+      "power_controller_callers": "No direct intra-module caller, named call relocation, or raw-kernel name reference to exported kbase_platform_sdp_gpu_power_control was found. External or indirect consumers remain outside this evidence.",
+      "pm_callback_limit": "pm_callback_power_on is an immediate return of 1 and pm_callback_power_off an immediate return; Kbase PM callback-table use therefore does not establish execution of the exported power controller.",
+      "limitations": "Static direct-branch/relocation inventory only; it does not prove dynamic function pointers, external modules, live MMIO, GPU parent/rate, supply, or an operational vendor PM path."
+    },
     "vendor_regulator_lookup": "mali_kbase_core_linux.c:3508-3543: regulator_get_optional(dev, \"mali\"); probe continues without it",
     "firmware_regulators": "dtb0.dts lines 2070-2078 (CPU_PW) and 2323-2345 (CPU_PW/CORE_PW); no GPU consumer link",
     "irq_trigger": "dtb0 /soc/sdpgpu@00500000 interrupt cells have flags zero; no electrical trigger type is encoded",
