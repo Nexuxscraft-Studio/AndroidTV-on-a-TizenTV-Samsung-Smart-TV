@@ -59,18 +59,19 @@ int main(void)
  assert(values[2]==(unrelated|GPU_BUS_NRESET|GPU_CORE_NRESET));
  assert(values[3]==unrelated);
  writes=0;
- mmio[GPU_IDLE_ACK/4]=BIT(1); /* nonzero is NOT idle bit 0 */
- assert(sdp1804_gpu_off(&gpu.domain)==-ETIMEDOUT);
- assert(writes==2 && offsets[0]==GPU_IDLE_REQ && offsets[1]==GPU_IDLE_REQ);
- assert(mmio[GPU_IDLE_REQ/4]==unrelated);
- assert(mmio[GPU_GATE/4]==(unrelated|GPU_GATE_ON));
- assert(mmio[GPU_RESET/4]==(unrelated|GPU_BUS_NRESET|GPU_CORE_NRESET));
+	mmio[GPU_IDLE_ACK/4]=BIT(1); /* any nonzero vendor Ack word succeeds */
+	assert(sdp1804_gpu_off(&gpu.domain)==0);
+	assert(writes==4 && offsets[0]==GPU_IDLE_REQ && offsets[1]==GPU_RESET);
+	assert(mmio[GPU_GATE/4]==unrelated && mmio[GPU_RESET/4]==unrelated);
  writes=0;
- mmio[GPU_IDLE_REQ/4]|=GPU_IDLE;
+	mmio[GPU_GATE/4]|=GPU_GATE_ON;
+	mmio[GPU_RESET/4]|=GPU_BUS_NRESET|GPU_CORE_NRESET;
+	mmio[GPU_IDLE_REQ/4]=unrelated|GPU_IDLE;
+	mmio[GPU_IDLE_ACK/4]=0;
  assert(sdp1804_gpu_off(&gpu.domain)==-ETIMEDOUT);
  assert(mmio[GPU_IDLE_REQ/4]==(unrelated|GPU_IDLE));
  writes=0;
- mmio[GPU_IDLE_ACK/4]=GPU_IDLE;
+	mmio[GPU_IDLE_ACK/4]=GPU_IDLE;
  assert(sdp1804_gpu_off(&gpu.domain)==0);
  assert(writes==4 && offsets[0]==GPU_IDLE_REQ && offsets[1]==GPU_RESET);
  assert(offsets[2]==GPU_RESET && offsets[3]==GPU_GATE);

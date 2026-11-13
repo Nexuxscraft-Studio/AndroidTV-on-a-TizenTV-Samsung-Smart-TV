@@ -107,6 +107,9 @@ nichtnull Idle-Ack bei `f50a14` warten, Bus-/Core-Reset setzen, Gate löschen.
 REA-Evidenz-ID `ev_e7d3cf333f091591153e14731a5328ea3458e09414afe05aa9a96ca93f284cec`.
 Das ist statischer Codebeleg, kein Hardwarelauf. Insbesondere belegt er
 weder Clock-Parent/-Rate, `mali-supply`, IRQ-Polarität noch MMIO-Nebenwirkungen.
+Der Vendor-Code vergleicht dabei das ganze Ack-Wort mit null; ein einzelnes
+Ack-Bit ist nicht belegt. Patch 0022 pollt deshalb `value != 0` und nicht
+mehr `value & BIT(0)`.
 
 Der nachfolgende Raw-ARM32-/ELF-Abgleich verbindet diesen Pfad eindeutig mit
 dem Firmware-Clockfenster: Der `samsung,sdp1804-clock`-Callback bei

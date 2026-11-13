@@ -93,7 +93,7 @@ new file mode 100644
 index 000000000..0c7b1a23f
 --- /dev/null
 +++ b/drivers/clk/clk-sdp1804-gpu.c
-@@ -0,0 +1,128 @@
+@@ -0,0 +1,129 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Nike-L GPU power sequencing, Build 070 Design 2 (genpd).
@@ -160,8 +160,9 @@ index 000000000..0c7b1a23f
 +	int ret;
 +
 +	gpu_update(gpu, GPU_IDLE_REQ, GPU_IDLE, true);
++	/* Samsung waits for a nonzero full register value, not a proven bit. */
 +	ret = readl_poll_timeout(gpu->base + GPU_IDLE_ACK, value,
-+				value & GPU_IDLE, 1, GPU_IDLE_TIMEOUT_US);
++				value != 0, 1, GPU_IDLE_TIMEOUT_US);
 +	if (ret) {
 +		/* Keep clock and resets intact; genpd retains the ON state. */
 +		gpu_update(gpu, GPU_IDLE_REQ, GPU_IDLE, was_requested);
