@@ -138,6 +138,28 @@ erneut bestätigt.** Es ist ebenso wenig eine kryptografische
 Verifikation wie ein erfolgreicher Hardware-Boot nachgewiesen.
 Die Testanzahl steigt auf **9**, deren Ausführung nach dem Fix ist offen.
 
+### Bestätigte Korrektur am Original-ELF (13.11.2026)
+
+Der Eigentümer hat die korrigierte Version erneut auf seinem
+extrahierten `SWUVerifierTV` ausgeführt. Die gemeldeten Werte sind jetzt:
+
+| Metrik | Bestätigt |
+| --- | ---: |
+| Definierte `RSAValidation`-Klassenfunktionen | **11** |
+| Konstruktor-/Destruktorvarianten | **7** |
+| Andere Klasseneinträge | **4** |
+
+Die vier verbliebenen Methoden sind `expandsData() const`,
+`getRSAKeyId() const`, `clone() const` und `signature() const`.
+Die ersten beiden und die letzte liefern vermutlich Metadaten/Status;
+`clone()` erzeugt ein Objektduplikat. Kein Name belegt eine tatsächliche
+kryptografische Prüfung. Der nächste statische Forschungsschritt besteht
+aus **Call-Site- und Datenflussanalyse der Verbraucher von
+`signature()` und `getRSAKeyId()`**.
+
+Die Anzahl von neun bestandenen synthetischen Unit-Tests wurde durch die
+übermittelte Ausgabe nicht separat belegt.
+
 ## Reproduzierbare, rein lesende Folgestufe
 
 ```bash
