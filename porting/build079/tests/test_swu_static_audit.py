@@ -118,5 +118,29 @@ class StaticAuditTests(unittest.TestCase):
         self.assertEqual(out["defined_rsa_class_function_count"], 1)
 
 
+    def test_parameterized_rsa_constructors_are_not_regular_methods(self):
+        names = [
+            "_ZN3SWU6Common12UpgradeGraph13RSAValidationC1EjRKSt6vectorIhSaIhEE",
+            "_ZN3SWU6Common12UpgradeGraph13RSAValidationC2EjRKSt6vectorIhSaIhEE",
+            "_ZNK3SWU6Common12UpgradeGraph13RSAValidation11expandsDataEv",
+            "_ZNK3SWU6Common12UpgradeGraph13RSAValidation11getRSAKeyIdEv",
+            "_ZNK3SWU6Common12UpgradeGraph13RSAValidation5cloneEv",
+            "_ZNK3SWU6Common12UpgradeGraph13RSAValidation9signatureEv",
+        ]
+        synthetic_readelf = "".join(
+            f" {i}: 00001000 32 FUNC GLOBAL DEFAULT 13 {name}\\n"
+            for i, name in enumerate(names, 1)
+        )
+        out = mod.classify_dynsym_lines(synthetic_readelf)
+        self.assertEqual(out["matching_dynamic_symbols_total"], 6)
+        self.assertEqual(out["defined_rsa_class_function_count"], 6)
+        self.assertEqual(out["rsa_class_ctor_dtor_count"], 2)
+        self.assertEqual(out["rsa_class_non_ctor_dtor_method_candidate_count"], 4)
+        self.assertTrue(all(
+            "RSAValidationC" not in item["name"] for item in
+            out["rsa_class_non_ctor_dtor_method_candidates"]
+        ))
+
+
 if __name__ == "__main__":
     unittest.main()
