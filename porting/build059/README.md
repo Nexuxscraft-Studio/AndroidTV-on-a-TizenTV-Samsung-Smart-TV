@@ -54,5 +54,7 @@ TV runtime and display output are unverified.
 
 Both firmware DTS variants were inspected offline and the Bash runner was
 syntax-checked. This Windows workspace had no Linux build environment
-or ARM32 cross compiler. The PR's offline build check records the ARM32
-object, Kconfig and DT fixture results separately from hardware testing.
+or ARM32 cross compiler. The [initial GitHub Actions run](https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/actions/runs/43441465992)
+failed before a runner or any build step was reported. ARM32 compilation,
+effective Kconfig and compiled DT validation are pending. Run the command
+above on the Debian lab to obtain those results.
