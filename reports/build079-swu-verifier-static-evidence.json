@@ -72,8 +72,47 @@
   "code": {
     "analyzer": "porting/build079/swu_static_audit.py",
     "tests": "porting/build079/tests/test_swu_static_audit.py",
-    "synthetic_unit_test_count": 6,
+    "synthetic_unit_test_count": 8,
     "executed_on_owner_original_elf": false,
-    "unit_tests_executed": false
+    "unit_tests_executed": false,
+    "owner_original_elf_first_audit_reported_passed": true,
+    "updated_exhaustive_dynsym_audit_run": false
+  },
+  "owner_reported_local_static_audit": {
+    "date": "2026-11-13",
+    "schema": "build079_swu_verifier_static_audit_v1",
+    "status": "STATIC_ELF_AND_SYSTEMD_METADATA_ONLY",
+    "binary_sha256": "0af2d2b00d96b8eff32032dd1001b7b688b124e9cf0b9bdf5862e55eea183149",
+    "binary_size_bytes": 1921360,
+    "elf_arch": "ELF32 ARM little endian machine=40",
+    "direct_libcrypto_needed": false,
+    "dynamic_sections_success": true,
+    "dynamic_symbols_success": true,
+    "rsa_related_dynamic_symbols_examples": [
+      {
+        "type": "FUNC",
+        "binding": "WEAK",
+        "observation": "boost::serialization::void_caster_primitive<RSAValidation,...> constructor; not RSA verification"
+      },
+      {
+        "type": "OBJECT",
+        "binding": "GLOBAL",
+        "observation": "typeinfo for SWU::Common::UpgradeGraph::RSAValidation"
+      },
+      {
+        "type": "FUNC",
+        "binding": "WEAK",
+        "observation": "boost::archive serializer specialization for RSAValidation"
+      }
+    ],
+    "expected_absent_string_markers": [
+      "OURSAValidationDesc",
+      "RSA_verify",
+      "EVP_PKEY_verify"
+    ],
+    "important_limit": "The original analyzer returned only first 30 matching .dynsym entries, often Boost/RTTI boilerplate; code updated to scan all, rank direct SWU class functions and separate const/ctor/dtor candidates. Updated analyzer NOT YET EXECUTED against owner binary.",
+    "cryptographic_check_confirmed": false,
+    "bootloader_authentication_confirmed": false,
+    "safe_to_flash": false
   }
 }
