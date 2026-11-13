@@ -100,7 +100,7 @@ def _symbol_priority(entry: dict) -> tuple[int, str]:
     Ranking is a research aid; it is NOT proof a verification method runs.
     """
     name = entry["name"]
-    own_rsa = "N3SWU6Common12UpgradeGraph13RSAValidation" in name
+    own_rsa = bool(re.search(r"N(?:K)?3SWU6Common12UpgradeGraph13RSAValidation", name))
     defined_func = entry["type"] == "FUNC" and entry["section"] != "UND"
     boost_or_rtti = ("boost" in name or name.startswith(("_ZT", "_ZGV")))
     ctor_or_dtor = bool(re.search(r"(?:C[123]|D[012])Ev(?:@|$)", name))
@@ -135,7 +135,7 @@ def classify_dynsym_lines(output: str) -> dict:
     matches.sort(key=_symbol_priority)
     own_rsa = [
         x for x in matches if
-        "N3SWU6Common12UpgradeGraph13RSAValidation" in x["name"]
+        re.search(r"N(?:K)?3SWU6Common12UpgradeGraph13RSAValidation", x["name"])
         and x["type"] == "FUNC"
         and x["section"] != "UND"
         and "boost" not in x["name"]
