@@ -111,6 +111,33 @@ Die neu ergänzten **acht synthetischen Unit-Tests** und der geänderte
 Analyzer wurden zum Zeitpunkt des Commits **noch nicht erneut
 auf dem Debian-Server ausgeführt**.
 
+### Vollständiger Symbolscan und Klassifikationskorrektur (Owner, 13.11.2026)
+
+Der Owner meldete **acht bestandene synthetische Tests** (Ausgabe `OK`)
+und den ersten vollständigen `.dynsym`-Scan:
+
+- `matching_dynamic_symbols_total = 539`
+- `defined_rsa_class_function_count = 11`
+- `rsa_class_non_ctor_dtor_method_candidate_count = 6` **vor Korrektur**
+- Unter den sechs Einträgen waren jedoch zwei **Konstruktor-ABI-Varianten**
+  `RSAValidation::RSAValidation(unsigned int, const std::vector<unsigned char>&)`
+  (`C1`, `C2`). Sie wurden fälschlich als Methoden einsortiert, weil der
+  vorige Filter nur parameterlose `C1Ev`/`C2Ev`-Muster erkannte.
+- Die vier eigentlichen Methoden lauten
+  `expandsData() const`, `getRSAKeyId() const`, `clone() const`
+  und `signature() const`.
+
+Der Korrekturcommit erkennt `C1/C2/C3` sowie `D0/D1/D2` **unmittelbar
+hinter `RSAValidation`**, unabhängig von der kodierten Parameterliste.
+Er gibt `rsa_class_ctor_dtor_count` separat aus. Ein neuer synthetischer
+Regressionstest prüft genau die vom Nutzer gemeldeten sechs Namen
+und erwartet **2 Konstruktoren + 4 Methoden**.
+
+**Die erwarteten Zahlen nach Korrektur sind noch nicht am Original-ELF
+erneut bestätigt.** Es ist ebenso wenig eine kryptografische
+Verifikation wie ein erfolgreicher Hardware-Boot nachgewiesen.
+Die Testanzahl steigt auf **9**, deren Ausführung nach dem Fix ist offen.
+
 ## Reproduzierbare, rein lesende Folgestufe
 
 ```bash
@@ -145,5 +172,5 @@ Units lesbar; das tool meldet die fehlende ELF-Zusatzanalyse.
 
 **Bislang keine RSA-Signatur kryptografisch geprüft, kein öffentliches
 Trust-Anchor-Verhalten der Zielhardware belegt, kein TV-Boot, keine
-Firmwaremodifikation.** Die acht synthetischen Build-079-Tests und die
+Firmwaremodifikation.** Die neun synthetischen Build-079-Tests und die
 Originaldatei-Prüfung sind zum Zeitpunkt dieses Commits noch nicht ausgeführt.
