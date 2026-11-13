@@ -1,0 +1,79 @@
+{
+  "schema": "build079_swu_verifier_owner_static_evidence_v1",
+  "date": "2026-11-13",
+  "source": "owner-provided terminal output from extracted 2743.0 rootfs",
+  "target": "Samsung GQ50Q60TGUXZG, T-NKLDEUC 2743.0 reference firmware (target-board runtime not verified)",
+  "verified_file_information": {
+    "path": "/usr/bin/SWUVerifierTV",
+    "format": "ELF32 little-endian ARM EABI5 PIE, stripped",
+    "interpreter": "/lib/ld-linux.so.3",
+    "direct_needed_library_examples": [
+      "libSWUProductionConfig.so",
+      "libavoc.so",
+      "libdeviced.so.1",
+      "libmicom.so.0"
+    ],
+    "direct_libcrypto_in_owner_shown_needed_list": false,
+    "symbols_observed_as_strings": [
+      "SWU::Common::UpgradeGraph::RSAValidation",
+      "SWU::Common::UpgradeGraph::AESEncryption",
+      "SWU::Common::UpgradeGraph::CRC32Validation",
+      "SWU::Core::FlashHandler::FlashSink",
+      "SWU::Platform::ISystemControl::getExternalAppVerificationResult"
+    ],
+    "cplusplus_symbol_note": "Owner-output contains Boost serialization/RTTI name strings; not sufficient to prove callable verification code or runtime invocation."
+  },
+  "units": {
+    "swu-verifier-tv.service": {
+      "ExecStart": "/usr/bin/SWUVerifierTV",
+      "Type": "dbus",
+      "BusName": "org.tizen.tv.swu.verifier.TV",
+      "Requires": "deviced.service",
+      "After": "deviced.service",
+      "OnFailure": "swu-verifier-tv.timer",
+      "ConditionPathExists": "!/opt/backup/OS_UPGRADE_FLAG"
+    },
+    "swu-verifier-tv.timer": {
+      "OnActiveSec": "1",
+      "Unit": "swu-verifier-tv.service"
+    },
+    "swu-core-tv.service": {
+      "ExecStart": "/usr/bin/SWUCoreTV --idle-timeout 30",
+      "Requisite": "swu-verifier-tv.service deviced.service",
+      "After": "swu-verifier-tv.service deviced.service",
+      "ConditionPathExists": "!/mnt/backup/OS_UPGRADE_FLAG"
+    },
+    "swu-service.service": {
+      "ExecStart": "/usr/bin/SWUService --idle-timeout 30",
+      "Requisite": "swu-verifier-tv.service deviced.service",
+      "After": "swu-verifier-tv.service deviced.service",
+      "ConditionPathExists": "!/mnt/backup/OS_UPGRADE_FLAG"
+    },
+    "org.tizen.tv.swu.verifier.TV.busname": {
+      "Name": "org.tizen.tv.swu.verifier.TV",
+      "Service": "swu-verifier-tv.service"
+    }
+  },
+  "source_correlation": "Synacktiv MSD decrypt.py recognizes OURSAValidationDesc TLV; original SWU verifier binary has names RSAValidation, AESEncryption and CRC32Validation. Callers and crypto enforcement unverified.",
+  "pending_proofs": [
+    "RSAValidation actual function implementation",
+    "RSAVerification call graph and trust anchor",
+    "Samsung update acceptance policy",
+    "physical TV BootROM/secure boot signature checks",
+    "Target 50-inch board verified safe recovery"
+  ],
+  "safety": {
+    "binary_executed": false,
+    "tv_accessed": false,
+    "signature_verified": false,
+    "bootloader_auth_verified": false,
+    "safe_to_flash": false
+  },
+  "code": {
+    "analyzer": "porting/build079/swu_static_audit.py",
+    "tests": "porting/build079/tests/test_swu_static_audit.py",
+    "synthetic_unit_test_count": 6,
+    "executed_on_owner_original_elf": false,
+    "unit_tests_executed": false
+  }
+}
