@@ -1,0 +1,70 @@
+{
+  "schema": "build077_seret_research_plan_v1",
+  "date": "2026-11-13",
+  "target": "Samsung Q60T GQ50Q60TGUXZG",
+  "source": "owner-provided offline objdump, xxd, and locally passed build076 audit",
+  "status": "STATIC_SOURCE_DERIVED_NOT_EXECUTED_ON_TV",
+  "references": {
+    "build076_pr": "https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/pull/18",
+    "seret_sha256": "c97ae1b4db73c2981b13fa9b7121930d77702e8705641225c3a1506064bec728",
+    "seret_bytes": 3137552
+  },
+  "main_wrapper": {
+    "file_offset": "0x4b8",
+    "known_header_pointer": {
+      "ldr_literal_from": "0x4e8",
+      "literal_at": "0x7b0",
+      "literal": "0x1a07e0",
+      "add_pc_at": "0x4f0",
+      "pc_value": "0x4f8",
+      "derived_file_offset": "0x1a0cd8"
+    },
+    "known_header_dispatch": {
+      "load_header_at": "0x534",
+      "movw_0x2020_at": "0x544",
+      "compare_at": "0x548"
+    },
+    "kernel_handoff": {
+      "r1_zero_at": "0x6ec",
+      "r2_from_r4_at": "0x6f0",
+      "r0_from_r1_at": "0x6f4",
+      "bl_0x8000_at": "0x6f8"
+    }
+  },
+  "known_strings": [
+    "/memory/reg",
+    "/chosen/bootargs",
+    "mem=",
+    "root=",
+    "crashkernel="
+  ],
+  "uncertainties": [
+    "actual runtime reachability",
+    "full 0x2020 block format",
+    "source/meaning of 0x17e010 and 0x6178",
+    "Samsung signature verification and onboot.bin",
+    "physical memory map and retargeted kernel handoff"
+  ],
+  "code": {
+    "audit": "porting/build077/seret_deep_audit.py",
+    "synthetic_tests": "porting/build077/tests/test_seret_deep_audit.py",
+    "audit_real_firmware_performed_in_this_change": false,
+    "tests_executed_in_this_change": false
+  },
+  "ci_observation": {
+    "workflow": ".github/workflows/host-only-tests.yml",
+    "failed_run_id": 43394734829,
+    "run_conclusion": "failure",
+    "jobs_failed_before_step_start": true,
+    "assigned_runner_id": 0,
+    "billed_runner_milliseconds": 0,
+    "precise_runner_failure_reason": "unknown",
+    "local_build076_tests_owner_reported_passed": true
+  },
+  "safety": {
+    "firmware_binary_committed": false,
+    "tv_boot_test": false,
+    "flashed": false,
+    "safe_to_flash": false
+  }
+}
