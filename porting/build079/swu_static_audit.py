@@ -113,7 +113,7 @@ def readelf_metadata(binary: Path) -> dict:
     info["dynamic_symbols_success"] = sym.returncode == 0
     if dyn.returncode == 0:
         info["needed_libraries"] = sorted(set(
-            re.findall(r"\\(NEEDED\\).*?Shared library: \\[([^]\\n]+)\\]", dyn.stdout)
+            re.findall(r"Shared library: \[([^\]]+)\]", dyn.stdout)
         ))
     if sym.returncode == 0:
         for line in sym.stdout.splitlines():
