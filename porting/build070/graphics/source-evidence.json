@@ -43,6 +43,20 @@
     ],
     "limitations": "Strings establish inclusion only. No function boundary, call graph, MMIO write, load address mapping, or runtime behavior is inferred."
   },
+  "stock_kernel_raw_disassembly": {
+    "input": "stock_kernel_payload",
+    "physical_load_address": "0x80008000",
+    "kernel_virtual_symbol_base": "0xc0008000",
+    "addressing_note": "The observed 0x40000000 offset is the ARM kernel image mapping for symbol pointers; it does not identify a peripheral or GPU clock address.",
+    "observed_exports": [
+      "sdp_read_clkrst_mux",
+      "sdp_gpu_hwmem_flush_range",
+      "sdp_gpu_hwmem_clean_range",
+      "sdp_gpu_hwmem_inv_range"
+    ],
+    "observed_access_semantics": "Raw ARM32 disassembly shows sdp_read_clkrst_mux reads through a runtime-populated mapping structure; the corresponding setter performs a masked read-modify-write.",
+    "limitations": "No complete kallsyms table was recovered. The mapping-structure initialization, mapped register ranges, caller-specific offsets, GPU clock parent/rate, and runtime MMIO behavior remain unproven."
+  },
   "gpu_clock_evidence": {
     "vendor_dvfs_frequency_table": "mali_kbase_platform_sdp.c:42-52",
     "vendor_mux_sequence": "mali_kbase_platform_sdp.c:188-324",

@@ -180,6 +180,17 @@ Für belastbare Funktions- und MMIO-Befunde muss REA/Ghidra das Raw-Image mit
 der uImage-Load-/Entry-Adresse `0x80008000` als ARM32 analysieren; es wird
 nicht ausgeführt.
 
+Der Raw-Import bestätigte inzwischen zwei Adressräume: physische Image-Last
+bei `0x80008000` und exportierte Kernel-Symbolzeiger ab `0xc0008000`. Der
+beobachtete Offset `0x40000000` beschreibt die Kernel-Abbildung und ist
+**keine** SoC-/GPU-Registeradresse. Die Exportdaten erlauben die Zuordnung von
+`sdp_read_clkrst_mux` sowie der drei `sdp_gpu_hwmem_*`-Helfer. Disassembly von
+`sdp_read_clkrst_mux` zeigt einen Zugriff über eine zur Laufzeit gefüllte
+Mappingstruktur; der Setter führt ein maskiertes Read-Modify-Write aus. Das
+bestätigt den Zugriffsmantel, aber noch keinen GPU-Clockpfad. Eine vollständige
+`kallsyms`-Tabelle wurde nicht geborgen. Nächster statischer Beleg ist die
+Initialisierung dieser Mappingstruktur mit den zugehörigen Registerbereichen.
+
 ## G5: Displaybefunde und Änderung 0023
 
 Fundstellen unter `tztv-media-nike/`:
