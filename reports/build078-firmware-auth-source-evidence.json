@@ -1,0 +1,54 @@
+{
+  "schema": "build078_firmware_auth_source_evidence_v1",
+  "date": "2026-11-13",
+  "target": "Samsung Q60T GQ50Q60TGUXZG, reference T-NKLDEUC 2743.0",
+  "status": "SOURCE_BACKED_EXTRACTION_PADDING_AND_MSD_SIGNATURE_METADATA",
+  "reference_sources": [
+    {
+      "type": "source_code",
+      "url": "https://github.com/synacktiv/samsung-q60t-exploit/blob/main/firmware/decrypt.py",
+      "observation": "OU RSAValidationDesc tag 0x10 reads public-key ID, 2-byte signature length and signature bytes from decrypted MSD metadata; partition AES-CBC decrypt writes plaintext without unpadding",
+      "does_crypto_verify": false
+    },
+    {
+      "type": "source_code",
+      "url": "https://github.com/bugficks/msddecrypt/blob/main/src/msddecrypt.py",
+      "observation": "alternative extractor truncates decrypted partition by observed padding length",
+      "does_crypto_verify": false
+    }
+  ],
+  "owner_measurements": {
+    "observed_all_six_end_padding": "10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10",
+    "likely_cause": "Unstripped full-block PKCS#7 padding left by AES-CBC partition decryption in Synacktiv-style extraction",
+    "padded_file_window_bytes": 272,
+    "window_sha256_by_name": {
+      "seret.bin": "3c02a9c0f032590d76eafa3090beb3fb9293d5cf55d2401eaacb6e1f6f725255",
+      "uImage": "29b4bdfe920a3af1854ab49f117279cf691c6a64256798a669f4c903415c86de",
+      "sign.bin": "5341e6b2646979a70e57653007a1f310169421ec9bdd9f1a5648f75ade005af1",
+      "secos.bin": "add0b88cc5316ab7c5b0face5609c8eedeab52bbc2e94fbd0a7f5dee8c3e819b",
+      "ddr.init": "201171e79e6614c4b87f473dca4fe4f325c74b0f48ac5f92bdabdae5fd036a96",
+      "dtb.bin": "b30b71478c50b502392eb6b7ad583129560997aaa547e4056973f22152008811"
+    },
+    "sign_bin_256_byte_window_zero": true,
+    "uimage_window_begins_at_declared_uimage_payload_end": true
+  },
+  "unresolved": [
+    "Does deployed Samsung updater consume OURSAValidationDesc and with which public-key trust anchor?",
+    "Are the extra 256 bytes of each extracted image a signature, container checksum or something else?",
+    "Is bootloader-stage authentication independent of MSD firmware-update validation?",
+    "Exact 50-inch board ROM/early bootloader and recovery method are unknown"
+  ],
+  "safety": {
+    "signature_validated": false,
+    "owner_device_access": false,
+    "bootloader_modified": false,
+    "signature_bypass_created": false,
+    "safe_to_flash": false
+  },
+  "tests": {
+    "new_unit_tests": "porting/build078/tests/test_footer_auth_audit.py",
+    "new_unit_test_count": 7,
+    "execution_status": "NOT_RUN_YET",
+    "live_file_audit_status": "NOT_RUN_YET"
+  }
+}
