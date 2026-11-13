@@ -1,0 +1,89 @@
+{
+  "build": "076",
+  "date": "2026-11-13",
+  "status": "STATIC_WRAPPER_FDT_ZIMAGE_EVIDENCE",
+  "target": "Samsung Q60T GQ50Q60TGUXZG",
+  "firmware_reference": "T-NKLDEUC 2743.0",
+  "evidence_type": "user_supplied_offline_sha256_xxd_arm32_objdump",
+  "source_binary_committed": false,
+  "files": {
+    "seret.bin": {
+      "sha256": "c97ae1b4db73c2981b13fa9b7121930d77702e8705641225c3a1506064bec728",
+      "size_bytes": 3137552
+    },
+    "ddr.init": {
+      "sha256": "128cb3a48977cd063fb26b33794f5180e2403260b956250e2b198db565b03708",
+      "size_bytes": 311312
+    },
+    "onboot.bin": {
+      "located_in_local_extraction": false,
+      "bootloader_behavior_proven": false
+    }
+  },
+  "address_semantics": "file offsets; not confirmed physical/virtual runtime addresses",
+  "observed_structure": {
+    "arm_wrapper_offset": "0x0",
+    "arm_branch_to_wrapper_at": "0x34",
+    "wrapper_main_offset": "0x4b8",
+    "embedded_arm_zimage_offset": "0x8000",
+    "zimage_magic_offset": "0x8024",
+    "zimage_magic": "0x016f2818",
+    "zimage_header_start_word": "0x0",
+    "zimage_header_end_word": "0x198cd8",
+    "appended_header_offset": "0x1a0cd8",
+    "appended_remainder_bytes": 1430328,
+    "header_word_0": "0x2020",
+    "header_word_1_uninterpreted": "0x17e010",
+    "header_word_2_uninterpreted": "0x6178",
+    "pc_relative_header_pointer": {
+      "load_literal_offset": "0x7b0",
+      "literal": "0x1a07e0",
+      "instruction_offset": "0x4f0",
+      "arm_pc_value": "0x4f8",
+      "computed_file_offset": "0x1a0cd8"
+    },
+    "wrapper_compares_word0_to_0x2020": true
+  },
+  "observed_functions": {
+    "0x808": "FDT header recognition and path search, supported by literal 0xd00dfeed at 0x958",
+    "0x354": "conditionally rewrites /memory/reg FDT cells",
+    "0x3e0": "edits memory-related boot arguments",
+    "0xfc": "space-overwrites matching argument token",
+    "0x190": "append string helper",
+    "0x1cc": "append into padded buffer helper",
+    "0x23c": "space compression",
+    "0x2b8": "ASCII decimal parser",
+    "0x2ec": "substring search",
+    "0x6f8": "BL to embedded zImage at 0x8000 with r0=0 r1=0 r2=r4"
+  },
+  "observed_strings": [
+    "/memory/reg",
+    "/chosen/bootargs",
+    "mem=",
+    "M@",
+    "root=",
+    "vmalloc=",
+    "rootfstype=",
+    "rootwait",
+    "crashkernel=",
+    "loglevel=3"
+  ],
+  "unknowns": [
+    "0x2020 header format semantics",
+    "meaning of 0x17e010 and 0x6178",
+    "fully decompressed payload identity",
+    "live memory mapping and runtime bootargs",
+    "onboot.bin implementation/signature policy",
+    "valid nonpersistent boot/recovery mechanism on 50-inch retail TV"
+  ],
+  "validations": {
+    "live_device_access": false,
+    "boot_test": false,
+    "flash_or_emmc_write": false,
+    "alternate_kernel_accepted": false,
+    "safe_to_flash": false,
+    "python_verifier": "porting/build076/seret_audit.py",
+    "tests": "porting/build076/tests/test_seret_audit.py",
+    "test_run_in_this_git_commit": "NOT_RUN"
+  }
+}
