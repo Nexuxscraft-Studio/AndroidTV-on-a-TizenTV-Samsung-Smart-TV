@@ -70,6 +70,47 @@ der 256-Byte-Partition-Endfenster mit RSA-Signaturen ist belegt.
 durch nicht entferntes AES-CBC-PKCS#7-Padding im Extraktionstool
 und sind **kein bewiesener proprietärer Signaturmarker**.
 
+## Owner-Test: Erstes Build-079-Audit auf Original-ELF bestanden
+
+Der Projektinhaber führte am 13.11.2026 das Read-only-Audit auf dem
+extrahierten RootFS aus und erhielt **`STATIC_ELF_AND_SYSTEMD_METADATA_ONLY`**.
+
+- `/usr/bin/SWUVerifierTV`: **1.921.360 Bytes**,
+  SHA-256 `0af2d2b00d96b8eff32032dd1001b7b688b124e9cf0b9bdf5862e55eea183149`.
+- `ELF32`, Little Endian, ARM-Maschinencode `40`: bestätigt.
+- `readelf`-Bibliotheks- und Dynamic-Symbol-Analyse: erfolgreich.
+- `RSAValidation`, `AESEncryption`, `CRC32Validation`, `FlashSink`
+  und `getExternalAppVerificationResult`: als ELF-Strings vorhanden.
+- Keine wörtlichen Treffer auf `OURSAValidationDesc`, `RSA_verify` oder
+  `EVP_PKEY_verify`. Dies ist **kein Ausschluss anderer Prüffunktionen**.
+- `RSAValidation` hat nachweislich definierte `FUNC`-Symbole im ELF,
+  doch die zuerst angezeigten Beispiele stammen aus
+  **Boost-Serialisierung/Typkonversion**, nicht aus einer kryptografischen
+  Verify-Methode. `_ZTIN...RSAValidationE` ist `OBJECT`-Typinformation.
+
+### Analyzer-Verbesserung nach dem Ersttest
+
+Die erste Version zeigte nur die **ersten 30** passenden
+Dynamic-Symbole und bevorzugte daher zufällig die vielen Boost-Einträge.
+
+Die aktualisierte Version prüft **alle** passenden `.dynsym`-Einträge,
+priorisiert definierte, direkt zur Samsung-Klasse
+`SWU::Common::UpgradeGraph::RSAValidation` gehörende Methoden
+(auch const-qualifizierte), und trennt Boost-/RTTI-Metadaten sowie
+Konstruktoren/Destruktoren. Besonders nützlich sind im JSON jetzt:
+
+- `readelf.matching_dynamic_symbols_total`
+- `readelf.defined_rsa_class_function_count`
+- `readelf.rsa_class_non_ctor_dtor_method_candidate_count`
+- `readelf.rsa_class_non_ctor_dtor_method_candidates`
+
+**Wichtig:** Auch eine direkte Methode ist noch kein Nachweis eines
+kryptografischen Prüfpfads. Das neue Ranking ist nur ein Recherche-Filter.
+
+Die neu ergänzten **acht synthetischen Unit-Tests** und der geänderte
+Analyzer wurden zum Zeitpunkt des Commits **noch nicht erneut
+auf dem Debian-Server ausgeführt**.
+
 ## Reproduzierbare, rein lesende Folgestufe
 
 ```bash
@@ -104,5 +145,5 @@ Units lesbar; das tool meldet die fehlende ELF-Zusatzanalyse.
 
 **Bislang keine RSA-Signatur kryptografisch geprüft, kein öffentliches
 Trust-Anchor-Verhalten der Zielhardware belegt, kein TV-Boot, keine
-Firmwaremodifikation.** Die sechs synthetischen Build-079-Tests und die
+Firmwaremodifikation.** Die acht synthetischen Build-079-Tests und die
 Originaldatei-Prüfung sind zum Zeitpunkt dieses Commits noch nicht ausgeführt.
