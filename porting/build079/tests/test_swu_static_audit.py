@@ -128,7 +128,7 @@ class StaticAuditTests(unittest.TestCase):
             "_ZNK3SWU6Common12UpgradeGraph13RSAValidation9signatureEv",
         ]
         synthetic_readelf = "".join(
-            f" {i}: 00001000 32 FUNC GLOBAL DEFAULT 13 {name}\\n"
+            f" {i}: 00001000 32 FUNC GLOBAL DEFAULT 13 {name}\n"
             for i, name in enumerate(names, 1)
         )
         out = mod.classify_dynsym_lines(synthetic_readelf)
