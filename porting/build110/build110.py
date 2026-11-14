@@ -14,6 +14,7 @@ import zlib
 
 HERE = Path(__file__).resolve().parent
 SOURCE = "d5db24db1417d725b3948b908a8057db5f742b564f918e72f320660c5e95440d"
+CI_SOURCE = "9a0e3731d668ce5e48fe4ff7183c4e747658e0978b6d359c65bdd5b036e1b1df"
 MARKER = b"<5>BUILD110_INITRAMFS_OK pid1\n"
 KERNEL = "zImage-modular"
 DTBS = tuple(f"sdp-nikel-q60t-{p}.dtb" for p in ("1g5", "2g"))
@@ -170,9 +171,11 @@ def report(files):
 
 
 def pinned_payload(path):
-    require(sha(path.read_bytes()) == SOURCE, "BUILD109 input differs from pinned ZIP")
+    digest = sha(path.read_bytes())
+    require(digest in (SOURCE, CI_SOURCE), "Input differs from pinned BUILD109 or BUILD108 artifact")
+    prefix = "payload/" if digest == SOURCE else ""
     with zipfile.ZipFile(path) as z:
-        return {name: z.read("payload/" + ("dtb/" if name in DTBS else "") + name)
+        return {name: z.read(prefix + ("dtb/" if name in DTBS else "") + name)
                 for name in (KERNEL, *DTBS)}
 
 

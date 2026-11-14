@@ -8,38 +8,41 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   validate:
     if: github.ref == 'refs/heads/feature/build110-first-hardware-boot'
     runs-on: [self-hosted, debian]
     timeout-minutes: 5
-    env:
-      INPUT_ARCHIVE: ${{ vars.BUILD110_BUILD109_ARCHIVE }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Download pinned BUILD108 artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail --silent --show-error --location --retry 3 --max-time 90 \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --output build108-input.zip \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/14132516890/zip"
       - name: Build twice, compare, and boot on QEMU virt
         shell: bash
         run: |
           set -euo pipefail
           test "$RUNNER_NAME" = debian
-          if [[ "$INPUT_ARCHIVE" != /* || ! -r "$INPUT_ARCHIVE" ]]; then
-            echo "::error::Set BUILD110_BUILD109_ARCHIVE to the absolute path of the pinned BUILD109 ZIP on debian."
-            exit 1
-          fi
           work=$(mktemp -d "$RUNNER_TEMP/build110.XXXXXX")
           trap 'rm -rf -- "$work"' EXIT
           mkdir -p "$work"/{a,b} build110-results
-          cp -- "$INPUT_ARCHIVE" "$work/input.zip"
           name=BUILD110-Q60T-OFFLINE-ONLY.zip
           for dir in a b; do
-            python3 porting/build110/build110.py build "$work/input.zip" "$work/$dir/$name"
+            python3 porting/build110/build110.py build build108-input.zip "$work/$dir/$name"
             (cd "$work/$dir" && sha256sum -c "$name.sha256")
           done
           cmp "$work/a/$name" "$work/b/$name"
-          python3 porting/build110/build110.py qemu "$work/input.zip" "$work/a/$name" |
+          python3 porting/build110/build110.py qemu build108-input.zip "$work/a/$name" |
             tee build110-results/qemu.txt
           cp "$work/a/$name" "$work/a/$name.sha256" build110-results/
       - uses: actions/upload-artifact@v4
@@ -47,3 +50,7 @@ jobs:
           name: build110-offline-and-qemu
           path: build110-results/
           if-no-files-found: error
+      - name: Remove downloaded input
+        if: always()
+        shell: bash
+        run: rm -f -- build108-input.zip

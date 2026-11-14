@@ -31,9 +31,10 @@ unzip -p "$B110" report.json
 Verify prüft den gepinnten Eingang, die ZIP-Inventarliste, die interne
 SHA256SUMS, den cpio-Inhalt und erzeugt den Integrationsbericht erneut.
 Das äußere SHA256-Sidecar ist separat mit `sha256sum -c "$B110.sha256"`
-prüfbar. Auf dem Runner `debian` die exakte BUILD109-Datei bereitstellen
-und die Repository-Variable `BUILD110_BUILD109_ARCHIVE` auf ihren absoluten
-Pfad setzen. Der Workflow prüft zwei bytegleiche Archive und bootet mit
+prüfbar. Der Runner `debian` lädt das BUILD108-Artefakt 14132516890
+mit dem Workflow-Token. Der Verifier prüft den gepinnten ZIP-Digest vor
+dem Lesen. Lokal kann weiterhin das BUILD109-ZIP verwendet werden.
+Der Workflow prüft zwei bytegleiche Archive und bootet mit
 QEMUs eigenem virt-DTB und PL011. Er hat keinen TV-Schritt.
 
 ## Entscheidung für den TV
