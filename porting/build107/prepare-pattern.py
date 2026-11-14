@@ -27,3 +27,42 @@ for old, new in (
     content = content.replace(old, new)
 header.write_text(content)
 shutil.copyfile(here / "pattern.h", sdp / "build107_pattern.h")
+
+# The atomic check must validate the same GP geometry that the test pattern
+# would use. The source evidence covers full-screen, unscaled geometry only.
+driver = sdp / "sdp_drm.c"
+content = driver.read_text()
+old = """	struct sdp_scanout prepared;
+
+	if (!state->fb)
+		return 0;
+	return sdp_hw_prepare_plane(state, crtc_state, &prepared);"""
+new = """	struct sdp_scanout prepared;
+	struct sdp_test_plan plan;
+	int ret;
+
+	if (!state->fb)
+		return 0;
+
+	ret = sdp_hw_prepare_plane(state, crtc_state, &prepared);
+	if (ret)
+		return ret;
+
+	/*
+	 * Reuse the documented unscaled GP geometry and DMA span check.
+	 * A Linux FourCC is not the vendor register encoding.
+	 */
+	if (prepared.width != SDP_TEST_WIDTH ||
+	    prepared.height != SDP_TEST_HEIGHT ||
+	    prepared.pitch != SDP_TEST_PITCH ||
+	    prepared.format != DRM_FORMAT_XRGB8888)
+		return -EINVAL;
+
+	return sdp_test_prepare_plan(prepared.dma_addr, &plan);"""
+if content.count(old) != 1:
+    raise SystemExit("SDP atomic plane integration point changed")
+content = content.replace(old, new)
+old = "\tDRM_FORMAT_ARGB8888,\n"
+if content.count(old) != 1:
+    raise SystemExit("SDP format integration point changed")
+driver.write_text(content.replace(old, ""))
