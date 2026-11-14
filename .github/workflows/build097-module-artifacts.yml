@@ -2,7 +2,7 @@ name: Build097 Samsung ARM32 module artifacts
 
 on:
   push:
-    branches: [feature/build097-module-artifacts, feature/build105-micom]
+    branches: [feature/build097-module-artifacts, feature/build105-micom, feature/build106-driver-qemu]
   workflow_dispatch:
 
 permissions:
@@ -50,6 +50,36 @@ jobs:
             rg -ni -C 7 'sdp_micom_usr_msg|0xc00cb301|_iowr|\bioctl\b|retry|retries|\back\b|\w+_ack\w*|timeout|completion' "$path" || test "$?" -eq 1
           done
           exit "$missing"
+
+  original-inventory:
+    if: github.ref == 'refs/heads/feature/build106-driver-qemu'
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 15
+    steps:
+      - name: Verify dedicated runner
+        run: test "$RUNNER_NAME" = debian
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Inventory Samsung 4.1.10 driver sources
+        run: |
+          out=$(mktemp -d "$RUNNER_TEMP/build106-inventory.XXXXXX")
+          echo "BUILD106_INVENTORY=$out" >> "$GITHUB_ENV"
+          bash porting/build106/inventory-original.sh "$out" | tee "$out/inventory.log"
+
+      - name: Upload short-lived source inventory (private repository)
+        uses: actions/upload-artifact@v4
+        with:
+          name: build106-samsung-original-inventory
+          path: ${{ env.BUILD106_INVENTORY }}/
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Remove temporary inventory
+        if: always() && env.BUILD106_INVENTORY != ''
+        run: rm -rf -- "$BUILD106_INVENTORY"
 
   samsung-modules:
     runs-on: [self-hosted, debian]
