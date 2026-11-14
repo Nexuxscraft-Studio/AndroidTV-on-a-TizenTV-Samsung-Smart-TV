@@ -1,0 +1,31 @@
+name: Build095 Safe Boot & Hardware Readiness
+
+on:
+  push:
+    branches: [feature/build095-safe-boot-readiness]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  evidence:
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 10
+    steps:
+      - name: Verify dedicated runner
+        run: test "$RUNNER_NAME" = debian
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Audit pinned Build 094 evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          AUDIT_DIR=$(mktemp -d "$RUNNER_TEMP/build095.XXXXXX")
+          trap 'rm -rf -- "$AUDIT_DIR"' EXIT
+          curl --fail --silent --show-error --location --retry 3 -H "Authorization: Bearer $GH_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/14109975921/zip" \
+            > "$AUDIT_DIR/build094-evidence.zip"
+          python3 porting/build095/audit.py "$AUDIT_DIR/build094-evidence.zip"
+          python3 -m unittest discover -s porting/build095/tests -v

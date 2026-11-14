@@ -1,0 +1,77 @@
+{
+  "boards": {
+    "sdp-nikel-q60t-1g5.dtb": {
+      "bootargs": "\"earlycon keep_bootcon loglevel=8\"",
+      "compatible": "\"samsung,q60t-nikel-1g5\", \"samsung,dtv\", \"samsung,sdp-nikel\"",
+      "memory_reg": "<0x0 0x40000000 0x0 0x7800000 0x0 0x4f000000 0x0 0x10c00000 0x0 0xa2000000 0x0 0x1e000000 0x0 0xca000000 0x0 0xfa40000>",
+      "psci_method": "smc",
+      "stdout_path": "\"serial0:115200n8\"",
+      "uart_path": "/soc@0/serial@190a00"
+    },
+    "sdp-nikel-q60t-2g.dtb": {
+      "bootargs": "\"earlycon keep_bootcon loglevel=8\"",
+      "compatible": "\"samsung,q60t-nikel-2g\", \"samsung,dtv\", \"samsung,sdp-nikel\"",
+      "memory_reg": "<0x0 0x40000000 0x0 0x14000000 0x0 0xa2000000 0x0 0x3dc00000 0x0 0xe4000000 0x0 0x9880000>",
+      "psci_method": "smc",
+      "stdout_path": "\"serial0:115200n8\"",
+      "uart_path": "/soc@0/serial@190a00"
+    }
+  },
+  "build094": {
+    "archive_sha256": "1a64265ddff78f617faea951e3543417900deedcfc0b7a9bbec3f6eae1be2744",
+    "artifact_id": 14109975921,
+    "commit": "51751a4dea3daf838816f1c505f580e5cc0e3b88",
+    "run_id": 43584172324
+  },
+  "modules": {
+    "panfrost.ko": {
+      "evidence": "ELF report and link log",
+      "kconfig": "DRM_PANFROST"
+    },
+    "sdp_display.ko": {
+      "evidence": "ELF report and link log",
+      "kconfig": "DRM_SDP"
+    },
+    "sdp_hdmi.ko": {
+      "evidence": "ELF report and link log",
+      "kconfig": "DRM_SDP_HDMI"
+    },
+    "sdp_mac.ko": {
+      "evidence": "ELF report and link log",
+      "kconfig": "SDP_MAC"
+    },
+    "sdp_micom_irb.ko": {
+      "evidence": "ELF report and link log",
+      "kconfig": "SDP_MICOM_IRB"
+    },
+    "sdp_micom_irs.ko": {
+      "evidence": "ELF report and link log",
+      "kconfig": "SDP_MICOM_IRS"
+    },
+    "sdp_nikel_cpu_clk.ko": {
+      "evidence": "ELF report and link log",
+      "kconfig": null
+    },
+    "sdp_nikel_cpufreq.ko": {
+      "evidence": "ELF report and link log",
+      "kconfig": null
+    },
+    "sdp_nikel_thermal.ko": {
+      "evidence": "ELF report and link log",
+      "kconfig": null
+    }
+  },
+  "retail_boot": "blocked",
+  "sha256": {
+    "cpu-disabled.dtb": "21a65f3b95e59520196e5da55c2ffd70114e32fd6e19aeed868750a6d2d8f7f7",
+    "cpu.log": "5af51a44c4df8dc80e1676faa05b69d011931cd3c22dd68db3c23933f6bdbb47",
+    "display-disabled.dtb": "0b7314c645575a6dedbca09d6b6f758cd5e5ad0ebb5fc534ca6440354229453c",
+    "dt-status.txt": "1664a7cca3085f66d1717ad2d17e2207e7b550e1865a61f318664d17eebf3fa4",
+    "dtb.sha256": "1156a2c059fb6e8182cd8104eb55fc2938417e6a519d3fd56ee2e4906447fbfa",
+    "elf.txt": "648953d1eb8c8eb3ab1f7da74fcf9822fba44bc1c18bd98bd92c59e5bb3a37e3",
+    "kernel.config": "fcdf34f8e73ab8778bfc394cdaec6583afc4955e76e18b866631cd8768314d5d",
+    "kernel.log": "70b986e99bd0790c5a39738f1c3f253a5cb3ef5383337918a3752cfed3d53833",
+    "sdp-nikel-q60t-1g5.dtb": "91e1d8f2587b9018bf9e0b1a46ddf51837873af86831c8d0630100cc26cc38de",
+    "sdp-nikel-q60t-2g.dtb": "17f67e31a577a0470be65bcb5804bf95094e0966fe3d59571394f7de446a9e63"
+  }
+}

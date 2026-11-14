@@ -126,6 +126,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build089/tests/test_pattern.c",
     "porting/build093/test_dma_span.c",
     "porting/build094/build-arm.sh",
+    "porting/build095/diagnostic.config",
     "porting/build087/kernel/Kconfig",
     "porting/build087/kernel/Makefile",
     "porting/build087/kernel/sdp_drm.c",
