@@ -127,6 +127,11 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build093/test_dma_span.c",
     "porting/build094/build-arm.sh",
     "porting/build095/diagnostic.config",
+    # Build 096: QEMU virt boot test (vanilla 6.6.162) and Samsung audit inputs.
+    "porting/build096/build-qemu-kernel.sh",
+    "porting/build096/init.c",
+    "porting/build096/qemu-virt-arm32.config",
+    "porting/build096/samsung-config-dtb.sh",
     "porting/build087/kernel/Kconfig",
     "porting/build087/kernel/Makefile",
     "porting/build087/kernel/sdp_drm.c",
