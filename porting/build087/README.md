@@ -116,7 +116,10 @@ Bei versioniertem Compiler kann zusätzlich `CC=arm-linux-gnueabihf-gcc-14`
 übergeben werden. Die externe Prüfung erzeugt ein zusammengesetztes
 `sdp_display.o`, **kein ladefertiges `.ko` und kein vollständiges Kernelimage**.
 Der Workflow `build087-drm-hardware.yml` wiederholt Patchanwendung, Quellenabgleich,
-beide Compile-Pfade und DT-/Schema-Prüfung.
+beide Compile-Pfade und DT-/Schema-Prüfung. Auf Self-hosted verwendet die CI
+vorhandenes LLVM bzw. die LineageOS-Prebuilts wie Build 070; das Compile-Skript
+unterstützt dazu `TOOLCHAIN=llvm`. Die unten dokumentierte lokale Prüfung
+verwendete GCC.
 
 ## Ergebnis am 14.11.2026
 
@@ -144,7 +147,11 @@ beide Compile-Pfade und DT-/Schema-Prüfung.
   und die für diesen PR betroffenen Build-059-/Build-067-/Offline-Workflows
   jetzt mit `[self-hosted, Linux, X64]`, wie die vorhandenen Builds 068–070.
   Runner-Inventarabfrage war mit der Integration nicht erlaubt (HTTP 403);
-  ein erfolgreicher Self-hosted-Lauf wird damit noch nicht behauptet.
+  der Runner übernahm Build 087 und bestand die Portierungstests. Die zunächst
+  übernommene sudo-Paketinstallation scheiterte mangels Passwortfreigabe und wurde
+  durch Nutzung der vorhandenen LLVM-/LineageOS-Buildwerkzeuge ersetzt. Es werden
+  keine Systempakete installiert; dtschema wird in einer lokalen venv eingerichtet.
+  Ein erfolgreicher Self-hosted-Compile-Lauf wird damit noch nicht behauptet.
 
 Compilerprotokolle: [in-tree](results/arm32-in-tree.txt),
 [extern](results/arm32-external.txt).

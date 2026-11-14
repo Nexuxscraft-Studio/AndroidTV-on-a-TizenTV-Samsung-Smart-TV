@@ -14,10 +14,12 @@ on:
   push:
     paths:
       - 'porting/build059/**'
+      - 'porting/ci/**'
       - '.github/workflows/build059-nikel-kernel.yml'
   pull_request:
     paths:
       - 'porting/build059/**'
+      - 'porting/ci/**'
       - '.github/workflows/build059-nikel-kernel.yml'
   workflow_dispatch:
 
@@ -51,12 +53,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Use self-hosted build tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            clang lld llvm flex bison bc libssl-dev libelf-dev make patch \
-            python3 cpio kmod
+          source porting/ci/selfhosted-llvm.sh
 
       - name: Fetch pinned Linux 6.6.162
         run: |

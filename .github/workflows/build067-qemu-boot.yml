@@ -7,9 +7,9 @@ name: Build067 QEMU ARM32 boot (Linux 6.6.162)
 
 on:
   push:
-    paths: ['porting/build067/**', 'porting/build059/**', '.github/workflows/build067-qemu-boot.yml']
+    paths: ['porting/build067/**', 'porting/ci/**', 'porting/build059/**', '.github/workflows/build067-qemu-boot.yml']
   pull_request:
-    paths: ['porting/build067/**', '.github/workflows/build067-qemu-boot.yml']
+    paths: ['porting/build067/**', 'porting/ci/**', '.github/workflows/build067-qemu-boot.yml']
   workflow_dispatch:
 
 permissions:
@@ -25,12 +25,11 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Install build + qemu dependencies
+      - name: Use self-hosted build tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            clang lld llvm flex bison bc libssl-dev libelf-dev make patch \
-            python3 cpio kmod qemu-system-arm
+          source porting/ci/selfhosted-llvm.sh
+          command -v qemu-system-arm
+
       - name: Fetch pinned Linux 6.6.162
         run: |
           git clone --depth 1 --branch "$LINUX_TAG" \
