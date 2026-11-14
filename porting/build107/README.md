@@ -34,3 +34,26 @@ sdp_gp.c:97–104. This is separate from verifying the runner's Linux
 4.1.10 tree. The runner exports focused numbered excerpts for the GP,
 Mixer, OSDP and device-tree analysis. This still does not establish
 the format, address high bits, latch, IRQ or initial bring-up order.
+
+
+## Review of the original Linux 4.1.10 runner export
+
+Source: BUILD106 Actions run 43629072878, private artifact
+14127491741, including the DRM candidate list and the hashed source
+manifest. The exported DRM candidates are `drm_tztv_helper.c` and
+`panel/panel-sdp.c`. The export contains no matching GP, Mixer or OSDP
+driver and no matching `samsung,sdp-{gp,mixer,osdp}` compatible in its
+source files. This finding applies to the exported set.
+
+| Area | Finding and remaining dependency |
+| --- | --- |
+| GP | BUILD087 records source and destination geometry and the existence of separate low/high A1 operations. The 4.1.10 export does not supply the format field, address encoding, memory selection or enable/latch sequence. |
+| Mixer and OSDP | BUILD087 records Mixer mask and clear offsets. The 4.1.10 export does not establish layer select values, output route, update sequencing or OSDP programming. |
+| Clocks and reset | The similarly named gates in `drivers/clk/clk-sdp.c:888–911` use SDP1406 mask registers. They are unsuitable evidence for SDP1804. The Q60T clock names alone do not establish SDP1804 gate mappings or reset ordering. |
+| VSync | No original handler for this display path in the export. Status bit, mask polarity, clear semantics, and event ordering still need verification. |
+| Panel | `drivers/gpu/drm/panel/panel-sdp.c:34–48` explicitly labels its mode dummy data and gives zero-width sync intervals. Its compatible is `samsung,sdp1202-panel` (line 200). Native Q60T pixel clock, blanking, sync polarity and panel routing remain open. |
+
+The next source dependency is the matching Nike-L display package with
+its GP, Mixer and OSDP implementation, paired with SDP1804 clock and
+Q60T panel evidence. Keep the unconditional probe gate and disabled DT
+nodes while these prerequisites and reversible boot are unresolved.
