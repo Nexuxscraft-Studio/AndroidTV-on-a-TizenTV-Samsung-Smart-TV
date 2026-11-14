@@ -1,0 +1,110 @@
+diff --git a/drivers/gpu/drm/sdp/Kconfig b/drivers/gpu/drm/sdp/Kconfig
+index 045d5ea..5a8a4af 100644
+--- a/drivers/gpu/drm/sdp/Kconfig
++++ b/drivers/gpu/drm/sdp/Kconfig
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ config DRM_SDP
+ 	tristate "Samsung SDP Nike-L display (skeleton, compile-only)"
+-	depends on DRM && OF
++	depends on DRM && OF && COMMON_CLK && RESET_CONTROLLER
+ 	depends on ARCH_SDP || COMPILE_TEST
+ 	select DRM_KMS_HELPER
+ 	select DRM_GEM_DMA_HELPER
+diff --git a/drivers/gpu/drm/sdp/sdp_drm.c b/drivers/gpu/drm/sdp/sdp_drm.c
+index a219ada..4e3202e 100644
+--- a/drivers/gpu/drm/sdp/sdp_drm.c
++++ b/drivers/gpu/drm/sdp/sdp_drm.c
+@@ -5,6 +5,7 @@
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
++#include <linux/reset.h>
+ 
+ #include <drm/drm_atomic_helper.h>
+ #include <drm/drm_connector.h>
+@@ -24,9 +25,20 @@
+ #include "sdp_drm_hw.h"
+ #include "sdp_drm_test_pattern.h"
+ 
++static const struct clk_bulk_data sdp_display_clocks[] = {
++	{ .id = "osdp_clk_c" },
++	{ .id = "osdp_clk_vo" },
++	{ .id = "gp_clk_c" },
++	{ .id = "gp_clk_vo" },
++	{ .id = "gfxp_clk_c" },
++	{ .id = "gfxp_clk_vo" },
++};
++
+ struct sdp_drm_device {
+ 	struct drm_device drm;
+ 	struct sdp_hw hw;
++	struct clk_bulk_data clocks[ARRAY_SIZE(sdp_display_clocks)];
++	struct reset_control *resets;
+ 	struct sdp_scanout test_pattern;
+ 	struct sdp_test_plan test_plan;
+ 	struct drm_simple_display_pipe pipe;
+@@ -135,27 +147,24 @@ static const struct drm_driver sdp_drm_driver = {
+ 	.minor = 1,
+ };
+ 
+-/*
+- * Resolve the six firmware dependencies through CCF. SDP1804 display
+- * gates are still unverified, so never enable or change their rates here.
+- */
+-static int sdp_drm_get_display_clocks(struct device *dev)
++/* Acquire consumer handles only. The provider and sequencing are unverified. */
++static int sdp_drm_get_display_resources(struct device *dev,
++					 struct sdp_drm_device *sdp)
+ {
+-	struct clk_bulk_data clocks[] = {
+-		{ .id = "osdp_clk_c" },
+-		{ .id = "osdp_clk_vo" },
+-		{ .id = "gp_clk_c" },
+-		{ .id = "gp_clk_vo" },
+-		{ .id = "gfxp_clk_c" },
+-		{ .id = "gfxp_clk_vo" },
+-	};
+-	struct clk_bulk_data *managed;
++	int ret;
+ 
+-	managed = devm_kmemdup(dev, clocks, sizeof(clocks), GFP_KERNEL);
+-	if (!managed)
+-		return -ENOMEM;
++	memcpy(sdp->clocks, sdp_display_clocks, sizeof(sdp->clocks));
++	ret = devm_clk_bulk_get(dev, ARRAY_SIZE(sdp->clocks), sdp->clocks);
++	if (ret)
++		return dev_err_probe(dev, ret, "display clocks unavailable\n");
++
++	/* Firmware specifies no display resets. Keep any future handles idle. */
++	sdp->resets = devm_reset_control_array_get_optional_exclusive(dev);
++	if (IS_ERR(sdp->resets))
++		return dev_err_probe(dev, PTR_ERR(sdp->resets),
++				     "display reset lookup failed\n");
+ 
+-	return devm_clk_bulk_get(dev, ARRAY_SIZE(clocks), managed);
++	return 0;
+ }
+ 
+ static int sdp_drm_prepare_test_pattern(struct device *dev,
+@@ -194,7 +203,7 @@ static int sdp_drm_probe(struct platform_device *pdev)
+ 	struct drm_device *drm;
+ 	int ret;
+ 
+-	/* The interlock precedes all resource acquisition and clock lookup. */
++	/* Reject probe before clock/reset lookup, DMA allocation or mapping. */
+ 	if (!sdp_hw_access_allowed())
+ 		return dev_err_probe(&pdev->dev, -EOPNOTSUPP,
+ 			"display access disabled pending clock, reset and register validation\n");
+@@ -210,9 +219,9 @@ static int sdp_drm_probe(struct platform_device *pdev)
+ 	ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
+ 	if (ret)
+ 		return ret;
+-	ret = sdp_drm_get_display_clocks(&pdev->dev);
++	ret = sdp_drm_get_display_resources(&pdev->dev, sdp);
+ 	if (ret)
+-		return dev_err_probe(&pdev->dev, ret, "display clocks unavailable\n");
++		return ret;
+ 
+ 	ret = sdp_drm_prepare_test_pattern(&pdev->dev, sdp);
+ 	if (ret)

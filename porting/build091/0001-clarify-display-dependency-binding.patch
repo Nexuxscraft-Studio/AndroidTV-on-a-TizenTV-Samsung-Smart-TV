@@ -1,0 +1,19 @@
+diff --git a/Documentation/devicetree/bindings/display/samsung,nikel-drm-hw-preparation.yaml b/Documentation/devicetree/bindings/display/samsung,nikel-drm-hw-preparation.yaml
+index b3c5d20..d637cc9 100644
+--- a/Documentation/devicetree/bindings/display/samsung,nikel-drm-hw-preparation.yaml
++++ b/Documentation/devicetree/bindings/display/samsung,nikel-drm-hw-preparation.yaml
+@@ -9,9 +9,11 @@ maintainers:
+ description: |
+   Project-local preparation binding, not a production hardware ABI. The three
+   non-overlapping windows describe OSDP, GP and mixer separately. Bank bases
+-  are specified in the parent bus address space, not DMA addresses. Clock names identify firmware dependencies. SDP1804 gate bits, IRQ routing,
+-  resets and panel dependencies await verification. This node must stay
+-  disabled; the driver additionally rejects probe unconditionally.
++  are specified in the parent bus address space. Clock names identify firmware
++  dependencies whose SDP1804 gate mappings await verification. Firmware
++  provides no display reset specifiers. Keep the node disabled while reset,
++  power, IRQ routing and panel dependencies are investigated. The driver
++  rejects probe unconditionally.
+ properties:
+   compatible:
+     const: samsung,nikel-drm-hw-preparation
