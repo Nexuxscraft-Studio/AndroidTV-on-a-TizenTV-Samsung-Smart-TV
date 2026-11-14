@@ -13,6 +13,8 @@ Ein grüner QEMU-Lauf beweist, dass dieser 6.6.162-ARM32-Kernel **in Emulation**
 bis in den Userspace startet. Er beweist nichts über den Samsung Q60T, dessen
 Bootkette oder die Nike-L-Treiber. Retail-Boot bleibt **blockiert**.
 
+Ergebnisse des verifizierten CI-Laufs: [RESULTS.md](RESULTS.md).
+
 ## QEMU-Boot-Test
 
 | Datei | Zweck |
