@@ -116,6 +116,18 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build070/tests/gpu_power_harness.c",
     "porting/build070/runner/request.env",
     "porting/build070/tools/gpl_inventory.sh",
+    "porting/build070/tools/collect_tizen_graphics_evidence.sh",
+    # Build 087: reviewed inert DRM sources, disabled DT and text compile logs.
+    "porting/build087/compile-arm32.sh",
+    "porting/build087/dts/sdp-nikel-display-disabled.dts",
+    "porting/build087/kernel/Kconfig",
+    "porting/build087/kernel/Makefile",
+    "porting/build087/kernel/sdp_drm.c",
+    "porting/build087/kernel/sdp_drm_hw.c",
+    "porting/build087/kernel/sdp_drm_hw.h",
+    "porting/build087/results/arm32-in-tree.txt",
+    "porting/build087/results/arm32-external.txt",
+    "porting/ci/selfhosted-llvm.sh",
     "porting/device/samsung/nikel/init.nikel.rc",
 }
 

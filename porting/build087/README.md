@@ -144,6 +144,9 @@ verwendete GCC.
 - DT: DTC erfolgreich; `dt-doc-validate` am installierten Binding-Pfad und
   `dt-validate` auf Fixture-DTB ohne Meldung erfolgreich.
 - Checkpatch (`--strict`) für beide C-Dateien und Header: 0 Fehler/Warnungen/Checks.
+- Allgemeine Offline-Suite: 307 Tests, 13 übersprungen. Neue Quelldateien und
+  Compiler-Textprotokolle mit exakten Pfaden in die bestehende Release-Allowlist
+  aufgenommen; keine pauschale Freigabe für Dateitypen oder Binärartefakte.
 - Bestehende Tests: Build 059 (17) und Build 063 (5) erfolgreich. Veraltete
   Patchserienprüfung (erwartete 22 trotz bereits 24 Patches) auf die vollständige
   nummerierte Serie bis 0026 aktualisiert.
