@@ -1,0 +1,22 @@
+name: Build098 Safe RAM Boot Readiness
+
+on:
+  push:
+    branches: [feature/build098-safe-ram-boot-readiness]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-evidence:
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 10
+    steps:
+      - name: Verify Debian runner
+        run: test "$RUNNER_NAME" = debian
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify offline evidence and blockers
+        run: python3 -m unittest discover -s porting/build098/tests -v
