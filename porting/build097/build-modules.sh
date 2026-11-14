@@ -25,6 +25,12 @@ cp -R porting/build058/cpu/kernel "$cpu"
 printf '%s\n' 'module,kconfig,path' > "$report/module-mapping.csv"
 modules=()
 bad=0
+for symbol in SDP_MSGBOX SDP_MICOM; do
+  if ! grep -qx "CONFIG_$symbol=y" "$out/.config"; then
+    echo "Missing built-in MICOM dependency: CONFIG_$symbol=y" >&2
+    bad=1
+  fi
+done
 while read -r symbol root path; do
   case "$root" in kernel) base="$out";; external) base="$cpu";; esac
   modules+=("$base/$path")
