@@ -1,0 +1,5 @@
+kernel/*.o
+kernel/.*.cmd
+kernel/*.mod
+kernel/modules.order
+kernel/Module.symvers

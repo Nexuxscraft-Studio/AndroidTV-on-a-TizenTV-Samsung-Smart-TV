@@ -1,0 +1,8 @@
+make: Entering directory '/workspace/linux-6.6.162'
+make[1]: Entering directory '/workspace/kout087'
+  CC [M]  /workspace/androidtv/porting/build087/kernel/sdp_drm.o
+  CC [M]  /workspace/androidtv/porting/build087/kernel/sdp_drm_hw.o
+  LD [M]  /workspace/androidtv/porting/build087/kernel/sdp_display.o
+make[1]: Leaving directory '/workspace/kout087'
+make: Leaving directory '/workspace/linux-6.6.162'
+/workspace/androidtv/porting/build087/kernel/sdp_display.o: ELF 32-bit LSB relocatable, ARM, EABI5 version 1 (SYSV), not stripped

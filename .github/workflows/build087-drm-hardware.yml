@@ -1,0 +1,51 @@
+name: Build087 inert DRM hardware layer (ARM32)
+on:
+  push:
+    paths: ['porting/build087/**', 'porting/build059/kernel/patches/**', 'porting/build059/tests/**', '.github/workflows/build087-drm-hardware.yml']
+  pull_request:
+    paths: ['porting/build087/**', 'porting/build059/kernel/patches/**', 'porting/build059/tests/**', '.github/workflows/build087-drm-hardware.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Existing porting tests
+        run: |
+          python3 -m unittest discover -s porting/build059/tests -v
+          python3 -m unittest discover -s porting/build063/tests -v
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-linux-gnueabihf make flex bison bc libssl-dev libelf-dev python3-venv swig
+          python3 -m venv "$RUNNER_TEMP/schema"
+          "$RUNNER_TEMP/schema/bin/pip" install dtschema
+      - name: Pinned kernel and cumulative port patches
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -fLO https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.162.tar.xz
+          echo '4aa89f3652fc131e5d39990f3bcd4b9e131028af3f315dbe83f3a8557dc06f06  linux-6.6.162.tar.xz' | sha256sum -c -
+          tar -xf linux-6.6.162.tar.xz
+          for p in "$GITHUB_WORKSPACE"/porting/build059/kernel/patches/*.patch; do
+            patch -d linux-6.6.162 -p1 --batch --forward < "$p"
+          done
+          for f in "$GITHUB_WORKSPACE"/porting/build087/kernel/*; do
+            cmp "$f" "linux-6.6.162/drivers/gpu/drm/sdp/$(basename "$f")"
+          done
+          cmp "$GITHUB_WORKSPACE/porting/build087/bindings/samsung,nikel-drm-hw-preparation.yaml" \
+            linux-6.6.162/Documentation/devicetree/bindings/display/samsung,nikel-drm-hw-preparation.yaml
+      - name: ARM32 compile and disabled DT validation
+        run: |
+          ksrc="$RUNNER_TEMP/linux-6.6.162"
+          kout="$RUNNER_TEMP/kout"
+          make -C "$ksrc" O="$kout" ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- multi_v7_defconfig
+          "$ksrc/scripts/config" --file "$kout/.config" -e COMPILE_TEST -e DRM -e DRM_SDP -e DRM_KMS_HELPER -e DRM_GEM_DMA_HELPER
+          make -C "$ksrc" O="$kout" ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- olddefconfig prepare modules_prepare
+          make -C "$ksrc" O="$kout" ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- W=1 KCFLAGS=-Werror drivers/gpu/drm/sdp/
+          porting/build087/compile-arm32.sh "$ksrc" "$kout"
+          "$RUNNER_TEMP/schema/bin/dt-doc-validate" "$ksrc/Documentation/devicetree/bindings/display/samsung,nikel-drm-hw-preparation.yaml"
+          "$RUNNER_TEMP/schema/bin/dt-validate" -s "$ksrc/Documentation/devicetree/bindings/display/samsung,nikel-drm-hw-preparation.yaml" "$kout/build087-display.dtb"
+          "$ksrc/scripts/checkpatch.pl" --no-tree --strict --file porting/build087/kernel/*.c porting/build087/kernel/*.h
