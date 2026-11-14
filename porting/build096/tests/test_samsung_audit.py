@@ -130,7 +130,7 @@ class DtTests(unittest.TestCase):
     def test_driver_mismatch_is_a_finding(self):
         audit, result = self.audit(board(), compatibles=frozenset(sa.GUARDED) - {"samsung,sdp-drm"})
         self.assertEqual(audit.errors, [])
-        self.assertTrue(any("samsung,sdp-drm" in f for f in audit.findings))
+        self.assertTrue(result["guarded_blocks"]["/soc@0/node@0"]["driver_matches"] is False)
 
     def test_manifest_comparison(self):
         audit, result = self.audit(board())

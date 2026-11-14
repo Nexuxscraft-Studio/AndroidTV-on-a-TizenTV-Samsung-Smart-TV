@@ -251,7 +251,7 @@ def audit_board_dtb(audit, name, blob, driver_compatibles):
     if missing:
         audit.error(f"{name}: guarded nodes missing: {missing}")
     for path, block in blocks.items():
-        if not block["driver_matches"]:
+        if not block["driver_matches"] and block["compatible"] != "samsung,sdp-drm":
             audit.finding(f"{name}: {path} uses {block['compatible']}, which no driver in the "
                           "audited tree matches")
 
@@ -529,7 +529,7 @@ def main(argv=None):
         audit.finding("no .ko file of the nine modules is present in the searched directories; "
                       "Build 096 does not rebuild them and Build 094 archived ELF reports and logs only")
     if "samsung,sdp-drm" not in compatibles:
-        audit.finding("board DT display node samsung,sdp-drm has no matching driver: sdp_display.ko "
+        audit.finding("board DT display node drm@5d0000 (samsung,sdp-drm, both DTBs) has no matching driver: sdp_display.ko "
                       "binds only the samsung,nikel-drm-hw-preparation fixture and its hardware "
                       "interlock always rejects probe")
     for module in ("sdp_hdmi.ko", "sdp_mac.ko", "sdp_micom_irb.ko", "sdp_micom_irs.ko"):

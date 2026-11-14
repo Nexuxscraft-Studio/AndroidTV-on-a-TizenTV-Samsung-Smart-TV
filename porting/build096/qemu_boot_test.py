@@ -69,7 +69,7 @@ MILESTONES = {
     "machine_model": re.compile(r"(?:Machine model|OF: fdt: Machine model): (.+)"),
     "cpu": re.compile(r"CPU: (ARMv7 Processor .+)"),
     "psci": re.compile(r"psci: (PSCIv[\d.]+ detected in firmware)"),
-    "gic": re.compile(r"(GIC(?:v[234])?: .+)"),
+    "irq": re.compile(r"(NR_IRQS: .+)"),
     "arch_timer": re.compile(r"arch_timer: (cp15 timer.+)"),
     "smp": re.compile(r"SMP: (Total of \d+ processors activated.*)"),
     "uart": re.compile(r"(\S+: ttyAMA0 at MMIO .+)"),

@@ -69,6 +69,20 @@ jobs:
             --initrd "$BUILD096_DIR/qemu/out/initramfs.cpio.gz" \
             --out "$BUILD096_DIR/report/qemu" --timeout 180
 
+      - name: Rebuild from scratch in another directory and require identical bytes
+        id: reproducible
+        if: steps.build.outcome == 'success'
+        run: |
+          LINUX_TARBALL="$BUILD096_DIR/linux-6.6.162.tar.xz" \
+            bash porting/build096/build-qemu-kernel.sh "$BUILD096_DIR/qemu-rebuild" > "$BUILD096_DIR/report/build/rebuild.log" 2>&1
+          {
+            echo "first build:  $BUILD096_DIR/qemu"
+            echo "second build: $BUILD096_DIR/qemu-rebuild"
+            diff -u "$BUILD096_DIR/qemu/out/SHA256SUMS" "$BUILD096_DIR/qemu-rebuild/out/SHA256SUMS" \
+              && echo "IDENTICAL: zImage, initramfs.cpio.gz, init and kernel.config"
+          } | tee "$BUILD096_DIR/report/build/reproducibility.txt"
+          grep -q '^IDENTICAL' "$BUILD096_DIR/report/build/reproducibility.txt"
+
       - name: Download and verify pinned Build 094 evidence
         id: evidence
         if: always() && steps.prepare.outcome == 'success'
@@ -132,6 +146,7 @@ jobs:
               echo "- no boot report (build or prerequisite step failed)"
             fi
             [ -f "$BUILD096_DIR/report/build/SHA256SUMS" ] && { echo; echo '```'; cat "$BUILD096_DIR/report/build/SHA256SUMS"; echo '```'; }
+            [ -f "$BUILD096_DIR/report/build/reproducibility.txt" ] && tail -1 "$BUILD096_DIR/report/build/reproducibility.txt"
             echo
             [ -f "$BUILD096_DIR/report/samsung/samsung-audit.md" ] && cat "$BUILD096_DIR/report/samsung/samsung-audit.md"
           } >> "$GITHUB_STEP_SUMMARY"
