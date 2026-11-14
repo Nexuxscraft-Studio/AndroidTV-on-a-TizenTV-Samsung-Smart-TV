@@ -144,6 +144,9 @@ dir /sys 0755 0 0
 file /init $IRD/init 0755 0 0
 EOL
 [ -x "$KOUT/usr/gen_init_cpio" ] || make "${MAKEARGS[@]}" usr/gen_init_cpio
+# gen_init_cpio -t only covers dirs and device nodes; regular files keep their
+# own mtime, so pin /init as well to get identical bytes on every build.
+touch -h -d "@$SOURCE_DATE_EPOCH" "$IRD/init"
 "$KOUT/usr/gen_init_cpio" -t "$SOURCE_DATE_EPOCH" "$IRD/initramfs.list" > "$IRD/initramfs.cpio"
 gzip -n -9 -c "$IRD/initramfs.cpio" > "$OUT/initramfs.cpio.gz"
 cp "$IRD/initramfs.list" "$OUT/initramfs.list"
