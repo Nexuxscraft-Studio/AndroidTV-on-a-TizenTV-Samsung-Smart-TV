@@ -1,0 +1,56 @@
+name: BUILD 107 - FIRST DISPLAY TEST
+
+on:
+  push:
+    branches: [feature/build107-first-display-test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build107-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  display-software:
+    if: github.ref == 'refs/heads/feature/build107-first-display-test'
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 300
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - run: test "$RUNNER_NAME" = debian
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare workspace and pinned kernel
+        run: |
+          work=$(mktemp -d "$RUNNER_TEMP/build107.XXXXXX")
+          echo "BUILD107_DIR=$work" >> "$GITHUB_ENV"
+          curl -fsSL --retry 3 -o "$work/linux-6.6.162.tar.xz" \
+            https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.162.tar.xz
+      - name: Independently build twice and test ARM32 guest RAM pattern
+        run: bash porting/build107/build.sh "$BUILD107_DIR" "$BUILD107_DIR/linux-6.6.162.tar.xz" "$BUILD107_DIR/report"
+      - name: Collect Samsung 4.1.10 source evidence
+        if: always() && env.BUILD107_DIR != ''
+        run: bash porting/build107/source-evidence.sh "$BUILD107_DIR/report/original-evidence"
+      - name: Summarize software verification
+        if: always() && env.BUILD107_DIR != ''
+        run: |
+          for f in reproducibility.txt pattern-result.txt; do
+            if [[ -f "$BUILD107_DIR/report/$f" ]]; then
+              cat "$BUILD107_DIR/report/$f" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          echo 'Samsung hardware: blocked; no scanout or TV boot performed.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always() && env.BUILD107_DIR != ''
+        with:
+          name: build107-arm32-display-software-evidence
+          path: ${{ env.BUILD107_DIR }}/report/
+          if-no-files-found: error
+      - name: Clean temporary workspace
+        if: always() && env.BUILD107_DIR != ''
+        run: rm -rf -- "$BUILD107_DIR"
