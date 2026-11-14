@@ -139,7 +139,12 @@ beide Compile-Pfade und DT-/Schema-Prüfung.
   Danach keine Treiber-Compilerfehler. Keine Systeminstallation erforderlich.
 - Vorerst kein vollständiger Kernel-Link/Modpost, kein Boot, keine IRQ-/VBlank-,
   DMA-BUF-/Panfrost- oder Panel-Laufzeitprüfung. CI-Workflow lokal vorbereitet;
-  ein GitHub-Actions-Ergebnis wird hier nicht vorweggenommen.
+  die ersten GitHub-hosted Jobs wurden vor Ausführung wegen einer
+  Zahlungs-/Ausgabenlimit-Sperre abgewiesen. Auf Nutzerwunsch laufen Build 087
+  und die für diesen PR betroffenen Build-059-/Build-067-/Offline-Workflows
+  jetzt mit `[self-hosted, Linux, X64]`, wie die vorhandenen Builds 068–070.
+  Runner-Inventarabfrage war mit der Integration nicht erlaubt (HTTP 403);
+  ein erfolgreicher Self-hosted-Lauf wird damit noch nicht behauptet.
 
 Compilerprotokolle: [in-tree](results/arm32-in-tree.txt),
 [extern](results/arm32-external.txt).

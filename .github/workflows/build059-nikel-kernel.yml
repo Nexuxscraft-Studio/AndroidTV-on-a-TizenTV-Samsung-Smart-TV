@@ -31,7 +31,7 @@ env:
 
 jobs:
   host-tests:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Unit tests for Build 059 tools
@@ -39,7 +39,7 @@ jobs:
 
   kernel:
     needs: host-tests
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64]
     # tiny normally needs ~7 min, full/android ~45 min; a stalled runner
     # (seen on 2026-11-10: compile stopped, no output for an hour) aborts early
     timeout-minutes: ${{ matrix.profile == 'tiny' && 30 || 120 }}

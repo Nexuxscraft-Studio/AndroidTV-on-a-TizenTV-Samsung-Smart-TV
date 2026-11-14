@@ -21,7 +21,7 @@ env:
 
 jobs:
   qemu-boot:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
