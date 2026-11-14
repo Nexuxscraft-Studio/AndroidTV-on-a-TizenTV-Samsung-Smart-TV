@@ -95,8 +95,8 @@ fi
 # Per-module table
 printf 'module\tload\tunload\n' > "$q/modules-qemu.tsv"
 for name in "${order[@]}"; do
-  l=$(grep -mo1 -E "BUILD106_LOAD_(OK|FAIL) $name rc=-?[0-9]+" "$q/serial.log" | awk '{print $1":"$3}' || true)
-  u=$(grep -mo1 -E "BUILD106_UNLOAD_(OK|FAIL) $name rc=-?[0-9]+" "$q/serial.log" | awk '{print $1":"$3}' || true)
+  l=$(grep -m 1 -oE "BUILD106_LOAD_(OK|FAIL) $name rc=-?[0-9]+" "$q/serial.log" | awk '{print $1":"$3}' || true)
+  u=$(grep -m 1 -oE "BUILD106_UNLOAD_(OK|FAIL) $name rc=-?[0-9]+" "$q/serial.log" | awk '{print $1":"$3}' || true)
   printf '%s\t%s\t%s\n' "$name" "${l:-missing}" "${u:-missing}" >> "$q/modules-qemu.tsv"
 done
 column -t "$q/modules-qemu.tsv"
