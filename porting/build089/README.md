@@ -64,3 +64,18 @@ per Hosttest, kompiliert den ARM32-Treiber mit W=1 KCFLAGS=-Werror,
 baut vmlinux und Module mit echtem Module.symvers, führt Checkpatch
 im Strict-Modus aus und baut beide Board-DTBs. Die deaktivierte
 Fixture wird mit dtschema 2026.9 geprüft.
+
+## CI-Ergebnisse
+
+Der [Build-089-Push-Lauf](https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/actions/runs/43574978657)
+war bei Commit de18365 auf dem Runner debian erfolgreich. Linux 6.6.162
+mit Android Clang 19.0.1 erzeugte ein ARM-ELF32-Modul und ein echtes
+Module.symvers. Für alle vier C-/Header-Dateien meldete Checkpatch null
+Fehler, Warnungen und Checks. Der Hosttest prüfte alle 2.073.600 Pixel,
+alle sieben Geometrieeinträge und mehrere DMA-Grenzfälle. Beide Board-DTBs
+und die Schema-Prüfung der deaktivierten Fixture waren erfolgreich.
+
+Der [separate Offline-Lauf](https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/actions/runs/43574978695)
+war für denselben Commit erfolgreich. Beim ersten Push fehlten drei
+Hosttest-Pfade in der exakten Allowlist des Release-Audits. Der Folgecommit
+ergänzt nur diese drei Pfade.
