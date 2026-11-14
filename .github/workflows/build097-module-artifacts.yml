@@ -2,7 +2,7 @@ name: Build097 Samsung ARM32 module artifacts
 
 on:
   push:
-    branches: [feature/build097-module-artifacts]
+    branches: [feature/build097-module-artifacts, feature/build105-micom]
   workflow_dispatch:
 
 permissions:
