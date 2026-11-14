@@ -21,6 +21,34 @@ Das referenzierte `2743.0`-Update enthält `uImage`, `dtb.bin`,
 - Die Samsung-UEP-Strings im Kernel deuten auf zusätzliche Prüfschritte
   hin; deren genaue Bootrelevanz ist nicht nachgewiesen.
 
+## Build 061 – Präzisierung der Komponenten (read-only)
+
+Eine deskriptive Binäranalyse der lokal entschlüsselten Originalkomponenten
+(Werkzeug `porting/build061/bootchain_forensics.py`, Report
+`reports/bootchain_forensics_build061.json`, Details in `BUILD061_REPORT.md`)
+präzisiert die obige Einordnung:
+
+- **`seret.bin` ist ein AArch32-Linux-zImage**, **kein** TrustZone-Monitor:
+  Der Einstiegscode ist der PIC-Selbstrelokations-Kopf des ARM-Decompressors
+  (`mov r3,pc … and r0,r3,#0xfc000000`) samt Kernel-Decompressor-Strings.
+  Der gepackte Payload ist mit Standard-Codecs nicht auspackbar (vermutlich
+  verschlüsselt/nicht-standard gepackt).
+- **`sign.bin` ist ein OpenSSL-`enc`-Blob** (`Salted__` + Salt + AES,
+  salt-abgeleiteter Schlüssel), **kein offener Hash** der Komponenten – geprüft:
+  keiner der Komponenten-Hashes steckt roh/hex darin. Ohne den HW-Schlüssel
+  **nicht reproduzier- oder fälschbar**.
+- **`secos.bin` / `ddr.init` verschlüsselt** (Entropie ~8,0); Schlüssel
+  vermutlich in eFuse/OTP.
+- Das **entschlüsselte `uImage`** (aus dem FullOS-Container) ist ein
+  **unkomprimierter Linux-4.1.10-ARMv7-Kernel** (U-Boot `arch=2`, `comp=0`,
+  Load/Entry `0x80008000`, HYP-bewusster `stext`), SoC `SDP1412` / `sdp-nikel`.
+
+**Architektur-Folgerung:** EL3/Secure-Monitor ist AArch32 → `SCR_EL3.RW` nicht
+setzbar → niedrigere Exception-Level bleiben AArch32 → ein **arm64-Linux kann
+nicht booten**. Die A57-Kerne sind ARMv8-Silizium, aber die Firmware erlaubt nur
+AArch32 → Zielarchitektur **ARM 32-Bit**. Das ändert **nichts** an den
+Boot-Gates unten: Ein eigener Kernel wird dadurch nicht startfähig.
+
 ## Rückroll-Nachweise (alle bisher offen)
 
 `porting/boot-evidence.json` enthält acht vorläufige Prüf-Gates:
