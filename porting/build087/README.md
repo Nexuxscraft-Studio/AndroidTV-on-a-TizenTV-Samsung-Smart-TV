@@ -55,10 +55,21 @@ im Repository: Build-059-Patch `0015` referenziert `sdp_logo_nike/nikem/sdp_logo
 und `sdp_logo_gfx.c`; Patch `0023` außerdem
 `sdp_drm_nike/gfx/nikel/sdp_mixer.c` und `sdp_hw_plane.c`. Die bekannten Offsets
 entsprechen dort `REG(0/4/5/6/12)` und Mixer `REG(2/3)`.
-Das originale `tztv-media-nike.tgz` bzw. der Linux-4.1.10-Baum lag in dieser
-Sitzung nicht lokal vor; **keine neue unabhängige Vendor-Quellverifikation** wird
-behauptet. Insbesondere ist `0x54` nur als Position erfasst, ohne angenommene
-Update-Bits oder Latch-Sequenz.
+Das originale `tztv-media-nike.tgz` wurde anschließend vom bereits im Repository
+benannten Quellserver heruntergeladen und gegen den bekannten SHA-256
+`40c2a25eba331b8b04d8d81baf76061493f15f228a74893c7f825f7a1da724b6`
+geprüft. Im **Nike-L**-Verzeichnis bestätigt `sdp_gfx_reg_addr.h` die GP-Offsets
+in Zeilen 249, 260, 263, 266, 273, 283–284 und die Mixer-Offsets in 490/493.
+Auch Update-Masken (`0x03`/`0x10`, Zeilen 394–395) und ein A1-High-Register
+sind dort beschrieben; sie werden bewusst nicht als Schreibzugriffe übernommen.
+`sdp_gfx.c:464–466` bestätigt Größenpacking und `h_offset = src_w / 4`,
+`sdp_gp.c:97–104` dessen Nutzung. `sdp_mixer.c:190–198` liest/schreibt das
+Clear-Register; die sichere IRQ-Bitbehandlung bleibt vor Hardwarebetrieb zu prüfen.
+Dateihashes und Quellbelege stehen in
+[results/vendor-source-evidence.json](results/vendor-source-evidence.json).
+Der originale **Kernel**-4.1.10-Baum wurde nicht zusätzlich heruntergeladen;
+Quellbefunde ersetzen keine Hardwarevalidierung. Die Update-/Latch-Sequenz
+bleibt unimplementiert.
 
 Je Bank werden die bisherigen `0x4000`-Fenster verwendet. Der Mapper prüft alle
 Namen, übersetzten Ressourcenbasen und Größen vor der ersten Reservierung;
@@ -151,6 +162,8 @@ verwendete GCC.
   übernommene sudo-Paketinstallation scheiterte mangels Passwortfreigabe und wurde
   durch Nutzung der vorhandenen LLVM-/LineageOS-Buildwerkzeuge ersetzt. Es werden
   keine Systempakete installiert; dtschema wird in einer lokalen venv eingerichtet.
+  Fehlende native Python-Header für pylibfdt werden bei Bedarf per `apt-get download`
+  und `dpkg-deb -x` ausschließlich ins Job-Tempverzeichnis extrahiert.
   Ein erfolgreicher Self-hosted-Compile-Lauf wird damit noch nicht behauptet.
 
 Compilerprotokolle: [in-tree](results/arm32-in-tree.txt),
@@ -158,7 +171,7 @@ Compilerprotokolle: [in-tree](results/arm32-in-tree.txt),
 
 ## Offene Hardwarefragen vor jeder Freigabe
 
-1. Originalquellen erneut prüfen: Nike-L gegenüber Nike-M; `0x54`-Update-Bits,
+1. Originalquellbefunde mit der konkreten Nike-L-Hardware abgleichen; `0x54`-Update-Bits,
    Reihenfolge, Barrieren und Latch-Zeitpunkt; Source-Offset ist nicht automatisch
    eine Pixel-Crop-Adresse (alter Logo-Pfad verwendet `width >> 2`).
 2. Enable-/Format-/Blend-Bits, Byte-/Kanalreihenfolge, Größen-Encoding,

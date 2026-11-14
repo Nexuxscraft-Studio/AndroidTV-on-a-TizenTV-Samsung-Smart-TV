@@ -21,6 +21,16 @@ jobs:
         run: |
           source porting/ci/selfhosted-llvm.sh
           python3 -m venv "$RUNNER_TEMP/schema"
+          # pylibfdt needs native Python headers; extract them locally if absent.
+          py_include="$(python3 -c 'import sysconfig; print(sysconfig.get_path("include"))')"
+          if [[ ! -f "$py_include/Python.h" ]]; then
+            py_version="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+            mkdir -p "$RUNNER_TEMP/python-headers"
+            cd "$RUNNER_TEMP/python-headers"
+            apt-get download "libpython$py_version-dev"
+            for pkg in ./*.deb; do dpkg-deb -x "$pkg" root; done
+            export CFLAGS="-I$PWD/root/usr/include/python$py_version -I$PWD/root/usr/include"
+          fi
           "$RUNNER_TEMP/schema/bin/pip" install dtschema
       - name: Pinned kernel and cumulative port patches
         run: |

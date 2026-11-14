@@ -1,0 +1,31 @@
+{
+  "archive": "tztv-media-nike.tgz",
+  "archive_sha256": "40c2a25eba331b8b04d8d81baf76061493f15f228a74893c7f825f7a1da724b6",
+  "source_url": "https://testpaymenter.noverhost.de/sehrwichtig/inner/tztv-media-nike.tgz",
+  "files": {
+    "sdp_drm_nike/gfx/nikel/sdp_gfx_reg_addr.h": {
+      "sha256": "b9b1c08f9c226e2196b4c846aa330e83420a35e8bd2d4c06fc99d536c0429e5f"
+    },
+    "sdp_drm_nike/gfx/nikel/sdp_gfx.c": {
+      "sha256": "5be56c51166a74493effb95892236dff01a94f8f57b5e5a27de132c756249f62"
+    },
+    "sdp_drm_nike/gfx/nikel/sdp_gp.c": {
+      "sha256": "6480b4f81efcd5fe0689501be2f4d3f274cc81649bb315506afdda210169b3da"
+    },
+    "sdp_drm_nike/gfx/nikel/sdp_mixer.c": {
+      "sha256": "07d16ababfa9bd9a3bc06bd4ef6099019014f504a1375800ca418209822f018a"
+    }
+  },
+  "observations": {
+    "sdp_gfx_reg_addr.h": "GP offsets: lines 249,260,263,266,273,283-284; mixer clear/mask:490,493; GP update masks:394-395; A1 high mask:385",
+    "sdp_gfx.c": "lines 464-466: width<<16|height, h_offset=src_w/4",
+    "sdp_gp.c": "lines 97-104: size/offset writes; 162-165: A1 low/high vendor path",
+    "sdp_mixer.c": "lines 108-146: IRQ mask/unmask; 190-198: read/write clear"
+  },
+  "limits": [
+    "Source-level evidence, no hardware access",
+    "No original Linux-4.1.10 kernel archive inspected",
+    "Physical bases follow task and existing DT evidence; register header bases derive from mapped resource pointers",
+    "Update masks and high-address evidence are recorded, not enabled or copied as writes"
+  ]
+}
