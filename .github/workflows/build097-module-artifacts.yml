@@ -12,6 +12,10 @@ concurrency:
   group: build097-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   samsung-modules:
     runs-on: [self-hosted, debian]
