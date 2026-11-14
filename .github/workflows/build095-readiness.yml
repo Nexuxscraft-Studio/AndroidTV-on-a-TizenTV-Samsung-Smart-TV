@@ -1,0 +1,35 @@
+name: Build095 Safe Boot & Hardware Readiness
+
+on:
+  push:
+    branches: [feature/build095-safe-boot-readiness]
+  pull_request:
+    paths:
+      - '.github/workflows/build095-readiness.yml'
+      - 'porting/build095/**'
+      - 'porting/build094/check-dt.py'
+      - 'porting/build070/tools/dt_nodes.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download pinned Build 094 evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/14109975921/zip" \
+            > "$RUNNER_TEMP/build094-evidence.zip"
+      - name: Audit evidence and compare the manifest
+        run: |
+          python3 porting/build095/audit.py "$RUNNER_TEMP/build094-evidence.zip"
+          python3 -m unittest discover -s porting/build095/tests -v
