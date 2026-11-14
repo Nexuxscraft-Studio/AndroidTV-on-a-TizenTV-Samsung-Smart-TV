@@ -17,4 +17,19 @@ static inline unsigned int build107_pixel(unsigned int x)
 	return colors[x / (BUILD107_WIDTH / 4U)];
 }
 
+/*
+ * Vendor geometry observed in BUILD087 source evidence:
+ * sdp_gfx.c:464-466 and sdp_gp.c:97-104.
+ * Software values only. No inferred format, latch or address encoding.
+ */
+static inline unsigned int build107_size_word(void)
+{
+	return (BUILD107_WIDTH << 16) | BUILD107_HEIGHT;
+}
+
+static inline unsigned int build107_source_offset(void)
+{
+	return BUILD107_WIDTH / 4U;
+}
+
 #endif
