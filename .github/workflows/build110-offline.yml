@@ -1,8 +1,8 @@
 name: BUILD110 offline and ARM32 QEMU
 
 on:
-  push:
-    branches: [feature/build110-first-hardware-boot]
+  pull_request:
+    branches: [feature/build107-first-display-test]
     paths: ['porting/build110/**', '.github/workflows/build110-offline.yml']
   workflow_dispatch:
 
@@ -12,7 +12,10 @@ permissions:
 
 jobs:
   validate:
-    if: github.ref == 'refs/heads/feature/build110-first-hardware-boot'
+    if: >-
+      github.ref == 'refs/heads/feature/build110-first-hardware-boot' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.head_ref == 'feature/build110-first-hardware-boot')
     runs-on: [self-hosted, debian]
     timeout-minutes: 5
     steps:
