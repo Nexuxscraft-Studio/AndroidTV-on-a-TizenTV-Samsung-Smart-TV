@@ -1,0 +1,202 @@
+diff --git a/drivers/gpu/drm/sdp/sdp_drm.c b/drivers/gpu/drm/sdp/sdp_drm.c
+index a0e89af..a219ada 100644
+--- a/drivers/gpu/drm/sdp/sdp_drm.c
++++ b/drivers/gpu/drm/sdp/sdp_drm.c
+@@ -1,5 +1,5 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+-/* Build 087: compile-only KMS integration. Probe is unconditionally blocked. */
++/* Compile-only KMS integration. Probe is unconditionally blocked. */
+ #include <linux/clk.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/mod_devicetable.h>
+@@ -22,14 +22,13 @@
+ #include <drm/drm_vblank.h>
+ 
+ #include "sdp_drm_hw.h"
+-
+-#define SDP_DRM_DEFAULT_WIDTH	1920
+-#define SDP_DRM_DEFAULT_HEIGHT	1080
++#include "sdp_drm_test_pattern.h"
+ 
+ struct sdp_drm_device {
+ 	struct drm_device drm;
+ 	struct sdp_hw hw;
+ 	struct sdp_scanout test_pattern;
++	struct sdp_test_plan test_plan;
+ 	struct drm_simple_display_pipe pipe;
+ 	struct drm_connector connector;
+ };
+@@ -44,10 +43,10 @@ static int sdp_drm_conn_get_modes(struct drm_connector *connector)
+ {
+ 	int count;
+ 
+-	count = drm_add_modes_noedid(connector, SDP_DRM_DEFAULT_WIDTH,
+-				     SDP_DRM_DEFAULT_HEIGHT);
+-	drm_set_preferred_mode(connector, SDP_DRM_DEFAULT_WIDTH,
+-			       SDP_DRM_DEFAULT_HEIGHT);
++	count = drm_add_modes_noedid(connector, SDP_TEST_WIDTH,
++				     SDP_TEST_HEIGHT);
++	drm_set_preferred_mode(connector, SDP_TEST_WIDTH,
++			       SDP_TEST_HEIGHT);
+ 	return count;
+ }
+ 
+@@ -160,40 +159,30 @@ static int sdp_drm_get_display_clocks(struct device *dev)
+ }
+ 
+ static int sdp_drm_prepare_test_pattern(struct device *dev,
+-					struct sdp_scanout *scanout)
++					struct sdp_drm_device *sdp)
+ {
+-	static const u32 colors[] = {
+-		0xffffff, 0xffff00, 0x00ffff, 0x00ff00,
+-		0xff00ff, 0xff0000, 0x0000ff, 0x000000,
+-	};
+-	const u32 width = SDP_DRM_DEFAULT_WIDTH;
+-	const u32 height = SDP_DRM_DEFAULT_HEIGHT;
+-	const size_t bytes = width * height * sizeof(__le32);
+-	dma_addr_t addr;
+ 	unsigned int x, y;
++	dma_addr_t addr;
+ 	__le32 *pixels;
++	int ret;
+ 
+-	pixels = dmam_alloc_coherent(dev, bytes, &addr, GFP_KERNEL);
++	pixels = dmam_alloc_coherent(dev, SDP_TEST_BYTES, &addr, GFP_KERNEL);
+ 	if (!pixels)
+ 		return -ENOMEM;
+-	if (addr > U32_MAX - (bytes - 1) || !IS_ALIGNED(addr, sizeof(*pixels)))
+-		return -ERANGE;
+ 
+-	for (y = 0; y < height; y++) {
+-		for (x = 0; x < width; x++) {
+-			u32 color = colors[x / (width / ARRAY_SIZE(colors))];
++	ret = sdp_test_prepare_plan(addr, &sdp->test_plan);
++	if (ret)
++		return ret;
+ 
+-			if (y == 0 || y == height - 1 || x == 0 || x == width - 1)
+-				color = 0x808080;
+-			pixels[y * width + x] = cpu_to_le32(color);
+-		}
+-	}
++	for (y = 0; y < SDP_TEST_HEIGHT; y++)
++		for (x = 0; x < SDP_TEST_WIDTH; x++)
++			pixels[y * SDP_TEST_WIDTH + x] = cpu_to_le32(sdp_test_pixel(x, y));
+ 
+-	*scanout = (struct sdp_scanout) {
++	sdp->test_pattern = (struct sdp_scanout) {
+ 		.dma_addr = addr,
+-		.width = width,
+-		.height = height,
+-		.pitch = width * sizeof(*pixels),
++		.width = SDP_TEST_WIDTH,
++		.height = SDP_TEST_HEIGHT,
++		.pitch = SDP_TEST_PITCH,
+ 		.format = DRM_FORMAT_XRGB8888,
+ 	};
+ 	return 0;
+@@ -225,7 +214,7 @@ static int sdp_drm_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		return dev_err_probe(&pdev->dev, ret, "display clocks unavailable\n");
+ 
+-	ret = sdp_drm_prepare_test_pattern(&pdev->dev, &sdp->test_pattern);
++	ret = sdp_drm_prepare_test_pattern(&pdev->dev, sdp);
+ 	if (ret)
+ 		return dev_err_probe(&pdev->dev, ret, "cannot prepare DMA test pattern\n");
+ 
+@@ -236,10 +225,10 @@ static int sdp_drm_probe(struct platform_device *pdev)
+ 	ret = drmm_mode_config_init(drm);
+ 	if (ret)
+ 		return ret;
+-	drm->mode_config.min_width = SDP_DRM_DEFAULT_WIDTH;
+-	drm->mode_config.max_width = SDP_DRM_DEFAULT_WIDTH;
+-	drm->mode_config.min_height = SDP_DRM_DEFAULT_HEIGHT;
+-	drm->mode_config.max_height = SDP_DRM_DEFAULT_HEIGHT;
++	drm->mode_config.min_width = SDP_TEST_WIDTH;
++	drm->mode_config.max_width = SDP_TEST_WIDTH;
++	drm->mode_config.min_height = SDP_TEST_HEIGHT;
++	drm->mode_config.max_height = SDP_TEST_HEIGHT;
+ 	drm->mode_config.funcs = &sdp_drm_mode_config_funcs;
+ 
+ 	drm_connector_helper_add(&sdp->connector, &sdp_drm_conn_helper_funcs);
+diff --git a/drivers/gpu/drm/sdp/sdp_drm_test_pattern.h b/drivers/gpu/drm/sdp/sdp_drm_test_pattern.h
+new file mode 100644
+index 0000000..c58e33b
+--- /dev/null
++++ b/drivers/gpu/drm/sdp/sdp_drm_test_pattern.h
+@@ -0,0 +1,74 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef SDP_DRM_TEST_PATTERN_H
++#define SDP_DRM_TEST_PATTERN_H
++
++#include <linux/errno.h>
++#include <linux/types.h>
++
++#include "sdp_drm_hw.h"
++
++#define SDP_TEST_WIDTH		1920U
++#define SDP_TEST_HEIGHT		1080U
++#define SDP_TEST_PITCH		(SDP_TEST_WIDTH * 4U)
++#define SDP_TEST_BYTES		(SDP_TEST_PITCH * SDP_TEST_HEIGHT)
++
++#define SDP_OSDP_SOURCE_SIZE		0x10
++#define SDP_OSDP_DESTINATION_SIZE	0x14
++#define SDP_OSDP_SOURCE_OFFSET		0x18
++#define SDP_MIXER_MAIN_ACTIVE_SIZE	0x20
++
++struct sdp_test_register {
++	enum sdp_register_bank bank;
++	u32 offset;
++	u32 value;
++};
++
++struct sdp_test_plan {
++	struct sdp_test_register geometry[7];
++	u32 gp_dma_address;
++};
++
++static inline u32 sdp_test_pixel(unsigned int x, unsigned int y)
++{
++	static const u32 colors[] = {
++		0xffffff, 0xffff00, 0x00ffff, 0x00ff00,
++		0xff00ff, 0xff0000, 0x0000ff, 0x000000,
++	};
++
++	if (y == 0 || y == SDP_TEST_HEIGHT - 1 || x == 0 ||
++	    x == SDP_TEST_WIDTH - 1)
++		return 0x808080;
++
++	return colors[x / (SDP_TEST_WIDTH / 8)];
++}
++
++/*
++ * Describe vendor geometry in RAM. OSDP geometry is a reference for the
++ * unscaled case, independent of the choice to route GP to the mixer.
++ * Keep the DMA address separate until the GP bus translation is verified.
++ */
++static inline int sdp_test_prepare_plan(u64 address, struct sdp_test_plan *plan)
++{
++	const u32 size = SDP_TEST_WIDTH << 16 | SDP_TEST_HEIGHT;
++	const u32 source_offset = SDP_TEST_WIDTH / 4;
++
++	if ((address & 3) || address > 0xffffffffULL - (SDP_TEST_BYTES - 1))
++		return -ERANGE;
++
++	*plan = (struct sdp_test_plan) {
++		.geometry = {
++			{ SDP_GP, SDP_GP_SOURCE_SIZE, size },
++			{ SDP_GP, SDP_GP_DESTINATION_SIZE, size },
++			{ SDP_GP, SDP_GP_SOURCE_OFFSET, source_offset },
++			{ SDP_OSDP, SDP_OSDP_SOURCE_SIZE, size },
++			{ SDP_OSDP, SDP_OSDP_DESTINATION_SIZE, size },
++			{ SDP_OSDP, SDP_OSDP_SOURCE_OFFSET, source_offset },
++			{ SDP_MIXER, SDP_MIXER_MAIN_ACTIVE_SIZE, size },
++		},
++		.gp_dma_address = (u32)address,
++	};
++
++	return 0;
++}
++
++#endif
