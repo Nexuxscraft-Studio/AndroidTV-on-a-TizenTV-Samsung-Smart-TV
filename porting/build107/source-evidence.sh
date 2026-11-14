@@ -26,3 +26,26 @@ for topic in registers address clocks reset dma irq timing; do
 done
 cut -d: -f1 "$out"/*.locations | sort -u | xargs -r -d '\n' sha256sum > "$out/source.sha256"
 wc -l "$out"/*.locations | tee "$out/counts.txt"
+
+# Preserve a focused review set so masks and operation order can be inspected.
+# Keep original line numbering. Include only display candidates and DT context.
+find drivers/gpu/drm drivers/video -type f \( -name '*.c' -o -name '*.h' \) \
+  | grep -Ei '/(sdp_(gp|osdp|mixer|gfx|drm)[^/]*|[^/]*(nikel|nike-l)[^/]*)\.[ch]$' \
+  | sort > "$out/display-candidates.txt" || test "${PIPESTATUS[1]}" -eq 1
+: > "$out/display-review.txt"
+while IFS= read -r file; do
+  printf '\n=== %s ===\n' "$file"
+  grep -inE -C 3 'writel|readl|WRITE_REG|READ_REG|_MASK|_SHIFT|clk_|reset|vsync|vblank|smem|dma_|request_irq|register_update' "$file" || test "$?" -eq 1
+done < "$out/display-candidates.txt" >> "$out/display-review.txt"
+{
+  grep -rinE -C 4 --include='*.dts' --include='*.dtsi' \
+    'samsung,sdp-(gp|osdp|mixer)|gp_clk_|osdp_clk_|gfxp_clk_|samsung,gfx[01]' \
+    arch/arm/boot/dts || test "$?" -eq 1
+} > "$out/display-dt-review.txt"
+if [[ ! -s "$out/display-candidates.txt" ]]; then
+  echo 'No matching display source files in the original kernel tree; hardware sequence remains unverified.' |
+    tee "$out/display-source-status.txt"
+else
+  echo 'Candidates found; manual register and sequence review required.' |
+    tee "$out/display-source-status.txt"
+fi
