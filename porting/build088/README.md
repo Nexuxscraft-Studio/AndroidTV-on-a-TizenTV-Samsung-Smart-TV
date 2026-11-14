@@ -78,7 +78,22 @@ ARM32-Compile mit `W=1 KCFLAGS=-Werror`, vollständiges Kbuild-Modpost
 mit echtem `Module.symvers`, Checkpatch und DT-Prüfungen. Das Schema
 wird an der deaktivierten Fixture geprüft. Beide Board-DTBs werden kompiliert.
 
-Lokal verifiziert wurden der Kernel-Tarball-Hash, die Samsung-Archiv-Hashes,
-beide Firmware-DTs und Checkpatch des geänderten Treibers (0 Fehler,
-0 Warnungen, 0 Checks). Der ARM32- und Modpost-Nachweis für Build 088
-wird am Workflow-Lauf gemessen.
+[Push-Lauf 43573905210](https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/actions/runs/43573905210)
+war auf Runner `debian` erfolgreich. Der Runner erhielt dafür das gleichnamige
+Auswahl-Label. Geprüfter Commit `247aea2`, Linux 6.6.162, Android Clang 19.0.1.
+
+- Build 087 erneut kompiliert. `sdp_display.o` ist ARM ELF32, little-endian, EABI5.
+- Build 088 mit `W=1 KCFLAGS=-Werror` kompiliert. `MODPOST Module.symvers`
+  war erfolgreich, `sdp_display.ko` wurde als ARM ELF32 gelinkt.
+- Checkpatch mit `--strict` für drei C-/Header-Dateien, jeweils 0 Fehler,
+  0 Warnungen und 0 Checks.
+- Beide ARM32-Board-DTBs gebaut. DTC, `dt-doc-validate` und `dt-validate`
+  für die deaktivierte Fixture mit dtschema 2026.9 erfolgreich.
+- Build-059-/063-Portierungstests, 22 bestanden. Der separate Linux-Offline-Job
+  war ebenfalls erfolgreich. Der lokale Windows-Lauf der allgemeinen Suite
+  meldete Fehler unter anderem bei Bash, Dateipfaden und Zeilenenden.
+
+Der erste Push-Lauf 43573300979 bestand Compile, Modpost und Checkpatch.
+Sein DT-Schritt verwendete den falschen Zielpfad `samsung/`. Der erfolgreiche
+Lauf verwendet `sdp/`. Samsung-Archiv-Hashes und beide Firmware-DTs wurden
+zusätzlich lokal verifiziert.
