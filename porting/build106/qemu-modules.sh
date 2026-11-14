@@ -38,12 +38,13 @@ clang --target=armv7a-linux-gnueabi -march=armv7-a -mfloat-abi=soft -marm \
 # 2. module load order: Samsung modules plus transitive dependencies
 declare -A path_of
 while IFS= read -r ko; do
-  path_of[$(modinfo -F name "$ko")]=$ko
+  name=$(modinfo -F name "$ko")
+  path_of[${name//-/_}]=$ko
 done < <(find "$out" "$cpu" "$drm" -name '*.ko' | sort)
 declare -A seen
 order=()
 visit() {
-  local name=$1 dep
+  local name=${1//-/_} dep
   [[ -n "${seen[$name]:-}" ]] && return
   seen[$name]=1
   [[ -n "${path_of[$name]:-}" ]] || { echo "::error::dependency $name has no .ko (built-in?)" >&2; return 1; }
@@ -94,8 +95,8 @@ fi
 # Per-module table
 printf 'module\tload\tunload\n' > "$q/modules-qemu.tsv"
 for name in "${order[@]}"; do
-  l=$(grep -oE "BUILD106_LOAD_(OK|FAIL) $name rc=-?[0-9]+" "$q/serial.log" | head -1 | awk '{print $1":"$3}')
-  u=$(grep -oE "BUILD106_UNLOAD_(OK|FAIL) $name rc=-?[0-9]+" "$q/serial.log" | head -1 | awk '{print $1":"$3}')
+  l=$(grep -mo1 -E "BUILD106_LOAD_(OK|FAIL) $name rc=-?[0-9]+" "$q/serial.log" | awk '{print $1":"$3}' || true)
+  u=$(grep -mo1 -E "BUILD106_UNLOAD_(OK|FAIL) $name rc=-?[0-9]+" "$q/serial.log" | awk '{print $1":"$3}' || true)
   printf '%s\t%s\t%s\n' "$name" "${l:-missing}" "${u:-missing}" >> "$q/modules-qemu.tsv"
 done
 column -t "$q/modules-qemu.tsv"
