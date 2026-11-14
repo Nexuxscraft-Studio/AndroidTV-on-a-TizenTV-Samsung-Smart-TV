@@ -13,6 +13,8 @@ jobs:
     runs-on: [self-hosted, debian]
     timeout-minutes: 75
     steps:
+      - name: Verify dedicated runner
+        run: test "$RUNNER_NAME" = debian
       - uses: actions/checkout@v4
       - name: Existing porting tests
         run: |
@@ -37,7 +39,7 @@ jobs:
           kout="$BUILD088_DIR/arm"
           make_args=(-C "$ksrc" O="$kout" ARCH=arm LLVM=1)
           make "${make_args[@]}" multi_v7_defconfig
-          "$ksrc/scripts/config" --file "$kout/.config" -e MODULES -e COMPILE_TEST -e DRM -m DRM_SDP -d DEBUG_INFO_BTF
+          "$ksrc/scripts/config" --file "$kout/.config" -e MODULES -e COMMON_CLK -e COMPILE_TEST -e DRM -m DRM_SDP -d DEBUG_INFO_BTF
           make "${make_args[@]}" olddefconfig
           grep -qx CONFIG_DRM_SDP=m "$kout/.config"
           make "${make_args[@]}" -j "$(nproc)" W=1 KCFLAGS=-Werror drivers/gpu/drm/sdp/sdp_display.o
