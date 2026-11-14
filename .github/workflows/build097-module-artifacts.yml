@@ -2,7 +2,7 @@ name: Build097 Samsung ARM32 module artifacts
 
 on:
   push:
-    branches: [feature/build097-module-artifacts]
+    branches: [feature/build097-module-artifacts, feature/build105-micom]
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,40 @@ defaults:
     shell: bash
 
 jobs:
+  micom-original:
+    if: github.ref == 'refs/heads/feature/build105-micom'
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 5
+    steps:
+      - name: Inspect Samsung 4.1.10 MICOM sources
+        run: |
+          src=/opt/samsung-atv-lab/samsung/build018-original/linux-4.1.10
+          test -d "$src" || { echo "::error::Original kernel tree unavailable at $src"; exit 1; }
+          missing=0
+          for file in \
+            drivers/misc/micom-msg/msg-wt61p807.c \
+            include/uapi/linux/micom-msg.h \
+            drivers/mfd/sdp_micom_messagebox.c \
+            drivers/mfd/sdp_micom_uart.c \
+            include/linux/mfd/sdp_micom.h
+          do
+            path="$src/$file"
+            if [[ ! -f "$path" || ! -r "$path" ]]; then
+              mapfile -t matches < <(find "$src" -type f -name "${file##*/}" -readable | sort)
+              if (( ${#matches[@]} != 1 )); then
+                echo "::error::Expected one readable source for $file, found ${#matches[@]}"
+                printf '%s\n' "${matches[@]}"
+                missing=1
+                continue
+              fi
+              path=${matches[0]}
+            fi
+            printf '\n%s\n' "${path#"$src/"}"
+            sha256sum -- "$path"
+            rg -ni -C 7 'sdp_micom_usr_msg|0xc00cb301|_iowr|\bioctl\b|retry|retries|\back\b|\w+_ack\w*|timeout|completion' "$path" || test "$?" -eq 1
+          done
+          exit "$missing"
+
   samsung-modules:
     runs-on: [self-hosted, debian]
     timeout-minutes: 120
