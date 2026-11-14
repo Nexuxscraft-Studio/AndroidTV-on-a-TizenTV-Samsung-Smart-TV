@@ -11,6 +11,10 @@ static int build107_pattern_test(void)
 	};
 	unsigned int x, y, b, hash = 2166136261U;
 
+	if (build107_size_word() != 0x07800438U ||
+	    build107_source_offset() != 480U)
+		return 1;
+
 	for (y = 0; y < BUILD107_HEIGHT; y++)
 		for (x = 0; x < BUILD107_WIDTH; x++) {
 			unsigned int pixel = build107_pixel(x);
