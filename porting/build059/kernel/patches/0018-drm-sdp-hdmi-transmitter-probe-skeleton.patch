@@ -296,7 +296,7 @@ index 000000000..b3e9c3cf5
 +
 +static struct platform_driver sdp_hdmi_driver = {
 +	.probe	= sdp_hdmi_probe,
-+	.remove	= sdp_hdmi_remove,
++	.remove_new	= sdp_hdmi_remove,
 +	.driver	= {
 +		.name		= "sdp-hdmi",
 +		.of_match_table	= sdp_hdmi_of_match,
