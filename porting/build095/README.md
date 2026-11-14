@@ -43,7 +43,8 @@ embedded diagnostic init. The draft requests a single CPU, serial output,
 a RAM-only init and no module loader or optional I/O subsystems. Verify
 effective Kconfig after olddefconfig before compiling and use an emulated
 regression check for the diagnostic init. CI for this change checks files
-on a GitHub-hosted runner and produces no deployment image.
+on the dedicated Debian runner for branch pushes or manual runs and
+produces no deployment image.
 
 [Build 072 research](https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/blob/feature/build072-ramboot-preflight/porting/build072/README.md)
 records that the reference defconfig disables KEXEC and retail SDB reports

@@ -3,12 +3,6 @@ name: Build095 Safe Boot & Hardware Readiness
 on:
   push:
     branches: [feature/build095-safe-boot-readiness]
-  pull_request:
-    paths:
-      - '.github/workflows/build095-readiness.yml'
-      - 'porting/build095/**'
-      - 'porting/build094/check-dt.py'
-      - 'porting/build070/tools/dt_nodes.py'
   workflow_dispatch:
 
 permissions:
@@ -17,19 +11,21 @@ permissions:
 
 jobs:
   evidence:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, debian]
     timeout-minutes: 10
     steps:
+      - name: Verify dedicated runner
+        run: test "$RUNNER_NAME" = debian
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Download pinned Build 094 evidence
+      - name: Audit pinned Build 094 evidence
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/14109975921/zip" \
-            > "$RUNNER_TEMP/build094-evidence.zip"
-      - name: Audit evidence and compare the manifest
-        run: |
-          python3 porting/build095/audit.py "$RUNNER_TEMP/build094-evidence.zip"
+          AUDIT_DIR=$(mktemp -d "$RUNNER_TEMP/build095.XXXXXX")
+          trap 'rm -rf -- "$AUDIT_DIR"' EXIT
+          curl --fail --silent --show-error --location --retry 3 -H "Authorization: Bearer $GH_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/14109975921/zip" \
+            > "$AUDIT_DIR/build094-evidence.zip"
+          python3 porting/build095/audit.py "$AUDIT_DIR/build094-evidence.zip"
           python3 -m unittest discover -s porting/build095/tests -v
