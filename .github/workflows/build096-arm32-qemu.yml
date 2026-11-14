@@ -1,0 +1,163 @@
+name: Build096 ARM32 QEMU boot validation & Samsung audit
+
+on:
+  push:
+    branches: [feature/build096-arm32-qemu-validation]
+  workflow_dispatch:
+
+concurrency:
+  group: build096-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  qemu-and-audit:
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 60
+    env:
+      LINUX_SHA256: 4aa89f3652fc131e5d39990f3bcd4b9e131028af3f315dbe83f3a8557dc06f06
+    steps:
+      - name: Verify dedicated runner
+        run: test "$RUNNER_NAME" = debian
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Host tests (harness, audit, Build 095)
+        run: |
+          python3 -m unittest discover -s porting/build096/tests -v
+          python3 -m unittest discover -s porting/build095/tests -v
+
+      - name: Check runner prerequisites (no package installs)
+        run: |
+          source porting/ci/selfhosted-llvm.sh
+          for tool in qemu-system-arm gzip curl patch; do
+            command -v "$tool" >/dev/null || { echo "::error::missing runner tool $tool"; exit 1; }
+          done
+          qemu-system-arm --version
+          qemu-system-arm -machine help | grep -m1 -E '^virt '
+          qemu-system-arm -machine virt -cpu help | grep -qw cortex-a15
+
+      - name: Prepare pinned Linux 6.6.162 source
+        id: prepare
+        run: |
+          work=$(mktemp -d "$RUNNER_TEMP/build096.XXXXXX")
+          echo "BUILD096_DIR=$work" >> "$GITHUB_ENV"
+          mkdir -p "$work/report/qemu" "$work/report/samsung" "$work/report/build"
+          curl --fail --location --retry 3 --silent --show-error -o "$work/linux-6.6.162.tar.xz" \
+            https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.162.tar.xz
+          echo "$LINUX_SHA256  $work/linux-6.6.162.tar.xz" | sha256sum -c - | tee "$work/report/build/source-sha256.txt"
+
+      - name: Build minimal ARM32 zImage and initramfs for QEMU virt
+        id: build
+        run: |
+          LINUX_TARBALL="$BUILD096_DIR/linux-6.6.162.tar.xz" \
+            bash porting/build096/build-qemu-kernel.sh "$BUILD096_DIR/qemu"
+          cp "$BUILD096_DIR"/qemu/out/{kernel.config,build-info.txt,SHA256SUMS,vmlinux-elf.txt,init-elf.txt,initramfs.list,linux-banner.txt,kernel-build.log} \
+            "$BUILD096_DIR/report/build/"
+          cp "$BUILD096_DIR"/qemu/out/{zImage,initramfs.cpio.gz} "$BUILD096_DIR/report/build/"
+
+      - name: Boot Linux 6.6.162 on QEMU virt (Cortex-A15) and require the marker
+        id: boot
+        run: |
+          python3 porting/build096/qemu_boot_test.py run \
+            --zimage "$BUILD096_DIR/qemu/out/zImage" \
+            --initrd "$BUILD096_DIR/qemu/out/initramfs.cpio.gz" \
+            --out "$BUILD096_DIR/report/qemu" --timeout 180
+
+      - name: Rebuild from scratch in another directory and require identical bytes
+        id: reproducible
+        if: steps.build.outcome == 'success'
+        run: |
+          LINUX_TARBALL="$BUILD096_DIR/linux-6.6.162.tar.xz" \
+            bash porting/build096/build-qemu-kernel.sh "$BUILD096_DIR/qemu-rebuild" > "$BUILD096_DIR/report/build/rebuild.log" 2>&1
+          {
+            echo "first build:  $BUILD096_DIR/qemu"
+            echo "second build: $BUILD096_DIR/qemu-rebuild"
+            diff -u "$BUILD096_DIR/qemu/out/SHA256SUMS" "$BUILD096_DIR/qemu-rebuild/out/SHA256SUMS" \
+              && echo "IDENTICAL: zImage, initramfs.cpio.gz, init and kernel.config"
+          } | tee "$BUILD096_DIR/report/build/reproducibility.txt"
+          grep -q '^IDENTICAL' "$BUILD096_DIR/report/build/reproducibility.txt"
+
+      - name: Download and verify pinned Build 094 evidence
+        id: evidence
+        if: always() && steps.prepare.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          zip="$BUILD096_DIR/build094-evidence.zip"
+          curl --fail --silent --show-error --location --retry 3 -H "Authorization: Bearer $GH_TOKEN" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/14109975921/zip" > "$zip"
+          python3 porting/build095/audit.py "$zip" | tee "$BUILD096_DIR/report/samsung/build095-audit.txt"
+          python3 - "$zip" "$BUILD096_DIR/build094-evidence" <<'PY'
+          import sys, zipfile
+          from pathlib import Path
+          out = Path(sys.argv[2]); out.mkdir()
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              for name in z.namelist():
+                  assert "/" not in name and not name.startswith("."), name
+                  (out / name).write_bytes(z.read(name))
+          PY
+
+      - name: Regenerate Nike-L config and Q60T DTBs (no kernel or module compile)
+        id: samsung
+        if: always() && steps.prepare.outcome == 'success'
+        run: |
+          bash porting/build096/samsung-config-dtb.sh "$BUILD096_DIR/samsung" "$BUILD096_DIR/linux-6.6.162.tar.xz"
+          cp "$BUILD096_DIR"/samsung/samsung-out/{kernel.config,SHA256SUMS,dt-status.txt,patches-applied.txt} \
+            "$BUILD096_DIR/report/samsung/"
+          cp "$BUILD096_DIR"/samsung/samsung-out/*.dtb "$BUILD096_DIR"/samsung/samsung-out/*.dts.txt \
+            "$BUILD096_DIR/report/samsung/"
+
+      - name: Samsung hardware and module audit (static)
+        id: audit
+        if: always() && steps.samsung.outcome == 'success'
+        run: |
+          out="$BUILD096_DIR/samsung/samsung-out"
+          evidence=()
+          [ -d "$BUILD096_DIR/build094-evidence" ] && evidence=(--build094 "$BUILD096_DIR/build094-evidence")
+          python3 porting/build096/samsung_audit.py \
+            --kernel-tree "$BUILD096_DIR/samsung/linux-nikel" \
+            --config "$out/kernel.config" \
+            --dtb "$out/sdp-nikel-q60t-1g5.dtb" --dtb "$out/sdp-nikel-q60t-2g.dtb" \
+            --cpu-fixture "$out/cpu-disabled.dtb" --display-fixture "$out/display-disabled.dtb" \
+            "${evidence[@]}" --ko-search "$BUILD096_DIR" \
+            --out "$BUILD096_DIR/report/samsung"
+
+      - name: Job summary
+        if: always() && env.BUILD096_DIR != ''
+        run: |
+          {
+            echo "## Build 096 – ARM32 QEMU boot"
+            if [ -f "$BUILD096_DIR/report/qemu/boot-report.json" ]; then
+              python3 - "$BUILD096_DIR/report/qemu/boot-report.json" <<'PY'
+          import json, sys
+          r = json.load(open(sys.argv[1]))
+          print(f"- Result: **{r['result']}** – {'; '.join(r['reasons'])}")
+          for k, v in r.get("milestones", {}).items():
+              print(f"- {k}: line {v['line']}: `{v['text']}`")
+          print(f"- QEMU: {r.get('qemu_version')}, {r.get('elapsed_seconds')} s")
+          PY
+            else
+              echo "- no boot report (build or prerequisite step failed)"
+            fi
+            [ -f "$BUILD096_DIR/report/build/SHA256SUMS" ] && { echo; echo '```'; cat "$BUILD096_DIR/report/build/SHA256SUMS"; echo '```'; }
+            [ -f "$BUILD096_DIR/report/build/reproducibility.txt" ] && tail -1 "$BUILD096_DIR/report/build/reproducibility.txt"
+            echo
+            [ -f "$BUILD096_DIR/report/samsung/samsung-audit.md" ] && cat "$BUILD096_DIR/report/samsung/samsung-audit.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always() && env.BUILD096_DIR != ''
+        with:
+          name: build096-qemu-and-audit
+          path: ${{ env.BUILD096_DIR }}/report/
+          if-no-files-found: warn
+
+      - name: Remove temporary build files
+        if: always() && env.BUILD096_DIR != ''
+        run: rm -rf -- "$BUILD096_DIR"
