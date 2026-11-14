@@ -24,7 +24,7 @@ tarball=${2:?absolute Linux tarball path}
 report=${3:?absolute report directory}
 mkdir -p "$report"
 source porting/ci/selfhosted-llvm.sh
-for tool in llvm-readelf llvm-nm modinfo; do
+for tool in file llvm-readelf llvm-nm modinfo; do
   command -v "$tool" >/dev/null || { echo "Missing runner prerequisite: $tool" >&2; exit 1; }
 done
 clang --version > "$report/clang.txt"
@@ -117,12 +117,14 @@ for row in "${expected[@]}"; do
   if [[ ! -s "$ko" ]]; then echo "::error::Missing module: $path" >&2; bad=1; continue; fi
   header="$report/metadata/$name.elf.txt"
   llvm-readelf -h "$ko" > "$header"
-  llvm-readelf -S "$ko" > "$report/metadata/$name.sections.txt"
+  file -- "$ko" > "$report/metadata/$name.file.txt"
+  # Without -W, LLVM can truncate the module descriptor section name.
+  llvm-readelf -SW "$ko" > "$report/metadata/$name.sections.txt"
   if ! grep -Eq 'Class:[[:space:]]+ELF32$' "$header" ||
      ! grep -Eq 'Machine:[[:space:]]+ARM$' "$header" ||
      ! grep -Eq 'Type:[[:space:]]+REL([[:space:]]|$)' "$header" ||
-     ! grep -q '\.modinfo' "$report/metadata/$name.sections.txt" ||
-     ! grep -q '\.gnu\.linkonce\.this_module' "$report/metadata/$name.sections.txt" ||
+     ! grep -Eq '[[:space:]]\.modinfo[[:space:]]' "$report/metadata/$name.sections.txt" ||
+     ! grep -Eq '[[:space:]]\.gnu\.linkonce\.this_module[[:space:]]' "$report/metadata/$name.sections.txt" ||
      ! modinfo "$ko" > "$report/metadata/$name.modinfo.txt"; then
     echo "::error::$name is not a linked ARM32 kernel module" >&2; bad=1; continue
   fi
