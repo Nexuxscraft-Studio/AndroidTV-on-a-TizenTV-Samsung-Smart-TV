@@ -117,11 +117,12 @@ for row in "${expected[@]}"; do
   if [[ ! -s "$ko" ]]; then echo "::error::Missing module: $path" >&2; bad=1; continue; fi
   header="$report/metadata/$name.elf.txt"
   llvm-readelf -h "$ko" > "$header"
+  llvm-readelf -S "$ko" > "$report/metadata/$name.sections.txt"
   if ! grep -Eq 'Class:[[:space:]]+ELF32$' "$header" ||
      ! grep -Eq 'Machine:[[:space:]]+ARM$' "$header" ||
      ! grep -Eq 'Type:[[:space:]]+REL([[:space:]]|$)' "$header" ||
-     ! llvm-readelf -S "$ko" | grep -q '\.modinfo' ||
-     ! llvm-readelf -S "$ko" | grep -q '\.gnu\.linkonce\.this_module' ||
+     ! grep -q '\.modinfo' "$report/metadata/$name.sections.txt" ||
+     ! grep -q '\.gnu\.linkonce\.this_module' "$report/metadata/$name.sections.txt" ||
      ! modinfo "$ko" > "$report/metadata/$name.modinfo.txt"; then
     echo "::error::$name is not a linked ARM32 kernel module" >&2; bad=1; continue
   fi
@@ -155,14 +156,16 @@ done
 test "$bad" -eq 0
 
 # The modules that used to be .o must no longer be in vmlinux.
-for f in sdp_msgbox_send sdp_micom_send_cmd; do
-  if llvm-nm "$out/vmlinux" | grep -qw "$f"; then
+llvm-nm "$out/vmlinux" > "$report/vmlinux.nm.txt"
+for f in sdp_msgbox_send sdp_micom_send_cmd sdp_cecif_probe sdp_gpio_probe; do
+  if grep -qw "$f" "$report/vmlinux.nm.txt"; then
     echo "::error::$f still linked into vmlinux" >&2; exit 1
   fi
 done
 
 # All module files of the tree (for QEMU dependency resolution).
 (cd "$out" && find . -name '*.ko' | sort) > "$report/all-tree-modules.txt"
+rm -f "$report/vmlinux.nm.txt"
 (cd "$report" && sha256sum zImage-modular modules/*.ko > SHA256SUMS && sha256sum -c SHA256SUMS)
 echo "Build 106: $(ls "$report"/modules/*.ko | wc -l) verified ARM32 modules"
 column -t -s $'\t' "$report/modules.tsv"
