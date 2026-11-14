@@ -594,7 +594,7 @@ index 000000000..ed7fe68f8
 +
 +	if (len < NORMAL_LEN || buf[0] != PREFIX) {
 +		dev_dbg(micom->dev, "ignoring %zu-byte packet %02x %02x\n",
-+			len, buf[0], len > 1 ? buf[1] : 0);
++			len, len ? buf[0] : 0, len > 1 ? buf[1] : 0);
 +		return;
 +	}
 +
