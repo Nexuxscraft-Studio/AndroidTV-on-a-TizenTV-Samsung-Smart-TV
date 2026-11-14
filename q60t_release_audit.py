@@ -132,6 +132,7 @@ ALLOWED_PORTING_SOURCES = {
     "porting/build096/init.c",
     "porting/build096/qemu-virt-arm32.config",
     "porting/build096/samsung-config-dtb.sh",
+    "porting/build097/build-modules.sh",
     "porting/build087/kernel/Kconfig",
     "porting/build087/kernel/Makefile",
     "porting/build087/kernel/sdp_drm.c",
