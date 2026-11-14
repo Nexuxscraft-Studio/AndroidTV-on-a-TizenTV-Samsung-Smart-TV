@@ -1,0 +1,99 @@
+name: Build094 Nike-L driver integration (ARM32)
+
+on:
+  push:
+    branches: ['feature/build094-full-driver-integration']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 75
+    steps:
+      - name: Verify dedicated runner
+        run: test "$RUNNER_NAME" = debian
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Existing porting tests
+        run: |
+          python3 -m unittest discover -s porting/build059/tests -v
+          python3 -m unittest discover -s porting/build063/tests -v
+          python3 -m unittest discover -s porting/build070/tests -v
+          bash porting/build058/cpu/run-host-tests.sh
+      - name: Prepare isolated kernel source and build tools
+        run: |
+          source porting/ci/selfhosted-llvm.sh
+          build=$(mktemp -d "$RUNNER_TEMP/build094.XXXXXX")
+          echo "BUILD094_DIR=$build" >> "$GITHUB_ENV"
+          cd "$build"
+          curl --fail --location --retry 3 -O https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.162.tar.xz
+          echo '4aa89f3652fc131e5d39990f3bcd4b9e131028af3f315dbe83f3a8557dc06f06  linux-6.6.162.tar.xz' | sha256sum -c -
+          tar -xf linux-6.6.162.tar.xz
+          for p in "$GITHUB_WORKSPACE"/porting/build059/kernel/patches/*.patch; do
+            patch --fuzz=0 -d linux-6.6.162 -p1 --batch --forward < "$p"
+          done
+      - name: Apply Build 088 through Build 093
+        run: |
+          ksrc="$BUILD094_DIR/linux-6.6.162"
+          patch --fuzz=0 -d "$ksrc" -p1 --batch --forward < porting/build088/0001-prepare-display-clocks-and-test-pattern.patch
+          patch --fuzz=0 -d "$ksrc" -p1 --batch --forward < porting/build089/0001-prepare-inert-test-pattern-plan.patch
+          for p in porting/build091/*.patch; do
+            patch --fuzz=0 -d "$ksrc" -p1 --batch --forward < "$p"
+            (cd "$ksrc"; scripts/checkpatch.pl --no-tree --strict "$GITHUB_WORKSPACE/$p")
+          done
+          for p in porting/build093/*.patch; do
+            patch --fuzz=0 -d "$ksrc" -p1 --batch --forward < "$p"
+            (cd "$ksrc"; scripts/checkpatch.pl --no-tree --strict "$GITHUB_WORKSPACE/$p")
+          done
+          "$ksrc/scripts/checkpatch.pl" --no-tree --strict --file "$ksrc"/drivers/gpu/drm/sdp/*.[ch]
+      - name: Test pattern and register plan on the host
+        run: |
+          ksrc="$BUILD094_DIR/linux-6.6.162"
+          tests=porting/build089/tests
+          gcc -std=c11 -Wall -Wextra -Werror -I"$tests/include" -I"$ksrc/drivers/gpu/drm/sdp" \
+            "$tests/test_pattern.c" -o "$BUILD094_DIR/test-pattern"
+          "$BUILD094_DIR/test-pattern"
+          gcc -std=c11 -Wall -Wextra -Werror -I"$tests/include" -I"$ksrc/drivers/gpu/drm/sdp" \
+            porting/build093/test_dma_span.c -o "$BUILD094_DIR/test-dma-span"
+          "$BUILD094_DIR/test-dma-span"
+      - name: Build the shared ARM32 kernel and modules
+        run: bash porting/build094/build-arm.sh "$BUILD094_DIR"
+      - name: Compile and validate Device Tree
+        run: |
+          source porting/ci/selfhosted-llvm.sh
+          ksrc="$BUILD094_DIR/linux-6.6.162"
+          kout="$BUILD094_DIR/arm"
+          make -C "$ksrc" O="$kout" ARCH=arm LLVM=1 -j "$(nproc)" sdp/sdp-nikel-q60t-1g5.dtb sdp/sdp-nikel-q60t-2g.dtb
+          python3 -m venv "$BUILD094_DIR/schema"
+          py_include=$(python3 -c 'import sysconfig; print(sysconfig.get_path("include"))')
+          if [[ ! -f "$py_include/Python.h" ]]; then
+            py_version=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+            mkdir "$BUILD094_DIR/python-headers"
+            pushd "$BUILD094_DIR/python-headers"
+            apt-get download "libpython$py_version-dev"
+            for pkg in ./*.deb; do dpkg-deb -x "$pkg" root; done
+            export CFLAGS="-I$PWD/root/usr/include/python$py_version -I$PWD/root/usr/include"
+            popd
+          fi
+          schema="$BUILD094_DIR/schema/bin"
+          "$schema/pip" install dtschema==2026.9
+          binding="$ksrc/Documentation/devicetree/bindings/display/samsung,nikel-drm-hw-preparation.yaml"
+          fixture="$BUILD094_DIR/display-disabled.dtb"
+          "$kout/scripts/dtc/dtc" -I dts -O dtb -o "$fixture" porting/build088/sdp-nikel-display-disabled.dts
+          "$schema/dt-doc-validate" "$binding"
+          "$schema/dt-validate" -s "$binding" "$fixture" 2>&1 | tee "$BUILD094_DIR/dt-schema.txt"
+          test ! -s "$BUILD094_DIR/dt-schema.txt"
+          python3 porting/build094/check-dt.py "$fixture" "$kout"/arch/arm/boot/dts/sdp/sdp-nikel-q60t-*.dtb
+      - uses: actions/upload-artifact@v4
+        if: always() && env.BUILD094_DIR != ''
+        with:
+          name: build094-evidence
+          path: ${{ env.BUILD094_DIR }}/evidence/
+      - name: Remove temporary build files
+        if: always() && env.BUILD094_DIR != ''
+        run: rm -rf -- "$BUILD094_DIR"

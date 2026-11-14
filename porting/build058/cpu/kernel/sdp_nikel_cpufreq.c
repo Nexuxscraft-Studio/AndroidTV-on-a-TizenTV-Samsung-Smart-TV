@@ -17,8 +17,7 @@
  * Old firmware cannot transition L1<->L2/L3/L4 directly (no temp clock).
  * The ASV bin, regulator named CPU_PW and voltage ordering remain unverified.
  */
-/* Linux 6.6 uses cpufreq_policy_data for ->verify, not cpufreq_policy. */
-static int nikel_cpu_verify(struct cpufreq_policy_data *policy)
+static int nikel_cpu_verify(struct cpufreq_policy *policy)
 {
 	(void)policy;
 	return -EOPNOTSUPP;
@@ -48,8 +47,7 @@ static int nikel_cpu_target_index(struct cpufreq_policy *policy,
 }
 
 static struct cpufreq_driver nikel_cpu_freq_driver = {
-	/* CPUFREQ_NAME_LEN is 16 bytes, including the terminating NUL. */
-	.name = "sdp-nikel-off",
+	.name = "sdp-nikel-cpufreq-offline",
 	.verify = nikel_cpu_verify,
 	.init = nikel_cpu_policy_init,
 	.get = nikel_cpu_get,
