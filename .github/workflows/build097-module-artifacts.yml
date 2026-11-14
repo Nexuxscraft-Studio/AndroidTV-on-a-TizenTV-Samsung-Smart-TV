@@ -1,0 +1,77 @@
+name: Build097 Samsung ARM32 module artifacts
+
+on:
+  push:
+    branches: [feature/build097-module-artifacts]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build097-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  samsung-modules:
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 120
+    steps:
+      - name: Verify dedicated runner
+        run: test "$RUNNER_NAME" = debian
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download pinned Linux source
+        run: |
+          work=$(mktemp -d "$RUNNER_TEMP/build097.XXXXXX")
+          echo "BUILD097_DIR=$work" >> "$GITHUB_ENV"
+          mkdir -p "$work/report"
+          curl --fail --location --retry 3 --silent --show-error \
+            -o "$work/linux-6.6.162.tar.xz" \
+            https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.162.tar.xz
+
+      - name: Build and verify nine kernel modules
+        run: |
+          bash porting/build097/build-modules.sh "$BUILD097_DIR/first" \
+            "$BUILD097_DIR/linux-6.6.162.tar.xz" "$BUILD097_DIR/report" \
+            2>&1 | tee "$BUILD097_DIR/report/build.log"
+
+      - name: Rebuild independently and compare module SHA256 hashes
+        run: |
+          bash porting/build097/build-modules.sh "$BUILD097_DIR/second" \
+            "$BUILD097_DIR/linux-6.6.162.tar.xz" "$BUILD097_DIR/rebuild" \
+            2>&1 | tee "$BUILD097_DIR/report/rebuild.log"
+          cp "$BUILD097_DIR/rebuild/SHA256SUMS" "$BUILD097_DIR/report/rebuild-SHA256SUMS"
+          diff -u "$BUILD097_DIR/report/SHA256SUMS" "$BUILD097_DIR/report/rebuild-SHA256SUMS" \
+            | tee "$BUILD097_DIR/report/reproducibility.txt"
+          echo 'All nine modules are byte-identical across two clean builds.' \
+            | tee -a "$BUILD097_DIR/report/reproducibility.txt" "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload verified modules and build evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: build097-samsung-arm32-modules
+          path: ${{ env.BUILD097_DIR }}/report/
+          if-no-files-found: error
+
+      - name: Upload diagnostics for failed builds
+        if: failure() && env.BUILD097_DIR != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: build097-failed-build-diagnostics
+          path: |
+            ${{ env.BUILD097_DIR }}/report/*.log
+            ${{ env.BUILD097_DIR }}/report/*.txt
+            ${{ env.BUILD097_DIR }}/report/*.csv
+            ${{ env.BUILD097_DIR }}/report/*.tsv
+            ${{ env.BUILD097_DIR }}/report/kernel.config
+            ${{ env.BUILD097_DIR }}/report/metadata/
+            ${{ env.BUILD097_DIR }}/report/*SHA256SUMS
+          if-no-files-found: warn
+
+      - name: Remove temporary build files
+        if: always() && env.BUILD097_DIR != ''
+        run: rm -rf -- "$BUILD097_DIR"
