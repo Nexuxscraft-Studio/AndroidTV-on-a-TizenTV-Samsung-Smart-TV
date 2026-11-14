@@ -280,7 +280,7 @@ index 000000000..543b468df
 +
 +static struct platform_driver sdp_mac_driver = {
 +	.probe	= sdp_mac_probe,
-+	.remove	= sdp_mac_remove,
++	.remove_new	= sdp_mac_remove,
 +	.driver	= {
 +		.name		= "sdp-mac",
 +		.of_match_table	= sdp_mac_of_match,
