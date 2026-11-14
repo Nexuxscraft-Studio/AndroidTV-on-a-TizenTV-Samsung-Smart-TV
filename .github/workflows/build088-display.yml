@@ -67,7 +67,7 @@ jobs:
           source porting/ci/selfhosted-llvm.sh
           ksrc="$BUILD088_DIR/linux-6.6.162"
           kout="$BUILD088_DIR/arm"
-          make -C "$ksrc" O="$kout" ARCH=arm LLVM=1 -j "$(nproc)" samsung/sdp-nikel-q60t-1g5.dtb samsung/sdp-nikel-q60t-2g.dtb
+          make -C "$ksrc" O="$kout" ARCH=arm LLVM=1 -j "$(nproc)" sdp/sdp-nikel-q60t-1g5.dtb sdp/sdp-nikel-q60t-2g.dtb
           python3 -m venv "$BUILD088_DIR/schema"
           py_include=$(python3 -c 'import sysconfig; print(sysconfig.get_path("include"))')
           if [[ ! -f "$py_include/Python.h" ]]; then
@@ -90,3 +90,4 @@ jobs:
       - name: Remove temporary build files
         if: always() && env.BUILD088_DIR != ''
         run: rm -rf -- "$BUILD088_DIR"
+
