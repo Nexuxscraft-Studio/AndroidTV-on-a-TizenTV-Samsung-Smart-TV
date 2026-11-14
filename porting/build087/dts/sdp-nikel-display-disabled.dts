@@ -1,0 +1,18 @@
+/dts-v1/;
+/* Compile/reference fixture only, not a bootable Q60T board description. */
+/ {
+	model = "Nike-L Build 087 disabled display reference";
+	compatible = "samsung,nikel-build087-reference";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	display@5d0000 {
+		compatible = "samsung,nikel-drm-hw-preparation";
+		reg = <0x005d0000 0x4000>,
+		      <0x005d4000 0x4000>,
+		      <0x005d8000 0x4000>;
+		reg-names = "osdp", "gp", "mixer";
+		/* No guessed IRQ, clocks, resets, panel or DMA translation. */
+		status = "disabled";
+	};
+};

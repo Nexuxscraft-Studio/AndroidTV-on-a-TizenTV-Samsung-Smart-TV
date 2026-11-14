@@ -33,7 +33,8 @@ class SourceOnlyAllowlistTests(unittest.TestCase):
             if release_audit.IGNORED_DIRECTORIES.intersection(
                     file.relative_to(ROOT).parts):
                 continue
-            if file.suffix in release_audit.ALLOWED_SUFFIXES:
+            if (file.suffix in release_audit.ALLOWED_SUFFIXES or
+                    file.name in release_audit.ALLOWED_SPECIAL):
                 continue
             self.assertIn(relative, release_audit.ALLOWED_EXPLICIT_SOURCES)
 

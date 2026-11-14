@@ -1,0 +1,11 @@
+make: Entering directory '/workspace/linux-6.6.162'
+make[1]: Entering directory '/workspace/kout087'
+  SYNC    include/config/auto.conf
+  GEN     Makefile
+  GEN     Makefile
+  CALL    /workspace/linux-6.6.162/scripts/checksyscalls.sh
+  CC      drivers/gpu/drm/sdp/sdp_drm.o
+  CC      drivers/gpu/drm/sdp/sdp_drm_hw.o
+  AR      drivers/gpu/drm/sdp/built-in.a
+make[1]: Leaving directory '/workspace/kout087'
+make: Leaving directory '/workspace/linux-6.6.162'

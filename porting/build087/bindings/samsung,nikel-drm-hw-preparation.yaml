@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/display/samsung,nikel-drm-hw-preparation.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+title: Samsung Nike-L display hardware preparation (disabled)
+maintainers:
+  - Q60T Linux porting project <noreply@example.invalid>
+description: |
+  Project-local preparation binding, not a production hardware ABI. The three
+  non-overlapping windows describe OSDP, GP and mixer separately. Bank bases
+  are specified in the parent bus address space, not DMA addresses. IRQ routing,
+  clocks, resets and panel dependencies await verification. This node must stay
+  disabled; the driver additionally rejects probe unconditionally.
+properties:
+  compatible:
+    const: samsung,nikel-drm-hw-preparation
+  reg:
+    items:
+      - description: OSDP, 0x005d0000, 0x4000 bytes
+      - description: GP, 0x005d4000, 0x4000 bytes
+      - description: Mixer, 0x005d8000, 0x4000 bytes
+  reg-names:
+    items:
+      - const: osdp
+      - const: gp
+      - const: mixer
+  status:
+    const: disabled
+required:
+  - compatible
+  - reg
+  - reg-names
+  - status
+additionalProperties: false

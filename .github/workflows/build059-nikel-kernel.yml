@@ -14,10 +14,12 @@ on:
   push:
     paths:
       - 'porting/build059/**'
+      - 'porting/ci/**'
       - '.github/workflows/build059-nikel-kernel.yml'
   pull_request:
     paths:
       - 'porting/build059/**'
+      - 'porting/ci/**'
       - '.github/workflows/build059-nikel-kernel.yml'
   workflow_dispatch:
 
@@ -31,7 +33,7 @@ env:
 
 jobs:
   host-tests:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - name: Unit tests for Build 059 tools
@@ -39,7 +41,7 @@ jobs:
 
   kernel:
     needs: host-tests
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64]
     # tiny normally needs ~7 min, full/android ~45 min; a stalled runner
     # (seen on 2026-11-10: compile stopped, no output for an hour) aborts early
     timeout-minutes: ${{ matrix.profile == 'tiny' && 30 || 120 }}
@@ -51,12 +53,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Use self-hosted build tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            clang lld llvm flex bison bc libssl-dev libelf-dev make patch \
-            python3 cpio kmod
+          source porting/ci/selfhosted-llvm.sh
 
       - name: Fetch pinned Linux 6.6.162
         run: |
