@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Build 106: Samsung-derived objects that Build 058 compiled only as .o.
+# Sources are copied unchanged from porting/build058 by build-modules.sh.
+#
+# Samsung DRM utility + DMA fence: two translation units linked into ONE
+# module, because they form one support library for the Samsung DRM core.
+obj-m += sdp_drm_support.o
+sdp_drm_support-y := sdp_drm_util.o sdp_drm_fence.o
+# Samsung Nike-L GPU clock/reset (fail-closed, experimental compatible only)
+obj-m += sdp_nikel_gpu_clkrst.o

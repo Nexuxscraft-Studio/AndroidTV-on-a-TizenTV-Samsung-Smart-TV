@@ -1,0 +1,23 @@
+# kconfig  root  path  state(new = was built-in .o until Build 106)
+# Priority 1: Samsung DRM/display
+DRM_SDP kernel drivers/gpu/drm/sdp/sdp_display.ko existing
+DRM_SDP_HDMI kernel drivers/gpu/drm/sdp-hdmi/sdp_hdmi.ko existing
+DRM_PANFROST kernel drivers/gpu/drm/panfrost/panfrost.ko existing
+# MICOM transport and clients
+SDP_MSGBOX kernel drivers/soc/sdp/sdp-msgbox.ko new
+SDP_MICOM kernel drivers/soc/sdp/sdp-micom.ko new
+IR_SDP_MICOM kernel drivers/media/rc/sdp-micom-rc.ko new
+CEC_SDP_CECIF kernel drivers/media/cec/platform/sdp/sdp-cecif.ko new
+SDP_MICOM_IRB kernel drivers/misc/sdp-micom/sdp_micom_irb.ko existing
+SDP_MICOM_IRS kernel drivers/misc/sdp-micom/sdp_micom_irs.ko existing
+# SoC peripherals
+SERIAL_SDP kernel drivers/tty/serial/sdp_uart.ko new
+GPIO_SDP kernel drivers/gpio/gpio-sdp.ko new
+SDP_MAC kernel drivers/net/ethernet/sdp/sdp_mac.ko existing
+# CPU clock / DVFS / thermal (external Kbuild)
+none external sdp_nikel_cpu_clk.ko existing
+none external sdp_nikel_cpufreq.ko existing
+none external sdp_nikel_thermal.ko existing
+# Build 058 Samsung DRM utility/fence (one module) and GPU clock/reset (external Kbuild)
+none samsung-ext sdp_drm_support.ko new
+none samsung-ext sdp_nikel_gpu_clkrst.ko new

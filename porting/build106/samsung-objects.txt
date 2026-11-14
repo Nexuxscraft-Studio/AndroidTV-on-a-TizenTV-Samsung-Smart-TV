@@ -1,0 +1,12 @@
+SDP_MSGBOX drivers/soc/sdp/sdp-msgbox.o
+SDP_MICOM drivers/soc/sdp/sdp-micom.o
+IR_SDP_MICOM drivers/media/rc/sdp-micom-rc.o
+CEC_SDP_CECIF drivers/media/cec/platform/sdp/sdp-cecif.o
+GPIO_SDP drivers/gpio/gpio-sdp.o
+SERIAL_SDP drivers/tty/serial/sdp_uart.o
+COMMON_CLK_SDP1804 drivers/clk/clk-sdp1804.o
+SDP1804_GPU_POWER drivers/clk/clk-sdp1804-gpu.o
+DRM_SDP drivers/gpu/drm/sdp/sdp_drm.o+sdp_drm_hw.o
+none porting/build058/integration/drm/sdp_drm_util.o
+none porting/build058/integration/drm/sdp_drm_fence.o
+none porting/build058/kernel/sdp_nikel_gpu_clkrst.o

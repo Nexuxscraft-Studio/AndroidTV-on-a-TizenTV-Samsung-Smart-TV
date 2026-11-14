@@ -1,0 +1,111 @@
+name: Build106 Samsung .o -> .ko ARM32 modules + QEMU load test
+
+on:
+  push:
+    branches: [feature/build106-driver-qemu]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build106-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  modules:
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 150
+    steps:
+      - name: Verify dedicated runner
+        run: test "$RUNNER_NAME" = debian
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download pinned Linux source
+        run: |
+          work=$(mktemp -d "$RUNNER_TEMP/build106.XXXXXX")
+          echo "BUILD106_DIR=$work" >> "$GITHUB_ENV"
+          mkdir -p "$work/report"
+          curl --fail --location --retry 3 --silent --show-error \
+            -o "$work/linux-6.6.162.tar.xz" \
+            https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.162.tar.xz
+
+      - name: Kbuild integration and ARM32 module build (modpost, modinfo, vermagic, symbols)
+        run: |
+          bash porting/build106/build-modules.sh "$BUILD106_DIR/work" \
+            "$BUILD106_DIR/linux-6.6.162.tar.xz" "$BUILD106_DIR/report" \
+            2>&1 | tee "$BUILD106_DIR/report/build.log"
+
+      - name: Load and unload every module on QEMU virt (no Nike-L hardware)
+        id: qemu
+        continue-on-error: true
+        run: |
+          bash porting/build106/qemu-modules.sh "$BUILD106_DIR/work" "$BUILD106_DIR/report" \
+            2>&1 | tee "$BUILD106_DIR/report/qemu.log"
+
+      - name: Job summary
+        if: always() && env.BUILD106_DIR != ''
+        run: |
+          r="$BUILD106_DIR/report"
+          {
+            echo "## Build 106 – Samsung ARM32 .ko modules"
+            [ -f "$r/modules.tsv" ] && { echo '```'; column -t -s $'\t' "$r/modules.tsv"; echo '```'; }
+            echo "QEMU step: ${{ steps.qemu.outcome }}"
+            [ -f "$r/qemu/modules-qemu.tsv" ] && { echo '```'; column -t "$r/qemu/modules-qemu.tsv"; echo '```'; }
+            grep -h BUILD106_QEMU_SUMMARY "$r/qemu/serial.log" 2>/dev/null || true
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload .ko modules and build evidence
+        if: always() && env.BUILD106_DIR != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: build106-samsung-arm32-ko-modules
+          path: ${{ env.BUILD106_DIR }}/report/
+          if-no-files-found: error
+
+      - name: Remove temporary build files
+        if: always() && env.BUILD106_DIR != ''
+        run: rm -rf -- "$BUILD106_DIR"
+
+  original-inventory:
+    needs: modules
+    if: always()
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 15
+    steps:
+      - name: Verify dedicated runner
+        run: test "$RUNNER_NAME" = debian
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Inventory Samsung 4.1.10 driver sources (DRM GEM/fence/fb candidates)
+        run: |
+          out=$(mktemp -d "$RUNNER_TEMP/build106-inventory.XXXXXX")
+          echo "BUILD106_INVENTORY=$out" >> "$GITHUB_ENV"
+          bash porting/build106/inventory-original.sh "$out" | tee "$out/inventory.log"
+          src=/opt/samsung-atv-lab/samsung/build018-original/linux-4.1.10
+          { find "$src/drivers/gpu" "$src/drivers/video" -type f -name '*.c' \
+              \( -ipath '*sdp*' -o -ipath '*tztv*' -o -ipath '*nike*' \) -printf '%P\t%s\n' 2>/dev/null || true; } \
+            | sort > "$out/drm-display-candidates.tsv"
+          cat "$out/drm-display-candidates.tsv"
+
+      - name: Upload short-lived source inventory (private repository)
+        uses: actions/upload-artifact@v4
+        with:
+          name: build106-samsung-original-inventory
+          path: ${{ env.BUILD106_INVENTORY }}/
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Remove temporary inventory
+        if: always() && env.BUILD106_INVENTORY != ''
+        run: rm -rf -- "$BUILD106_INVENTORY"
