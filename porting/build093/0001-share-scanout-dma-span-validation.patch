@@ -1,0 +1,83 @@
+diff --git a/drivers/gpu/drm/sdp/sdp_drm_hw.c b/drivers/gpu/drm/sdp/sdp_drm_hw.c
+index 1579b5f..c988378 100644
+--- a/drivers/gpu/drm/sdp/sdp_drm_hw.c
++++ b/drivers/gpu/drm/sdp/sdp_drm_hw.c
+@@ -58,6 +58,7 @@ int sdp_hw_prepare_plane(const struct drm_plane_state *state,
+ 	struct drm_gem_dma_object *gem;
+ 	u64 bytes, end, address;
+ 	struct sdp_scanout next = { };
++	int ret;
+ 
+ 	if (!fb || !state->crtc || !crtc_state || !crtc_state->enable)
+ 		return -EINVAL;
+@@ -85,12 +86,11 @@ int sdp_hw_prepare_plane(const struct drm_plane_state *state,
+ 	if (check_add_overflow((u64)fb->offsets[0], bytes, &end) ||
+ 	    end > gem->base.size)
+ 		return -EINVAL;
+-	if (check_add_overflow((u64)gem->dma_addr, (u64)fb->offsets[0], &address) ||
+-	    check_add_overflow(address, bytes - 1, &end) || end > U32_MAX)
++	if (check_add_overflow((u64)gem->dma_addr, (u64)fb->offsets[0], &address))
+ 		return -ERANGE;
+-	/* Only natural pixel alignment is known; hardware alignment is still open. */
+-	if (address & 3)
+-		return -EINVAL;
++	ret = sdp_scanout_check_dma_span(address, bytes);
++	if (ret)
++		return ret;
+ 	next.dma_addr = (dma_addr_t)address;
+ 	next.width = fb->width;
+ 	next.height = fb->height;
+diff --git a/drivers/gpu/drm/sdp/sdp_drm_hw.h b/drivers/gpu/drm/sdp/sdp_drm_hw.h
+index bbc2ff9..409923b 100644
+--- a/drivers/gpu/drm/sdp/sdp_drm_hw.h
++++ b/drivers/gpu/drm/sdp/sdp_drm_hw.h
+@@ -2,6 +2,7 @@
+ #ifndef SDP_DRM_HW_H
+ #define SDP_DRM_HW_H
+ 
++#include <linux/errno.h>
+ #include <linux/types.h>
+ 
+ struct platform_device;
+@@ -34,6 +35,18 @@ struct sdp_scanout {
+ 	u32 width, height, pitch, format;
+ };
+ 
++/* Check the software DMA aperture before narrowing the address. */
++static inline int sdp_scanout_check_dma_span(u64 address, u64 bytes)
++{
++	if (!bytes || address > 0xffffffffULL ||
++	    bytes - 1 > 0xffffffffULL - address)
++		return -ERANGE;
++	if (address & 3)
++		return -EINVAL;
++
++	return 0;
++}
++
+ bool sdp_hw_access_allowed(void);
+ int sdp_hw_map_resources(struct platform_device *pdev, struct sdp_hw *hw);
+ int sdp_hw_prepare_plane(const struct drm_plane_state *state,
+diff --git a/drivers/gpu/drm/sdp/sdp_drm_test_pattern.h b/drivers/gpu/drm/sdp/sdp_drm_test_pattern.h
+index c58e33b..2c6b48c 100644
+--- a/drivers/gpu/drm/sdp/sdp_drm_test_pattern.h
++++ b/drivers/gpu/drm/sdp/sdp_drm_test_pattern.h
+@@ -2,9 +2,6 @@
+ #ifndef SDP_DRM_TEST_PATTERN_H
+ #define SDP_DRM_TEST_PATTERN_H
+ 
+-#include <linux/errno.h>
+-#include <linux/types.h>
+-
+ #include "sdp_drm_hw.h"
+ 
+ #define SDP_TEST_WIDTH		1920U
+@@ -52,7 +49,7 @@ static inline int sdp_test_prepare_plan(u64 address, struct sdp_test_plan *plan)
+ 	const u32 size = SDP_TEST_WIDTH << 16 | SDP_TEST_HEIGHT;
+ 	const u32 source_offset = SDP_TEST_WIDTH / 4;
+ 
+-	if ((address & 3) || address > 0xffffffffULL - (SDP_TEST_BYTES - 1))
++	if (sdp_scanout_check_dma_span(address, SDP_TEST_BYTES))
+ 		return -ERANGE;
+ 
+ 	*plan = (struct sdp_test_plan) {
