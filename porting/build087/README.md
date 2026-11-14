@@ -155,7 +155,7 @@ verwendete GCC.
   DMA-BUF-/Panfrost- oder Panel-Laufzeitprüfung. CI-Workflow lokal vorbereitet;
   die ersten GitHub-hosted Jobs wurden vor Ausführung wegen einer
   Zahlungs-/Ausgabenlimit-Sperre abgewiesen. Auf Nutzerwunsch laufen Build 087
-  und die für diesen PR betroffenen Build-059-/Build-067-/Offline-Workflows
+  und die für diesen PR betroffenen Build-059-/Offline-Workflows
   jetzt mit `[self-hosted, Linux, X64]`, wie die vorhandenen Builds 068–070.
   Runner-Inventarabfrage war mit der Integration nicht erlaubt (HTTP 403);
   der Runner übernahm Build 087 und bestand die Portierungstests. Die zunächst
@@ -164,7 +164,12 @@ verwendete GCC.
   keine Systempakete installiert; dtschema wird in einer lokalen venv eingerichtet.
   Fehlende native Python-Header für pylibfdt werden bei Bedarf per `apt-get download`
   und `dpkg-deb -x` ausschließlich ins Job-Tempverzeichnis extrahiert.
-  Ein erfolgreicher Self-hosted-Compile-Lauf wird damit noch nicht behauptet.
+  Allgemeine Offline-Tests verwenden das vorhandene Python (Debian 13), da
+  setup-python dort die bisherige 3.11/3.12-Matrix nicht bereitstellen kann.
+  Automatisch gestartete QEMU-/vollständige Kernelmatrix-Läufe wurden gestoppt,
+  um den Build-087-Compile-Test zu priorisieren. Der QEMU-Workflow bleibt gegenüber
+  dem Basisbranch unverändert. Ein erfolgreicher Self-hosted-Compile-Lauf wird
+  damit noch nicht behauptet.
 
 Compilerprotokolle: [in-tree](results/arm32-in-tree.txt),
 [extern](results/arm32-external.txt).
