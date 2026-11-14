@@ -1,0 +1,85 @@
+{
+  "target": "Samsung GQ50Q60TGUXZG / Nike-L / SDP1804 / T-NKLDEUC 2743.0",
+  "base_commit": "dee0f6306417eff23d5821856998de03e0851b67",
+  "decision": "BLOCKED",
+  "ram_boot": "HYPOTHETICAL_ONLY",
+  "stock_header": {
+    "load": "0x80008000",
+    "entry": "0x80008000"
+  },
+  "references": [
+    "https://docs.kernel.org/6.6/arch/arm/booting.html",
+    "https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/blob/a0cc73a88c8994657104d1859fa0079f55876ed4/porting/build072/README.md"
+  ],
+  "evidence": [
+    {
+      "id": "boot-chain",
+      "grade": "historischer-binaerbefund",
+      "observation": "Build 061 beschreibt einen AArch32-Dekompressor in seret, Secure-OS- und DDR-Trainingskandidaten sowie einen Legacy-uImage-Header mit CRC.",
+      "blocker": "Identität und Reihenfolge der tatsächlich ausgeführten Stufen, Trust Anchors, Akzeptanzregeln und ein autorisierter nichtpersistenter Einstieg für dieses Board fehlen.",
+      "sources": [
+        "BUILD061_REPORT.md",
+        "porting/BOOTCHAIN.md"
+      ]
+    },
+    {
+      "id": "cpu-handoff",
+      "grade": "historischer-binaerbefund",
+      "observation": "Stock Linux 4.1.10 ist ARM32 und enthält HYP-fähigen stext. Der Codepfad belegt weder den tatsächlich genommenen HYP-Pfad noch den Zustand der Secure-Stufe.",
+      "blocker": "Passive Handoff-Evidenz für ARM-Zustand, SVC/HYP, IRQ/FIQ, MMU, D-Cache, HYP-Traps und quiesziertes DMA fehlt.",
+      "sources": [
+        "BUILD061_REPORT.md"
+      ]
+    },
+    {
+      "id": "boot-data",
+      "grade": "statische-deklaration",
+      "observation": "Das Stock-Bundle enthält FDT v17. Das generische ARM-Protokoll verlangt r0=0, r1 als Maschinentyp bzw. DT-Konvention und r2 als physische Adresse von FDT oder ATAGs.",
+      "blocker": "Ausgewählter Stock-DTB, Fixups, r0–r2, tatsächliche FDT-/ATAG-Nutzung und deren physischer Speicherbereich sind offen.",
+      "sources": [
+        "BUILD061_REPORT.md",
+        "reports/hardware_2743.0_build004_final.json"
+      ]
+    },
+    {
+      "id": "kernel-address",
+      "grade": "historischer-binaerbefund",
+      "observation": "Der Stock-Header deklariert Load und Entry 0x80008000. Die Adresse liegt außerhalb beider archivierter /memory/reg-Profile.",
+      "blocker": "Tatsächliche physische Lade-, Einsprung- und gegebenenfalls Dekompressionsbereiche samt Belegung und Relokation fehlen.",
+      "sources": [
+        "BUILD061_REPORT.md",
+        "reports/hardware_2743.0_build004_final.json"
+      ]
+    },
+    {
+      "id": "memory",
+      "grade": "statische-deklaration",
+      "observation": "Der DTB-Bericht führt drei Banken im 2-GiB-Profil und vier im 1,5-GiB-Profil sowie CMA- und Carveout-Knoten. Profillabel und Summe der deklarierten Banken sind unterschiedliche Angaben.",
+      "blocker": "Board-/RAM-Zuordnung und vollständige physische Live-Karte inklusive FDT-Reservierungstabelle, /reserved-memory, Secure-/Video-Bereichen, Loader, DMA, Kernel, DTB und Initramfs fehlen.",
+      "sources": [
+        "reports/hardware_2743.0_build004_final.json",
+        "porting/boot-evidence.json"
+      ]
+    },
+    {
+      "id": "uart",
+      "grade": "statische-deklaration",
+      "observation": "Build 095 dokumentiert am Port-DTB serial@190a00, 115200n8 und einen 24-MHz-Referenztakt am Clock-Provider.",
+      "blocker": "Effektiver UART-Takt nach Elternwahl, Gate und Teiler, Stock-Pinmux, Routing und passiver Konsolennachweis fehlen.",
+      "sources": [
+        "porting/build095/README.md",
+        "porting/build095/manifest.json"
+      ]
+    },
+    {
+      "id": "recovery",
+      "grade": "offen",
+      "observation": "Build 095 verweist auf Build 072. Der Referenz-Defconfig deaktiviert KEXEC; gemeldete Retail-SDB-Fähigkeiten zeigen keinen interaktiven Shell- oder Root-Pfad. Der effektive KEXEC-Status ist offen.",
+      "blocker": "Board-spezifischer Recovery-Einstieg, verifiziertes Originalbackup, Wiederherstellungsprobe auf gleichwertiger Ersatzhardware sowie Watchdog- und Stromausfall-Fallback fehlen.",
+      "sources": [
+        "porting/build095/README.md",
+        "porting/boot-evidence.json"
+      ]
+    }
+  ]
+}
