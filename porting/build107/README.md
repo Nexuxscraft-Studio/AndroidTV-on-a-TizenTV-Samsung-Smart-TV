@@ -26,3 +26,11 @@ DTBs byte for byte; a mismatch fails CI and leaves a diff.
 The source index generated on the Debian runner supplies paths, line
 numbers and source hashes for review. Search hits do not verify hardware
 semantics or authorize enabling the probe.
+
+The geometry word (0x07800438) and vendor source offset (480) now run
+through the same helpers in the guest and the inert register plan.
+Provenance: BUILD087 vendor archive evidence, sdp_gfx.c:464–466 and
+sdp_gp.c:97–104. This is separate from verifying the runner's Linux
+4.1.10 tree. The runner exports focused numbered excerpts for the GP,
+Mixer, OSDP and device-tree analysis. This still does not establish
+the format, address high bits, latch, IRQ or initial bring-up order.
