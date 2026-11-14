@@ -92,8 +92,8 @@ export KCFLAGS="-ffile-prefix-map=$work=/build106"
 make "${make_args[@]}" zImage modules 2>&1 | tee "$report/kernel-build.log"
 test -s "$out/Module.symvers"
 make "${make_args[@]}" M="$cpu" W=1 KCFLAGS="$KCFLAGS -Werror" modules 2>&1 | tee "$report/external-build.log"
-# Pull in the in-tree exports so modpost resolves vmlinux and module symbols.
-make "${make_args[@]}" M="$drm" W=1 KBUILD_EXTRA_SYMBOLS="$out/Module.symvers" modules 2>&1 \
+# External Kbuild reads $out/Module.symvers itself (adding it again duplicates every export).
+make "${make_args[@]}" M="$drm" W=1 modules 2>&1 \
   | tee "$report/samsung-ext-build.log"
 release=$(cat "$out/include/config/kernel.release")
 printf '%s\n' "$release" > "$report/kernel-release.txt"
