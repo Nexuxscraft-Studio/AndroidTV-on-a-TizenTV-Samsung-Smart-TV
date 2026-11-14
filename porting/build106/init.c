@@ -134,7 +134,7 @@ int main(void)
 	num(fails);
 	out("\n");
 off:
-	sync();
+	my_syscall0(__NR_sync);
 	reboot(LINUX_REBOOT_CMD_POWER_OFF);
 	return 0;
 }
