@@ -50,3 +50,17 @@ Der [Workflow](../../.github/workflows/build091-display.yml) testet
 auf dem Debian-Runner den standardmäßigen Kconfig-Zustand, den
 Build-089-Hosttest, Checkpatch, den ARM32-Treiber mit `W=1 KCFLAGS=-Werror`,
 vmlinux und Modul-Modpost, beide Board-DTBs und das Schema der Fixture.
+
+## CI-Ergebnisse
+
+Der [Build-091-Lauf bei `2963874`](https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/actions/runs/43577182835)
+bestand Checkpatch, den Framebuffer-Hosttest, die Prüfung des
+standardmäßig deaktivierten Treibers, den ARM32-Build mit Modpost und
+ELF32/ARM-Prüfung, beide Q60T-DTBs und die Schema-Prüfung.
+Die [Offline-Prüfungen](https://github.com/Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV/actions/runs/43577182762)
+für denselben Commit waren erfolgreich.
+
+Der erste Lauf bei `8502bed` stoppte bei Checkpatch. Aus dem
+Projekt-Checkout heraus behandelte Checkpatch die getrackte Patchdatei
+als Quelltext. Seit `2963874` erfolgt die Patch-Prüfung aus dem
+separaten Kernel-Verzeichnis.
