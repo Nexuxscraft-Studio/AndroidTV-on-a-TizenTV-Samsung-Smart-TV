@@ -39,7 +39,7 @@ jobs:
           patch -d "$ksrc" -p1 --batch --forward < porting/build089/0001-prepare-inert-test-pattern-plan.patch
           for p in porting/build091/*.patch; do
             patch -d "$ksrc" -p1 --batch --forward < "$p"
-            "$ksrc/scripts/checkpatch.pl" --no-tree --strict "$p"
+            (cd "$ksrc"; scripts/checkpatch.pl --no-tree --strict "$GITHUB_WORKSPACE/$p")
           done
           "$ksrc/scripts/checkpatch.pl" --no-tree --strict --file "$ksrc"/drivers/gpu/drm/sdp/*.[ch]
       - name: Test pattern and register plan on the host
