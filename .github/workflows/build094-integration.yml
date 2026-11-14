@@ -5,6 +5,10 @@ on:
     branches: ['feature/build094-full-driver-integration']
   workflow_dispatch:
 
+concurrency:
+  group: build094-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -51,6 +55,7 @@ jobs:
             (cd "$ksrc"; scripts/checkpatch.pl --no-tree --strict "$GITHUB_WORKSPACE/$p")
           done
           "$ksrc/scripts/checkpatch.pl" --no-tree --strict --file "$ksrc"/drivers/gpu/drm/sdp/*.[ch]
+          python3 porting/build094/check-dt.py --probe "$ksrc/drivers/gpu/drm/sdp"
       - name: Test pattern and register plan on the host
         run: |
           ksrc="$BUILD094_DIR/linux-6.6.162"
@@ -88,7 +93,13 @@ jobs:
           "$schema/dt-doc-validate" "$binding"
           "$schema/dt-validate" -s "$binding" "$fixture" 2>&1 | tee "$BUILD094_DIR/dt-schema.txt"
           test ! -s "$BUILD094_DIR/dt-schema.txt"
-          python3 porting/build094/check-dt.py "$fixture" "$kout"/arch/arm/boot/dts/sdp/sdp-nikel-q60t-*.dtb
+          cpu_fixture="$BUILD094_DIR/cpu-disabled.dtb"
+          "$kout/scripts/dtc/dtc" -I dts -O dtb -o "$cpu_fixture" porting/build058/cpu/nikel-cpu-thermal-disabled.dts
+          dtbs=("$kout"/arch/arm/boot/dts/sdp/sdp-nikel-q60t-{1g5,2g}.dtb)
+          evidence="$BUILD094_DIR/evidence"
+          python3 porting/build094/check-dt.py "$fixture" "$cpu_fixture" "${dtbs[@]}" | tee "$evidence/dt-status.txt"
+          cp "$fixture" "$cpu_fixture" "${dtbs[@]}" "$evidence/"
+          (cd "$evidence"; sha256sum -- *.dtb > dtb.sha256)
       - uses: actions/upload-artifact@v4
         if: always() && env.BUILD094_DIR != ''
         with:

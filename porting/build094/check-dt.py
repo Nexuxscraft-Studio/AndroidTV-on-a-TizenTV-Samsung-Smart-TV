@@ -1,11 +1,13 @@
 """Verify that experimental nodes in the compiled fixtures stay disabled."""
 from pathlib import Path
+import re
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "build070/tools"))
 from dt_nodes import parse
 
 DISPLAY = {b"samsung,nikel-drm-hw-preparation"}
+CPU = {b"nover,nikel-cpu-clock-offline", b"nover,nikel-cpufreq-offline", b"nover,nikel-thermal-offline"}
 BOARD = {
     b"samsung,sdp-drm", b"arm,mali-bifrost", b"samsung,sdp-messagebox",
     b"samsung,tztv-micom", b"samsung,sdp-mc-cecif", b"samsung,sdp-mac",
@@ -31,6 +33,25 @@ def check(filename, required):
     print(f"{filename}: all {len(required)} guarded compatibles are disabled")
 
 
-check(sys.argv[1], DISPLAY)
-for filename in sys.argv[2:]:
-    check(filename, BOARD)
+def check_probe(source):
+    probe = (source / "sdp_drm.c").read_text().split("static int sdp_drm_probe(", 1)[1]
+    hw = (source / "sdp_drm_hw.c").read_text()
+    if not re.search(r"bool sdp_hw_access_allowed\(void\)\s*\{\s*return false;\s*\}", hw):
+        raise SystemExit("SDP DRM hardware interlock must always return false")
+    probe_start = re.compile(
+        r"[^{}]*\{(?:[^;{}()]+;)*\s*(?:/\*[^{}]*?\*/\s*)?"
+        r"if\s*\(!sdp_hw_access_allowed\(\)\)\s*"
+        r"return dev_err_probe\(&pdev->dev, -EOPNOTSUPP,"
+    )
+    if not probe_start.match(probe):
+        raise SystemExit("SDP DRM probe must reject before calling hardware helpers")
+    print("SDP DRM probe interlock preserved")
+
+
+if sys.argv[1] == "--probe":
+    check_probe(Path(sys.argv[2]))
+else:
+    check(sys.argv[1], DISPLAY)
+    check(sys.argv[2], CPU)
+    for filename in sys.argv[3:]:
+        check(filename, BOARD)
