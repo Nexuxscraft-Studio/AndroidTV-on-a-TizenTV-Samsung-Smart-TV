@@ -35,25 +35,29 @@ sdp_gp.c:97–104. This is separate from verifying the runner's Linux
 Mixer, OSDP and device-tree analysis. This still does not establish
 the format, address high bits, latch, IRQ or initial bring-up order.
 
+## BUILD108 — isolate the GP-only plan
 
-## Review of the original Linux 4.1.10 runner export
+The BUILD107 artifact (run 43638868332, artifact 14131244232) contains
+17 ARM32 modules, identical kernel/module/DTB checksums from two builds,
+and 19 successful QEMU load/unload pairs. Its runner evidence has an empty
+display-candidate list and includes legacy SDP1501 DT excerpts; those do
+not establish the Nike-L programming sequence.
 
-Source: BUILD106 Actions run 43629072878, private artifact
-14127491741, including the DRM candidate list and the hashed source
-manifest. The exported DRM candidates are `drm_tztv_helper.c` and
-`panel/panel-sdp.c`. The export contains no matching GP, Mixer or OSDP
-driver and no matching `samsung,sdp-{gp,mixer,osdp}` compatible in its
-source files. This finding applies to the exported set.
+The inert plan now lists GP byte offsets 0x10/0x14 with 0x07800438 and
+0x18 with 480, using the existing BUILD087/089 evidence. The DMA address
+is software metadata. OSDP geometry and mixer active size are excluded
+from the plan: framebuffer dimensions alone cannot establish routing or
+panel timing. DT resource descriptions and the unconditional probe gate
+are unchanged.
 
-| Area | Finding and remaining dependency |
-| --- | --- |
-| GP | BUILD087 records source and destination geometry and the existence of separate low/high A1 operations. The 4.1.10 export does not supply the format field, address encoding, memory selection or enable/latch sequence. |
-| Mixer and OSDP | BUILD087 records Mixer mask and clear offsets. The 4.1.10 export does not establish layer select values, output route, update sequencing or OSDP programming. |
-| Clocks and reset | The similarly named gates in `drivers/clk/clk-sdp.c:888–911` use SDP1406 mask registers. They are unsuitable evidence for SDP1804. The Q60T clock names alone do not establish SDP1804 gate mappings or reset ordering. |
-| VSync | No original handler for this display path in the export. Status bit, mask polarity, clear semantics, and event ordering still need verification. |
-| Panel | `drivers/gpu/drm/panel/panel-sdp.c:34–48` explicitly labels its mode dummy data and gives zero-width sync intervals. Its compatible is `samsung,sdp1202-panel` (line 200). Native Q60T pixel clock, blanking, sync polarity and panel routing remain open. |
+QEMU compiles the generated driver headers with freestanding types and
+exercises the same post-validation helper as DRM atomic check. It checks
+the exact GP tuples, the last aligned 32-bit span, overflow/misalignment,
+and rejection of unsupported dimensions, pitch and FourCC. This does
+not invoke the DRM callback or cover GEM, mode state, or commit handling.
 
-The next source dependency is the matching Nike-L display package with
-its GP, Mixer and OSDP implementation, paired with SDP1804 clock and
-Q60T panel evidence. Keep the unconditional probe gate and disabled DT
-nodes while these prerequisites and reversible boot are unresolved.
+Next evidence needed: matching Nike-L vendor display code or a
+version-matched register trace that establishes register ownership,
+FourCC-to-hardware encoding, address translation and stride, routing and
+latching, clocks and resets, VSync acknowledgement, and output timings.
+No actual scanout, MMIO access, or hardware test is introduced.

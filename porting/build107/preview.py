@@ -16,9 +16,11 @@ for v in frame:
 serial = (report / "qemu/serial.log").read_text(errors="replace")
 pattern = f"BUILD107_PATTERN_OK width=1920 height=1080 pitch=7680 fnv1a={digest >> 16}:{digest & 65535}"
 summary = "BUILD106_QEMU_SUMMARY modules=19 loaded=19 unloaded=19 failures=0"
-for line in (pattern, summary):
+plan = "BUILD108_GP_PLAN_OK cases=9"
+for line in (pattern, summary, plan):
     if len(re.findall(r"^" + re.escape(line) + r"$", serial, re.M)) != 1:
         raise SystemExit(f"Missing unique guest result: {line}")
 print(pattern)
 print(summary)
+print(plan)
 print("QEMU virt: CPU RAM only; Samsung scanout and KMS commits untested")

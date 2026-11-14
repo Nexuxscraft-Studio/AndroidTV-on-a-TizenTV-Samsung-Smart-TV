@@ -27,7 +27,7 @@ if text.count(anchor) != 1:
     raise SystemExit("BUILD106 guest integration point changed")
 init.write_text(text.replace(anchor, "\tfails += build107_pattern_test();\n" + anchor))
 generate("porting/build106/qemu-modules.sh", "qemu.sh", "porting/build106/init.c",
-         '-I porting/build107 "$(dirname "$0")/init.c"')
+         '-I porting/build107/guest-include -I "$work/linux-nikel/drivers/gpu/drm/sdp" -I porting/build107 "$(dirname "$0")/init.c"')
 PY
 for build in a b; do
   mkdir -p "$root/$build/report"

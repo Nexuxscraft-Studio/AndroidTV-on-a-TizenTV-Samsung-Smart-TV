@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-#include "pattern.h"
+#include "guest-plan.h"
 
 /* RAM only: the same pixel function as the gated SDP DRM DMA fill. */
 static int build107_pattern_test(void)
@@ -39,5 +39,5 @@ static int build107_pattern_test(void)
 	out(":");
 	num(hash & 65535U);
 	out("\n");
-	return 0;
+	return build108_plan_test();
 }

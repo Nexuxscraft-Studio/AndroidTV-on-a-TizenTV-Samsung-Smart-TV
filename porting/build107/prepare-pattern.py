@@ -25,6 +25,38 @@ for old, new in (
     if content.count(old) != 1:
         raise SystemExit(f"SDP geometry integration point changed: {old}")
     content = content.replace(old, new)
+# The GP buffer does not establish an OSDP route or mixer active timing.
+# Keep those candidate registers in BUILD089 for evidence review only.
+def replace_once(text, old, new):
+    if text.count(old) != 1:
+        raise SystemExit(f"SDP integration point changed: {old!r}")
+    return text.replace(old, new)
+
+content = replace_once(content, "geometry[7]", "geometry[3]")
+for line in content.splitlines(keepends=True):
+    if line.startswith(("#define SDP_OSDP_", "#define SDP_MIXER_MAIN_",
+                        "\t\t\t{ SDP_OSDP,", "\t\t\t{ SDP_MIXER,")):
+        content = replace_once(content, line, "")
+start = content.index("/*\n * Describe vendor geometry in RAM.")
+end = content.index("static inline int sdp_test_prepare_plan", start)
+content = content[:start] + "/* GP geometry only. The DMA address is not a register value. */\n" + content[end:]
+content = replace_once(content, ".gp_dma_address", ".dma_address")
+content = replace_once(content, "u32 gp_dma_address;", "u32 dma_address;")
+content = replace_once(content, "#endif\n", """
+static inline int sdp_test_prepare_scanout(const struct sdp_scanout *scanout,
+                                          u32 xrgb8888, struct sdp_test_plan *plan)
+{
+    if (scanout->width != SDP_TEST_WIDTH ||
+        scanout->height != SDP_TEST_HEIGHT ||
+        scanout->pitch != SDP_TEST_PITCH ||
+        scanout->format != xrgb8888)
+        return -EINVAL;
+
+    return sdp_test_prepare_plan(scanout->dma_addr, plan);
+}
+
+#endif
+""")
 header.write_text(content)
 shutil.copyfile(here / "pattern.h", sdp / "build107_pattern.h")
 
@@ -52,13 +84,7 @@ new = """	struct sdp_scanout prepared;
 	 * Reuse the documented unscaled GP geometry and DMA span check.
 	 * A Linux FourCC is not the vendor register encoding.
 	 */
-	if (prepared.width != SDP_TEST_WIDTH ||
-	    prepared.height != SDP_TEST_HEIGHT ||
-	    prepared.pitch != SDP_TEST_PITCH ||
-	    prepared.format != DRM_FORMAT_XRGB8888)
-		return -EINVAL;
-
-	return sdp_test_prepare_plan(prepared.dma_addr, &plan);"""
+	return sdp_test_prepare_scanout(&prepared, DRM_FORMAT_XRGB8888, &plan);"""
 if content.count(old) != 1:
     raise SystemExit("SDP atomic plane integration point changed")
 content = content.replace(old, new)
