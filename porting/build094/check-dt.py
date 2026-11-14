@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "build070/tools"))
 from dt_nodes import parse
 
-DISPLAY = {b"samsung,sdp-drm", b"samsung,nikel-drm-hw-preparation"}
+DISPLAY = {b"samsung,nikel-drm-hw-preparation"}
 BOARD = {
     b"samsung,sdp-drm", b"arm,mali-bifrost", b"samsung,sdp-messagebox",
     b"samsung,tztv-micom", b"samsung,sdp-mc-cecif", b"samsung,sdp-mac",
@@ -17,6 +17,10 @@ BOARD = {
 def check(filename, required):
     seen = set()
     for path, props in parse(Path(filename).read_bytes()).items():
+        if "samsung,enable-experimental-kms" in props:
+            raise SystemExit(f"{filename}: {path} opts into experimental KMS")
+        if path.endswith("/gpu-power-domain") and props.get("status") != b"disabled\0":
+            raise SystemExit(f"{filename}: {path} must remain disabled")
         matches = required.intersection(props.get("compatible", b"").split(b"\0"))
         if matches:
             if props.get("status") != b"disabled\0":
@@ -27,6 +31,6 @@ def check(filename, required):
     print(f"{filename}: all {len(required)} guarded compatibles are disabled")
 
 
-check(sys.argv[1], DISPLAY - {b"samsung,sdp-drm"})
+check(sys.argv[1], DISPLAY)
 for filename in sys.argv[2:]:
     check(filename, BOARD)

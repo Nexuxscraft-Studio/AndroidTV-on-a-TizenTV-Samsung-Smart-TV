@@ -16,14 +16,12 @@ make "${make_args[@]}" multi_v7_defconfig
     porting/build059/kernel/configs/nikel-arm.config \
     porting/build059/kernel/configs/nikel-drivers.config
 "${config[@]}" -e MODULES -e RESET_CONTROLLER -d DEBUG_INFO_BTF
-make "${make_args[@]}" olddefconfig
-grep -qx '# CONFIG_DRM_SDP is not set' "$kout/.config" || grep -qx CONFIG_DRM_SDP=y "$kout/.config"
 "${config[@]}" -m DRM_SDP -m DRM_PANFROST
 make "${make_args[@]}" olddefconfig
 cp "$kout/.config" "$evidence/kernel.config"
 
 for symbol in ARCH_SDP SERIAL_SDP COMMON_CLK_SDP1804 GPIO_SDP SDP1804_GPU_POWER \
-    SDP_MSGBOX SDP_MICOM IR_SDP_MICOM CEC_SDP_CECIF CPUFREQ_DT THERMAL_OF SND_SOC \
+    PM_GENERIC_DOMAINS SDP_MSGBOX SDP_MICOM IR_SDP_MICOM CEC_SDP_CECIF CPUFREQ_DT THERMAL_OF SND_SOC \
     DRM_SIMPLEDRM MMC_DW_EXYNOS USB_EHCI_HCD_PLATFORM USB_OHCI_HCD_PLATFORM; do
     grep -qx "CONFIG_$symbol=y" "$kout/.config" || { echo "Missing $symbol=y"; exit 1; }
 done
@@ -31,6 +29,7 @@ for symbol in DRM_SDP DRM_PANFROST SDP_MAC DRM_SDP_HDMI SDP_MICOM_IRB SDP_MICOM_
     grep -qx "CONFIG_$symbol=m" "$kout/.config" || { echo "Missing $symbol=m"; exit 1; }
 done
 
+make "${make_args[@]}" -j "$(nproc)" W=1 KCFLAGS=-Werror drivers/gpu/drm/sdp/sdp_display.o
 make "${make_args[@]}" -j "$(nproc)" zImage modules 2>&1 | tee "$evidence/kernel.log"
 test -s "$kout/Module.symvers"
 test -s "$kout/arch/arm/boot/zImage"
