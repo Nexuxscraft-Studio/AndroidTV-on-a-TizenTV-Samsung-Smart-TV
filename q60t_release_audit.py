@@ -120,6 +120,7 @@ ALLOWED_PORTING_SOURCES = {
     # Build 087: reviewed inert DRM sources, disabled DT and text compile logs.
     "porting/build087/compile-arm32.sh",
     "porting/build087/dts/sdp-nikel-display-disabled.dts",
+    "porting/build088/sdp-nikel-display-disabled.dts",
     "porting/build087/kernel/Kconfig",
     "porting/build087/kernel/Makefile",
     "porting/build087/kernel/sdp_drm.c",

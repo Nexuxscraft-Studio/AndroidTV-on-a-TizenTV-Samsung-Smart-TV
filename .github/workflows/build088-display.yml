@@ -1,0 +1,90 @@
+name: Build088 Nike-L display preparation (ARM32)
+
+on:
+  push:
+    branches: ['feature/build088-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: Existing porting tests
+        run: |
+          python3 -m unittest discover -s porting/build059/tests -v
+          python3 -m unittest discover -s porting/build063/tests -v
+      - name: Prepare isolated kernel source and build tools
+        run: |
+          source porting/ci/selfhosted-llvm.sh
+          build=$(mktemp -d "$RUNNER_TEMP/build088.XXXXXX")
+          echo "BUILD088_DIR=$build" >> "$GITHUB_ENV"
+          cd "$build"
+          curl --fail --location --retry 3 -O https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.162.tar.xz
+          echo '4aa89f3652fc131e5d39990f3bcd4b9e131028af3f315dbe83f3a8557dc06f06  linux-6.6.162.tar.xz' | sha256sum -c -
+          tar -xf linux-6.6.162.tar.xz
+          for p in "$GITHUB_WORKSPACE"/porting/build059/kernel/patches/*.patch; do
+            patch -d linux-6.6.162 -p1 --batch --forward < "$p"
+          done
+      - name: Reproduce Build 087 ARM32 compile
+        run: |
+          source porting/ci/selfhosted-llvm.sh
+          ksrc="$BUILD088_DIR/linux-6.6.162"
+          kout="$BUILD088_DIR/arm"
+          make_args=(-C "$ksrc" O="$kout" ARCH=arm LLVM=1)
+          make "${make_args[@]}" multi_v7_defconfig
+          "$ksrc/scripts/config" --file "$kout/.config" -e MODULES -e COMPILE_TEST -e DRM -m DRM_SDP -d DEBUG_INFO_BTF
+          make "${make_args[@]}" olddefconfig
+          grep -qx CONFIG_DRM_SDP=m "$kout/.config"
+          make "${make_args[@]}" -j "$(nproc)" W=1 KCFLAGS=-Werror drivers/gpu/drm/sdp/sdp_display.o
+          file "$kout/drivers/gpu/drm/sdp/sdp_display.o"
+      - name: Apply Build 088 and run checkpatch
+        run: |
+          ksrc="$BUILD088_DIR/linux-6.6.162"
+          patch -d "$ksrc" -p1 --batch --forward < porting/build088/0001-prepare-display-clocks-and-test-pattern.patch
+          "$ksrc/scripts/checkpatch.pl" --no-tree --strict --file "$ksrc"/drivers/gpu/drm/sdp/*.[ch]
+      - name: Build ARM32 module and run modpost
+        run: |
+          source porting/ci/selfhosted-llvm.sh
+          ksrc="$BUILD088_DIR/linux-6.6.162"
+          kout="$BUILD088_DIR/arm"
+          make_args=(-C "$ksrc" O="$kout" ARCH=arm LLVM=1)
+          make "${make_args[@]}" -j "$(nproc)" W=1 KCFLAGS=-Werror drivers/gpu/drm/sdp/sdp_display.o
+          make "${make_args[@]}" -j "$(nproc)" vmlinux modules
+          test -s "$kout/Module.symvers"
+          module="$kout/drivers/gpu/drm/sdp/sdp_display.ko"
+          llvm-readelf -h "$module" | tee "$BUILD088_DIR/module-elf.txt"
+          grep -Eq 'Class:[[:space:]]+ELF32' "$BUILD088_DIR/module-elf.txt"
+          grep -Eq 'Machine:[[:space:]]+ARM' "$BUILD088_DIR/module-elf.txt"
+      - name: Compile and validate Device Tree
+        run: |
+          source porting/ci/selfhosted-llvm.sh
+          ksrc="$BUILD088_DIR/linux-6.6.162"
+          kout="$BUILD088_DIR/arm"
+          make -C "$ksrc" O="$kout" ARCH=arm LLVM=1 -j "$(nproc)" samsung/sdp-nikel-q60t-1g5.dtb samsung/sdp-nikel-q60t-2g.dtb
+          python3 -m venv "$BUILD088_DIR/schema"
+          py_include=$(python3 -c 'import sysconfig; print(sysconfig.get_path("include"))')
+          if [[ ! -f "$py_include/Python.h" ]]; then
+            py_version=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+            mkdir "$BUILD088_DIR/python-headers"
+            pushd "$BUILD088_DIR/python-headers"
+            apt-get download "libpython$py_version-dev"
+            for pkg in ./*.deb; do dpkg-deb -x "$pkg" root; done
+            export CFLAGS="-I$PWD/root/usr/include/python$py_version -I$PWD/root/usr/include"
+            popd
+          fi
+          schema="$BUILD088_DIR/schema/bin"
+          "$schema/pip" install dtschema
+          binding="$ksrc/Documentation/devicetree/bindings/display/samsung,nikel-drm-hw-preparation.yaml"
+          fixture="$BUILD088_DIR/display-disabled.dtb"
+          "$kout/scripts/dtc/dtc" -I dts -O dtb -o "$fixture" porting/build088/sdp-nikel-display-disabled.dts
+          "$schema/dt-doc-validate" "$binding"
+          "$schema/dt-validate" -s "$binding" "$fixture" 2>&1 | tee "$BUILD088_DIR/dt-schema.txt"
+          test ! -s "$BUILD088_DIR/dt-schema.txt"
+      - name: Remove temporary build files
+        if: always() && env.BUILD088_DIR != ''
+        run: rm -rf -- "$BUILD088_DIR"
