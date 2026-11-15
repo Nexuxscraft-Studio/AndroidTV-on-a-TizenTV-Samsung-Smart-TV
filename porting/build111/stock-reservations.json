@@ -1,0 +1,236 @@
+{
+  "2g": {
+    "offset": "0x0",
+    "fdt_sha256": "0189cc94fe8dd7d016462f22e9f8e965fe328cbc901066c8955f26130f86ab61",
+    "reservations": [
+      {
+        "node": "prevent_reserved@0x100ff0000",
+        "base": "0x100ff0000",
+        "size": "0x1000",
+        "stock_flags": []
+      },
+      {
+        "node": "cma@1",
+        "base": "0x4e400000",
+        "size": "0x800000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@2",
+        "base": "0x4ec00000",
+        "size": "0x1400000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@4",
+        "base": "0x51000000",
+        "size": "0xc00000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@5",
+        "base": "0x52000000",
+        "size": "0x1000000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@0xB0000000",
+        "base": "0xa2000000",
+        "size": "0x1800000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@11",
+        "base": "0xa3800000",
+        "size": "0x2000000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@12",
+        "base": "0xa5800000",
+        "size": "0x800000",
+        "stock_flags": [
+          "reusable",
+          "linux,cma-default"
+        ]
+      },
+      {
+        "node": "cma@15",
+        "base": "0xaa000000",
+        "size": "0x1400000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@16",
+        "base": "0xab400000",
+        "size": "0x1000000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@17",
+        "base": "0xe4000000",
+        "size": "0x2800000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "carveout@101",
+        "base": "0x56600000",
+        "size": "0x6b80000",
+        "stock_flags": [
+          "no-map"
+        ]
+      },
+      {
+        "node": "carveout@100",
+        "base": "0xed880000",
+        "size": "0xc500000",
+        "stock_flags": [
+          "no-map"
+        ]
+      }
+    ]
+  },
+  "1g5": {
+    "offset": "0x15000",
+    "fdt_sha256": "36e8e77898ce2e253ffd959f96d0fb1d27e3fcf58887325d668b190ac8dcd79e",
+    "reservations": [
+      {
+        "node": "prevent_reserved@0x100ff0000",
+        "base": "0x100ff0000",
+        "size": "0x1000",
+        "stock_flags": []
+      },
+      {
+        "node": "cma@1",
+        "base": "0x51c00000",
+        "size": "0x800000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@2",
+        "base": "0x52400000",
+        "size": "0x1400000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@4",
+        "base": "0x53800000",
+        "size": "0x800000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@5",
+        "base": "0x54000000",
+        "size": "0x1000000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@0xB0000000",
+        "base": "0xa2000000",
+        "size": "0x1800000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@11",
+        "base": "0xcc000000",
+        "size": "0x2000000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@12",
+        "base": "0xce000000",
+        "size": "0x800000",
+        "stock_flags": [
+          "reusable",
+          "linux,cma-default"
+        ]
+      },
+      {
+        "node": "cma@15",
+        "base": "0xd0000000",
+        "size": "0x1400000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@16",
+        "base": "0xd1400000",
+        "size": "0x1000000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@17",
+        "base": "0xd4000000",
+        "size": "0x2800000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@21",
+        "base": "0x4f000000",
+        "size": "0x1000000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "cma@20",
+        "base": "0xca000000",
+        "size": "0x2000000",
+        "stock_flags": [
+          "reusable"
+        ]
+      },
+      {
+        "node": "carveout@101",
+        "base": "0x4ba00000",
+        "size": "0x3600000",
+        "stock_flags": [
+          "no-map"
+        ]
+      },
+      {
+        "node": "carveout@100",
+        "base": "0xc2000000",
+        "size": "0x8000000",
+        "stock_flags": [
+          "no-map"
+        ]
+      }
+    ]
+  }
+}

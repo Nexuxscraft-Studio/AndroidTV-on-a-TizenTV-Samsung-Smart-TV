@@ -33,6 +33,7 @@ ALLOWED_C_PROBES = {
 # path allowlist, not a directory or extension wildcard. New executable,
 # binary, board firmware and unreviewed vendor files stay blocked.
 ALLOWED_PORTING_SOURCES = {
+    "porting/build111/build.sh",
     "porting/build052/contract/Makefile",
     "porting/build052/contract/nover_sdp_linux66_contract.c",
     "porting/build053/test-kbuild/Kbuild",

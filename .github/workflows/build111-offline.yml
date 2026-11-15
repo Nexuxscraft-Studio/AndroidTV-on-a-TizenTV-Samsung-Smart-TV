@@ -1,0 +1,46 @@
+name: BUILD111 ARM32 kernel and offline package
+
+on:
+  pull_request:
+    branches: [feature/build110-first-hardware-boot]
+    paths: ['porting/build111/**', '.github/workflows/build111-offline.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  arm32:
+    if: >-
+      github.ref == 'refs/heads/feature/build111-arm32-offline' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.head_ref == 'feature/build111-arm32-offline')
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Allocate build workspace
+        shell: bash
+        run: |
+          test "$RUNNER_NAME" = debian
+          work=$(mktemp -d "$RUNNER_TEMP/build111.XXXXXX")
+          echo "BUILD111_WORK=$work" >> "$GITHUB_ENV"
+          mkdir "$work/results"
+      - name: Fetch Linux and build twice
+        shell: bash
+        run: |
+          curl -fsSL --retry 3 -o "$BUILD111_WORK/linux-6.6.162.tar.xz" \
+            https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.162.tar.xz
+          bash porting/build111/build.sh "$BUILD111_WORK" "$BUILD111_WORK/linux-6.6.162.tar.xz" "$BUILD111_WORK/results"
+      - uses: actions/upload-artifact@v4
+        if: always() && env.BUILD111_WORK != ''
+        with:
+          name: build111-arm32-offline
+          path: ${{ env.BUILD111_WORK }}/results/
+          if-no-files-found: error
+      - name: Remove scratch directory
+        if: always() && env.BUILD111_WORK != ''
+        shell: bash
+        run: rm -rf -- "$BUILD111_WORK"
