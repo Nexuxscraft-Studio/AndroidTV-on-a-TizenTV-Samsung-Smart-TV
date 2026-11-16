@@ -1,0 +1,686 @@
+{
+  "address_translation": "UNKNOWN",
+  "bootloader_handoff": "UNKNOWN",
+  "build": 122,
+  "compiled_dtb_verified": false,
+  "decompression_destination": "UNKNOWN",
+  "decompressor_workspace_bytes": null,
+  "dtb_placement": "UNKNOWN",
+  "generated_header_or_reference": {
+    "entry": 2147516416,
+    "load": 2147516416,
+    "payload_bytes": 12030464
+  },
+  "generated_measurement_source": "requested BUILD121 payload length, binary unavailable",
+  "handoff_file_sizes_bytes": null,
+  "hardware": "NO-GO",
+  "initramfs_placement": "UNKNOWN",
+  "kernel_bss_and_runtime_footprint": "UNKNOWN",
+  "memory_source": "reports/hardware_2743.0_build004_final.json and porting/build111/stock-reservations.json",
+  "mode": "OFFLINE-ONLY",
+  "payload_delta_bytes": 4989504,
+  "profiles": {
+    "1g5": {
+      "free_intervals_static_only": [
+        [
+          "0x40000000",
+          "0x47800000"
+        ],
+        [
+          "0x50000000",
+          "0x51c00000"
+        ],
+        [
+          "0x55000000",
+          "0x5fc00000"
+        ],
+        [
+          "0xa3800000",
+          "0xc0000000"
+        ],
+        [
+          "0xce800000",
+          "0xd0000000"
+        ],
+        [
+          "0xd2400000",
+          "0xd4000000"
+        ],
+        [
+          "0xd6800000",
+          "0xd9a40000"
+        ]
+      ],
+      "generated_zimage_address_comparison": {
+        "entry_at_zimage_start": true,
+        "entry_in_payload": true,
+        "inside_one_advertised_bank": false,
+        "inside_static_free_ram": false,
+        "load_interval_end_exclusive": [
+          "0x80008000",
+          "0x80b81200"
+        ],
+        "overlapping_reservations": [],
+        "within_arm32": true
+      },
+      "largest_static_gap_bytes": 478150656,
+      "ram_banks": [
+        [
+          "0x40000000",
+          "0x47800000"
+        ],
+        [
+          "0x4f000000",
+          "0x5fc00000"
+        ],
+        [
+          "0xa2000000",
+          "0xc0000000"
+        ],
+        [
+          "0xca000000",
+          "0xd9a40000"
+        ]
+      ],
+      "reservations": [
+        {
+          "base": "0x100ff0000",
+          "in_ram_intervals": [],
+          "interval": [
+            "0x100ff0000",
+            "0x100ff1000"
+          ],
+          "node": "prevent_reserved@0x100ff0000",
+          "offline_dtb_no_map": false,
+          "size": "0x1000",
+          "stock_flags": []
+        },
+        {
+          "base": "0x51c00000",
+          "in_ram_intervals": [
+            [
+              "0x51c00000",
+              "0x52400000"
+            ]
+          ],
+          "interval": [
+            "0x51c00000",
+            "0x52400000"
+          ],
+          "node": "cma@1",
+          "offline_dtb_no_map": false,
+          "size": "0x800000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0x52400000",
+          "in_ram_intervals": [
+            [
+              "0x52400000",
+              "0x53800000"
+            ]
+          ],
+          "interval": [
+            "0x52400000",
+            "0x53800000"
+          ],
+          "node": "cma@2",
+          "offline_dtb_no_map": false,
+          "size": "0x1400000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0x53800000",
+          "in_ram_intervals": [
+            [
+              "0x53800000",
+              "0x54000000"
+            ]
+          ],
+          "interval": [
+            "0x53800000",
+            "0x54000000"
+          ],
+          "node": "cma@4",
+          "offline_dtb_no_map": false,
+          "size": "0x800000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0x54000000",
+          "in_ram_intervals": [
+            [
+              "0x54000000",
+              "0x55000000"
+            ]
+          ],
+          "interval": [
+            "0x54000000",
+            "0x55000000"
+          ],
+          "node": "cma@5",
+          "offline_dtb_no_map": false,
+          "size": "0x1000000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xa2000000",
+          "in_ram_intervals": [
+            [
+              "0xa2000000",
+              "0xa3800000"
+            ]
+          ],
+          "interval": [
+            "0xa2000000",
+            "0xa3800000"
+          ],
+          "node": "cma@0xB0000000",
+          "offline_dtb_no_map": false,
+          "size": "0x1800000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xcc000000",
+          "in_ram_intervals": [
+            [
+              "0xcc000000",
+              "0xce000000"
+            ]
+          ],
+          "interval": [
+            "0xcc000000",
+            "0xce000000"
+          ],
+          "node": "cma@11",
+          "offline_dtb_no_map": false,
+          "size": "0x2000000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xce000000",
+          "in_ram_intervals": [
+            [
+              "0xce000000",
+              "0xce800000"
+            ]
+          ],
+          "interval": [
+            "0xce000000",
+            "0xce800000"
+          ],
+          "node": "cma@12",
+          "offline_dtb_no_map": false,
+          "size": "0x800000",
+          "stock_flags": [
+            "reusable",
+            "linux,cma-default"
+          ]
+        },
+        {
+          "base": "0xd0000000",
+          "in_ram_intervals": [
+            [
+              "0xd0000000",
+              "0xd1400000"
+            ]
+          ],
+          "interval": [
+            "0xd0000000",
+            "0xd1400000"
+          ],
+          "node": "cma@15",
+          "offline_dtb_no_map": false,
+          "size": "0x1400000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xd1400000",
+          "in_ram_intervals": [
+            [
+              "0xd1400000",
+              "0xd2400000"
+            ]
+          ],
+          "interval": [
+            "0xd1400000",
+            "0xd2400000"
+          ],
+          "node": "cma@16",
+          "offline_dtb_no_map": false,
+          "size": "0x1000000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xd4000000",
+          "in_ram_intervals": [
+            [
+              "0xd4000000",
+              "0xd6800000"
+            ]
+          ],
+          "interval": [
+            "0xd4000000",
+            "0xd6800000"
+          ],
+          "node": "cma@17",
+          "offline_dtb_no_map": false,
+          "size": "0x2800000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0x4f000000",
+          "in_ram_intervals": [
+            [
+              "0x4f000000",
+              "0x50000000"
+            ]
+          ],
+          "interval": [
+            "0x4f000000",
+            "0x50000000"
+          ],
+          "node": "cma@21",
+          "offline_dtb_no_map": false,
+          "size": "0x1000000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xca000000",
+          "in_ram_intervals": [
+            [
+              "0xca000000",
+              "0xcc000000"
+            ]
+          ],
+          "interval": [
+            "0xca000000",
+            "0xcc000000"
+          ],
+          "node": "cma@20",
+          "offline_dtb_no_map": false,
+          "size": "0x2000000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0x4ba00000",
+          "in_ram_intervals": [],
+          "interval": [
+            "0x4ba00000",
+            "0x4f000000"
+          ],
+          "node": "carveout@101",
+          "offline_dtb_no_map": true,
+          "size": "0x3600000",
+          "stock_flags": [
+            "no-map"
+          ]
+        },
+        {
+          "base": "0xc2000000",
+          "in_ram_intervals": [],
+          "interval": [
+            "0xc2000000",
+            "0xca000000"
+          ],
+          "node": "carveout@100",
+          "offline_dtb_no_map": true,
+          "size": "0x8000000",
+          "stock_flags": [
+            "no-map"
+          ]
+        }
+      ],
+      "stock_header_address_comparison": {
+        "entry_at_zimage_start": true,
+        "entry_in_payload": true,
+        "inside_one_advertised_bank": false,
+        "inside_static_free_ram": false,
+        "load_interval_end_exclusive": [
+          "0x80008000",
+          "0x806befc0"
+        ],
+        "overlapping_reservations": [],
+        "within_arm32": true
+      }
+    },
+    "2g": {
+      "free_intervals_static_only": [
+        [
+          "0x40000000",
+          "0x4e400000"
+        ],
+        [
+          "0x50000000",
+          "0x51000000"
+        ],
+        [
+          "0x51c00000",
+          "0x52000000"
+        ],
+        [
+          "0x53000000",
+          "0x54000000"
+        ],
+        [
+          "0xa6000000",
+          "0xaa000000"
+        ],
+        [
+          "0xac400000",
+          "0xdfc00000"
+        ],
+        [
+          "0xe6800000",
+          "0xed880000"
+        ]
+      ],
+      "generated_zimage_address_comparison": {
+        "entry_at_zimage_start": true,
+        "entry_in_payload": true,
+        "inside_one_advertised_bank": false,
+        "inside_static_free_ram": false,
+        "load_interval_end_exclusive": [
+          "0x80008000",
+          "0x80b81200"
+        ],
+        "overlapping_reservations": [],
+        "within_arm32": true
+      },
+      "largest_static_gap_bytes": 864026624,
+      "ram_banks": [
+        [
+          "0x40000000",
+          "0x54000000"
+        ],
+        [
+          "0xa2000000",
+          "0xdfc00000"
+        ],
+        [
+          "0xe4000000",
+          "0xed880000"
+        ]
+      ],
+      "reservations": [
+        {
+          "base": "0x100ff0000",
+          "in_ram_intervals": [],
+          "interval": [
+            "0x100ff0000",
+            "0x100ff1000"
+          ],
+          "node": "prevent_reserved@0x100ff0000",
+          "offline_dtb_no_map": false,
+          "size": "0x1000",
+          "stock_flags": []
+        },
+        {
+          "base": "0x4e400000",
+          "in_ram_intervals": [
+            [
+              "0x4e400000",
+              "0x4ec00000"
+            ]
+          ],
+          "interval": [
+            "0x4e400000",
+            "0x4ec00000"
+          ],
+          "node": "cma@1",
+          "offline_dtb_no_map": false,
+          "size": "0x800000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0x4ec00000",
+          "in_ram_intervals": [
+            [
+              "0x4ec00000",
+              "0x50000000"
+            ]
+          ],
+          "interval": [
+            "0x4ec00000",
+            "0x50000000"
+          ],
+          "node": "cma@2",
+          "offline_dtb_no_map": false,
+          "size": "0x1400000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0x51000000",
+          "in_ram_intervals": [
+            [
+              "0x51000000",
+              "0x51c00000"
+            ]
+          ],
+          "interval": [
+            "0x51000000",
+            "0x51c00000"
+          ],
+          "node": "cma@4",
+          "offline_dtb_no_map": false,
+          "size": "0xc00000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0x52000000",
+          "in_ram_intervals": [
+            [
+              "0x52000000",
+              "0x53000000"
+            ]
+          ],
+          "interval": [
+            "0x52000000",
+            "0x53000000"
+          ],
+          "node": "cma@5",
+          "offline_dtb_no_map": false,
+          "size": "0x1000000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xa2000000",
+          "in_ram_intervals": [
+            [
+              "0xa2000000",
+              "0xa3800000"
+            ]
+          ],
+          "interval": [
+            "0xa2000000",
+            "0xa3800000"
+          ],
+          "node": "cma@0xB0000000",
+          "offline_dtb_no_map": false,
+          "size": "0x1800000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xa3800000",
+          "in_ram_intervals": [
+            [
+              "0xa3800000",
+              "0xa5800000"
+            ]
+          ],
+          "interval": [
+            "0xa3800000",
+            "0xa5800000"
+          ],
+          "node": "cma@11",
+          "offline_dtb_no_map": false,
+          "size": "0x2000000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xa5800000",
+          "in_ram_intervals": [
+            [
+              "0xa5800000",
+              "0xa6000000"
+            ]
+          ],
+          "interval": [
+            "0xa5800000",
+            "0xa6000000"
+          ],
+          "node": "cma@12",
+          "offline_dtb_no_map": false,
+          "size": "0x800000",
+          "stock_flags": [
+            "reusable",
+            "linux,cma-default"
+          ]
+        },
+        {
+          "base": "0xaa000000",
+          "in_ram_intervals": [
+            [
+              "0xaa000000",
+              "0xab400000"
+            ]
+          ],
+          "interval": [
+            "0xaa000000",
+            "0xab400000"
+          ],
+          "node": "cma@15",
+          "offline_dtb_no_map": false,
+          "size": "0x1400000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xab400000",
+          "in_ram_intervals": [
+            [
+              "0xab400000",
+              "0xac400000"
+            ]
+          ],
+          "interval": [
+            "0xab400000",
+            "0xac400000"
+          ],
+          "node": "cma@16",
+          "offline_dtb_no_map": false,
+          "size": "0x1000000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0xe4000000",
+          "in_ram_intervals": [
+            [
+              "0xe4000000",
+              "0xe6800000"
+            ]
+          ],
+          "interval": [
+            "0xe4000000",
+            "0xe6800000"
+          ],
+          "node": "cma@17",
+          "offline_dtb_no_map": false,
+          "size": "0x2800000",
+          "stock_flags": [
+            "reusable"
+          ]
+        },
+        {
+          "base": "0x56600000",
+          "in_ram_intervals": [],
+          "interval": [
+            "0x56600000",
+            "0x5d180000"
+          ],
+          "node": "carveout@101",
+          "offline_dtb_no_map": true,
+          "size": "0x6b80000",
+          "stock_flags": [
+            "no-map"
+          ]
+        },
+        {
+          "base": "0xed880000",
+          "in_ram_intervals": [],
+          "interval": [
+            "0xed880000",
+            "0xf9d80000"
+          ],
+          "node": "carveout@100",
+          "offline_dtb_no_map": true,
+          "size": "0xc500000",
+          "stock_flags": [
+            "no-map"
+          ]
+        }
+      ],
+      "stock_header_address_comparison": {
+        "entry_at_zimage_start": true,
+        "entry_in_payload": true,
+        "inside_one_advertised_bank": false,
+        "inside_static_free_ram": false,
+        "load_interval_end_exclusive": [
+          "0x80008000",
+          "0x806befc0"
+        ],
+        "overlapping_reservations": [],
+        "within_arm32": true
+      }
+    }
+  },
+  "stock_binary_verified_locally": false,
+  "stock_header": {
+    "arch": 2,
+    "entry": 2147516416,
+    "load": 2147516416,
+    "payload_bytes": 7040960
+  },
+  "stock_measurement_source": "reports/hardware_build050_evidence.json and reports/kernel_2743.0.json",
+  "stock_uimage_sha256": "6603f3f5082d6ef74471f9233ce17063658daf10e1d9440a8a9c75749a5e72b2",
+  "uncompressed_image_bytes": null,
+  "uncompressed_image_sha256": null,
+  "uncompressed_image_source": "UNKNOWN"
+}
