@@ -65,6 +65,23 @@ def intersect(left, right):
     return (a, b) if a < b else None
 
 
+def free_intervals(banks, ranges):
+    ordered = disjoint(ranges, "firmware reservations")
+    free = []
+    for first, last in banks:
+        cursor = first
+        for span in ordered:
+            clipped = intersect((first, last), span)
+            if clipped:
+                a, b = clipped
+                if cursor < a:
+                    free.append((cursor, a))
+                cursor = b
+        if cursor < last:
+            free.append((cursor, last))
+    return free
+
+
 def dt_report(blob, profile, sizes):
     with tempfile.TemporaryDirectory() as scratch:
         path = Path(scratch) / "board.dtb"
@@ -128,19 +145,7 @@ def dt_report(blob, profile, sizes):
             ranges.append(span)
             slices = [part for bank in banks if (part := intersect(bank, span))]
             rows.append(dict(item, in_ram_bytes=sum(b - a for a, b in slices)))
-        ordered = disjoint(ranges, "firmware reservations")
-        free = []
-        for first, last in banks:
-            cursor = first
-            for span in ordered:
-                clipped = intersect((first, last), span)
-                if clipped:
-                    a, b = clipped
-                    if cursor < a:
-                        free.append((cursor, a))
-                    cursor = b
-            if cursor < last:
-                free.append((cursor, last))
+        free = free_intervals(banks, ranges)
 
         # Capacity sanity check only. A real placement needs the handoff's
         # actual addresses, decompressor relocation/workspace and running map.
