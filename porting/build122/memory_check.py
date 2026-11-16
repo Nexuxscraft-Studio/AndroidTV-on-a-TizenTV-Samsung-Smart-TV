@@ -21,6 +21,7 @@ from q60t_hardware import parse_fdt
 REPORTS = ROOT / "reports"
 IMAGE = "BUILD121-Q60T-OFFLINE-ONLY.uImage"
 LOAD = 0x80008000
+BUILD121_IMAGE_BYTES = 34070520
 
 
 def read_json(path):
@@ -175,6 +176,7 @@ def memory_report(stock=None, artifacts=None, archive=None):
             stock_header = artifact_report["stock_header"]
             stock_source = "BUILD121 build-report.json and repository firmware evidence"
         raw_bytes = artifact_report["sizes_bytes"]["Image"]
+        build111.require(raw_bytes == BUILD121_IMAGE_BYTES, "BUILD121 raw Image size mismatch")
         raw_sha256 = measure_gzip_image(payload, raw_bytes)
         raw_source = "BUILD121 zImage embedded gzip, checked against BUILD121 build-report.json"
         for profile, dtb in zip(("1g5", "2g"), build111.DTBS):
@@ -193,6 +195,13 @@ def memory_report(stock=None, artifacts=None, archive=None):
         raw_source = "BUILD111 Image verified against embedded gzip"
 
     for profile in profiles.values():
+        profile["decompressed_image_capacity"] = {
+            "required_bytes": raw_bytes or BUILD121_IMAGE_BYTES,
+            "size_source": raw_source if raw_bytes else "BUILD121 reference size",
+            "fits_in_largest_static_gap": profile["largest_static_gap_bytes"] >=
+                                         (raw_bytes or BUILD121_IMAGE_BYTES),
+            "runtime_placement": "UNKNOWN",
+        }
         profile["stock_header_address_comparison"] = load_check(stock_header, profile)
         profile["generated_zimage_address_comparison"] = load_check(generated, profile)
 

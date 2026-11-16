@@ -25,6 +25,10 @@ class MemoryTests(unittest.TestCase):
         for name, profile in self.report["profiles"].items():
             with self.subTest(profile=name):
                 self.assertEqual(profile["ram_banks"], expected[name])
+                capacity = profile["decompressed_image_capacity"]
+                self.assertEqual(capacity["required_bytes"], 34070520)
+                self.assertTrue(capacity["fits_in_largest_static_gap"])
+                self.assertEqual(capacity["runtime_placement"], "UNKNOWN")
                 self.assertEqual(sum(row["offline_dtb_no_map"] for row in profile["reservations"]), 2)
                 for key in ("stock_header_address_comparison", "generated_zimage_address_comparison"):
                     check = profile[key]

@@ -50,6 +50,13 @@ wurde aus dem veröffentlichten
 erzeugt. Optional vergleicht `--archive` das geprüfte BUILD111-ZIP samt
 SHA-256-Sidecar und zImage, rohem Image und Begleitdateien aus demselben Build.
 
+Das bereits in BUILD121 direkt verifizierte Samsung-Original liegt dem
+Debian-Runner über `BUILD121_STOCK_UIMAGE` zur Verfügung. Die Variable
+verweist auf `/opt/samsung-atv-lab/samsung/firmware-2743/decrypted/uImage`.
+BUILD122 vergleicht es erneut direkt mit dem festgelegten SHA-256
+`6603f3f5082d6ef74471f9233ce17063658daf10e1d9440a8a9c75749a5e72b2`
+und dem erzeugten Header.
+
 Der BUILD122-Workflow nutzt den vorhandenen Debian-Self-Hosted-Runner. Er
 erzeugt zuerst den Referenzreport und vergleicht ihn bytegenau. Danach
 verwendet er die vorhandene BUILD111/121-Pipeline mit den bestehenden

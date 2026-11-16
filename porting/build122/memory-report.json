@@ -21,6 +21,12 @@
   "payload_delta_bytes": 4989504,
   "profiles": {
     "1g5": {
+      "decompressed_image_capacity": {
+        "fits_in_largest_static_gap": true,
+        "required_bytes": 34070520,
+        "runtime_placement": "UNKNOWN",
+        "size_source": "BUILD121 reference size"
+      },
       "free_intervals_static_only": [
         [
           "0x40000000",
@@ -367,6 +373,12 @@
       }
     },
     "2g": {
+      "decompressed_image_capacity": {
+        "fits_in_largest_static_gap": true,
+        "required_bytes": 34070520,
+        "runtime_placement": "UNKNOWN",
+        "size_source": "BUILD121 reference size"
+      },
       "free_intervals_static_only": [
         [
           "0x40000000",
