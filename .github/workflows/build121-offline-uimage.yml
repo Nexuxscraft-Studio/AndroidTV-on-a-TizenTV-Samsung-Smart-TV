@@ -1,0 +1,72 @@
+name: BUILD121 ARM32 legacy uImage (offline)
+
+on:
+  push:
+    branches: [build121/offline-legacy-uimage]
+    paths: ['porting/build121/**', '.github/workflows/build121-offline-uimage.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    if: github.ref == 'refs/heads/build121/offline-legacy-uimage'
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Allocate scratch directory
+        shell: bash
+        run: |
+          test "$RUNNER_NAME" = debian
+          work=$(mktemp -d "$RUNNER_TEMP/build121.XXXXXX")
+          echo "BUILD121_WORK=$work" >> "$GITHUB_ENV"
+          mkdir "$work/diagnostics"
+      - name: Build Linux twice from the local source archive
+        shell: bash
+        env:
+          BUILD121_LINUX_TARBALL: ${{ vars.BUILD121_LINUX_TARBALL }}
+          BUILD121_STOCK_UIMAGE: ${{ vars.BUILD121_STOCK_UIMAGE }}
+          BUILD121_STOCK_UIMAGE_SHA256: ${{ vars.BUILD121_STOCK_UIMAGE_SHA256 }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for tool in mkimage file; do
+            if ! command -v "$tool" >/dev/null; then
+              echo "::error::Missing Debian runner tool: $tool"
+              missing=1
+            fi
+          done
+          for setting in BUILD121_LINUX_TARBALL BUILD121_STOCK_UIMAGE BUILD121_STOCK_UIMAGE_SHA256; do
+            if [[ -z "${!setting}" ]]; then
+              echo "::error::Missing repository variable: $setting"
+              missing=1
+            fi
+          done
+          (( missing == 0 ))
+          python3 -m unittest discover -s porting/build121
+          python3 porting/build121/legacy_uimage.py "$BUILD121_STOCK_UIMAGE" "$BUILD121_STOCK_UIMAGE_SHA256"
+          [[ "$BUILD121_LINUX_TARBALL" = /* && -r "$BUILD121_LINUX_TARBALL" ]]
+          bash porting/build111/build.sh "$BUILD121_WORK" "$BUILD121_LINUX_TARBALL" "$BUILD121_WORK/diagnostics"
+          python3 porting/build121/legacy_uimage.py "$BUILD121_STOCK_UIMAGE" "$BUILD121_STOCK_UIMAGE_SHA256" "$BUILD121_WORK"
+          (cd "$BUILD121_WORK/artifacts" && sha256sum -c SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build121-arm32-legacy-uimage-offline
+          path: ${{ env.BUILD121_WORK }}/artifacts/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always() && env.BUILD121_WORK != ''
+        with:
+          name: build121-build-logs
+          path: |
+            ${{ env.BUILD121_WORK }}/diagnostics/*.log
+            ${{ env.BUILD121_WORK }}/diagnostics/*.txt
+          if-no-files-found: ignore
+      - name: Remove scratch directory
+        if: always() && env.BUILD121_WORK != ''
+        shell: bash
+        run: rm -rf -- "$BUILD121_WORK"
