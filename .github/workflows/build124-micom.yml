@@ -1,0 +1,30 @@
+name: BUILD 124 MICOM and recovery evidence
+on:
+  push:
+    branches: [build124/micom-recovery-analysis]
+    paths:
+      - .github/workflows/build124-micom.yml
+      - scripts/build124_micom_evidence.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    if: github.repository == 'Nexuxscraft-Studio/AndroidTV-on-a-TizenTV-Samsung-Smart-TV' && github.ref == 'refs/heads/build124/micom-recovery-analysis'
+    runs-on: [self-hosted, debian]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Collect static evidence
+        run: python3 scripts/build124_micom_evidence.py "$RUNNER_TEMP/build124-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+      - name: Upload JSON and Markdown
+        uses: actions/upload-artifact@v4
+        with:
+          name: build124-micom-recovery-evidence
+          path: ${{ runner.temp }}/build124-${{ github.run_id }}-${{ github.run_attempt }}/
+          if-no-files-found: error
+          retention-days: 7
