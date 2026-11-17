@@ -40,17 +40,13 @@ def rea_exports(path, output):
     except (OSError, subprocess.SubprocessError, ValueError) as exc:
         return {"status": "unavailable", "reason": type(exc).__name__,
                 "detail": getattr(exc, "stderr", "")[:400]}
-    return {"status": "collected", "evidence_file": output.name,
-            "sha256": hashlib.sha256(output.read_bytes()).hexdigest()} if write_rea(output, evidence) else {
-                "status": "unavailable", "reason": "REA reported an error"}
-
-
-def write_rea(output, evidence):
-    if isinstance(evidence, dict) and (evidence.get("error") or evidence.get("ok") is False):
-        return False
+    if not isinstance(evidence, dict) or not evidence.get("evidence_id"):
+        return {"status": "unavailable", "reason": "REA returned no Evidence ID"}
     # Preserve the native-export Evidence for the MICOM library only.
     output.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
-    return True
+    return {"status": "collected", "evidence_id": evidence["evidence_id"],
+            "evidence_file": output.name,
+            "sha256": hashlib.sha256(output.read_bytes()).hexdigest()}
 
 
 def inspect(root, name, expected):
@@ -91,6 +87,22 @@ def markdown(report):
         "Dynamische Symbole dokumentieren Definitionen oder Importe (Index UND). "
         "String-Offsets sind Dateioffsets. Texte sind statische Diagnose- oder Recovery-Hinweise. "
         "Die Reihenfolge von Zustandsübergängen und die Bedingungen für Recovery bleiben offen.",
+        "",
+        "## Befunde",
+        "",
+        "- **SWUCoreTV und SWUVerifierTV:** Beide enthalten get/set/removeUpgradeStatusFlag. "
+        "Der Getter erscheint als optionaler boolescher Wert. Die Diagnose nennt gleichzeitig "
+        "vorliegende Erfolgs- und Fehlermarker sowie Fehler beim Anlegen oder Entfernen "
+        "von Verzeichnissen. Die Zustandsübergänge bleiben offen.",
+        "- **SWUVerifierTV:** Die Diagnose nennt das Speichern des erfolgreichen Upgrades "
+        "in VConf und das Vormerken einer fehlgeschlagenen Prüfung zur späteren GUI-Anzeige. "
+        "Die Schlüssel last_successful_update_info und upgrade_verified_successfully "
+        "sind als Strings mit Dateioffsets belegt.",
+        "- **libmicom:** micom_get_boot_status_record_data und micom_get_upgrade_fail_count "
+        "sind exportierte Symbole. Aus den Namen allein ergeben sich weder Datenformat noch "
+        "Auslöser oder Nutzer dieser Statusabfragen.",
+        "- **Recovery:** Der definierte Recovery-Stringfilter ergab in diesen drei Dateien "
+        "keine Treffer. Ein modellspezifisches Wiederherstellungsverfahren bleibt offen.",
         "",
         "**Automatischer Boot-Fallback bleibt offen.** Die in BUILD 123 belegten Slot-APIs "
         "und doppelten Partitionen belegen keine automatische Umschaltung nach einem Bootfehler.",
